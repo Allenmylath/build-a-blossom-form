@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { FormFieldEditor } from './FormFieldEditor';
 import { FormPreview } from './FormPreview';
@@ -7,7 +6,7 @@ import { FormManager } from './FormManager';
 import { FormSaveDialog } from './FormSaveDialog';
 import { FormExport } from './FormExport';
 import { FormField, FormFieldType, FormTemplate, SavedForm, FormSubmissionData } from '@/types/form';
-import { Plus, Settings, Eye, Save, FolderOpen, Template, Download, Upload, Copy } from 'lucide-react';
+import { Plus, Settings, Eye, Save, FolderOpen, FileText, Download, Upload, Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -230,7 +229,7 @@ export const FormBuilder = () => {
             Preview
           </TabsTrigger>
           <TabsTrigger value="templates" className="flex items-center">
-            <Template className="w-4 h-4 mr-2" />
+            <FileText className="w-4 h-4 mr-2" />
             Templates
           </TabsTrigger>
           <TabsTrigger value="manage" className="flex items-center">

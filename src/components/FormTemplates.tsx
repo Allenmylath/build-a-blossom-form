@@ -1,9 +1,8 @@
-
 import { FormTemplate } from '@/types/form';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Template, Plus } from 'lucide-react';
+import { FileText, Plus } from 'lucide-react';
 
 interface FormTemplatesProps {
   onSelectTemplate: (template: FormTemplate) => void;
@@ -71,7 +70,7 @@ export const FormTemplates = ({ onSelectTemplate }: FormTemplatesProps) => {
     <div className="space-y-6">
       <div className="text-center">
         <h2 className="text-2xl font-bold mb-2 flex items-center justify-center">
-          <Template className="w-6 h-6 mr-2 text-purple-600" />
+          <FileText className="w-6 h-6 mr-2 text-purple-600" />
           Form Templates
         </h2>
         <p className="text-gray-600">Start with a pre-built template and customize it to your needs</p>
