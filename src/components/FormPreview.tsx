@@ -70,6 +70,8 @@ export const FormPreview = ({ fields }: FormPreviewProps) => {
       case 'text':
       case 'email':
       case 'number':
+      case 'url':
+      case 'phone':
         return (
           <div key={field.id} className="space-y-2">
             <Label htmlFor={field.id}>
@@ -78,7 +80,7 @@ export const FormPreview = ({ fields }: FormPreviewProps) => {
             </Label>
             <Input
               id={field.id}
-              type={field.type}
+              type={field.type === 'phone' ? 'tel' : field.type}
               placeholder={field.placeholder}
               value={formData[field.id] as string || ''}
               onChange={(e) => updateFormData(field.id, e.target.value)}
@@ -166,6 +168,41 @@ export const FormPreview = ({ fields }: FormPreviewProps) => {
                 {field.required && <span className="text-red-500 ml-1">*</span>}
               </Label>
             </div>
+            {hasError && <p className="text-red-500 text-sm">{errorMessage}</p>}
+          </div>
+        );
+
+      case 'date':
+        return (
+          <div key={field.id} className="space-y-2">
+            <Label htmlFor={field.id}>
+              {field.label}
+              {field.required && <span className="text-red-500 ml-1">*</span>}
+            </Label>
+            <Input
+              id={field.id}
+              type="date"
+              value={formData[field.id] as string || ''}
+              onChange={(e) => updateFormData(field.id, e.target.value)}
+              className={hasError ? 'border-red-500' : ''}
+            />
+            {hasError && <p className="text-red-500 text-sm">{errorMessage}</p>}
+          </div>
+        );
+
+      case 'file':
+        return (
+          <div key={field.id} className="space-y-2">
+            <Label htmlFor={field.id}>
+              {field.label}
+              {field.required && <span className="text-red-500 ml-1">*</span>}
+            </Label>
+            <Input
+              id={field.id}
+              type="file"
+              onChange={(e) => updateFormData(field.id, e.target.files?.[0]?.name || '')}
+              className={hasError ? 'border-red-500' : ''}
+            />
             {hasError && <p className="text-red-500 text-sm">{errorMessage}</p>}
           </div>
         );
