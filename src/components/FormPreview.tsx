@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Send, Eye } from 'lucide-react';
 import { FormFieldRenderer } from './form-preview/FormFieldRenderer';
-import { FormSubmissionHandler } from './form-preview/FormSubmissionHandler';
+import { useFormSubmission } from './form-preview/FormSubmissionHandler';
 import { EmptyFormState } from './form-preview/EmptyFormState';
 import { MultiPageForm } from './MultiPageForm';
 import { toast } from '@/hooks/use-toast';
@@ -19,6 +19,7 @@ interface FormPreviewProps {
 export const FormPreview = ({ fields, formId, onSubmissionSuccess }: FormPreviewProps) => {
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Check if form has page breaks
   const hasPageBreaks = fields.some(field => field.type === 'page-break');
@@ -38,43 +39,14 @@ export const FormPreview = ({ fields, formId, onSubmissionSuccess }: FormPreview
     }
   };
 
-  const validateForm = () => {
-    const newErrors: Record<string, string> = {};
-    
-    renderableFields.forEach(field => {
-      if (field.required && !formData[field.id]) {
-        newErrors[field.id] = 'This field is required';
-      }
-    });
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!validateForm()) {
-      toast({
-        title: "Validation Error",
-        description: "Please fill in all required fields.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Handle form submission
-    if (formId) {
-      const submissionHandler = new FormSubmissionHandler();
-      await submissionHandler.submitForm(formId, formData, onSubmissionSuccess);
-    } else {
-      console.log('Form preview submission:', formData);
-      toast({
-        title: "Form Preview",
-        description: "This is a preview. Form data logged to console.",
-      });
-    }
-  };
+  const { handleSubmit } = useFormSubmission({
+    fields: renderableFields,
+    formData,
+    setErrors,
+    formId,
+    onSubmissionSuccess,
+    setIsSubmitting
+  });
 
   if (renderableFields.length === 0) {
     return <EmptyFormState />;
@@ -99,9 +71,9 @@ export const FormPreview = ({ fields, formId, onSubmissionSuccess }: FormPreview
         ))}
         
         <div className="pt-6 border-t">
-          <Button type="submit" className="w-full sm:w-auto">
+          <Button type="submit" className="w-full sm:w-auto" disabled={isSubmitting}>
             <Send className="w-4 h-4 mr-2" />
-            Submit Form
+            {isSubmitting ? 'Submitting...' : 'Submit Form'}
           </Button>
         </div>
       </form>

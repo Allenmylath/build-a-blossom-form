@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { ChevronLeft, ChevronRight, Send } from 'lucide-react';
 import { FormFieldRenderer } from './form-preview/FormFieldRenderer';
-import { FormSubmissionHandler } from './form-preview/FormSubmissionHandler';
+import { useFormSubmission } from './form-preview/FormSubmissionHandler';
 import { toast } from '@/hooks/use-toast';
 
 interface MultiPageFormProps {
@@ -19,6 +19,7 @@ export const MultiPageForm = ({ fields, formId, onSubmissionSuccess }: MultiPage
   const [currentPage, setCurrentPage] = useState(0);
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Split fields into pages based on page-break fields
   const pages = fields.reduce((acc, field, index) => {
@@ -80,10 +81,18 @@ export const MultiPageForm = ({ fields, formId, onSubmissionSuccess }: MultiPage
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
+  const { handleSubmit } = useFormSubmission({
+    fields: currentPageFields,
+    formData,
+    setErrors,
+    formId,
+    onSubmissionSuccess,
+    setIsSubmitting
+  });
+
+  const onSubmit = (e: React.FormEvent) => {
     if (!validateCurrentPage()) {
+      e.preventDefault();
       toast({
         title: "Validation Error",
         description: "Please fill in all required fields.",
@@ -91,18 +100,7 @@ export const MultiPageForm = ({ fields, formId, onSubmissionSuccess }: MultiPage
       });
       return;
     }
-
-    // Handle form submission
-    if (formId) {
-      const submissionHandler = new FormSubmissionHandler();
-      await submissionHandler.submitForm(formId, formData, onSubmissionSuccess);
-    } else {
-      console.log('Multi-page form preview submission:', formData);
-      toast({
-        title: "Form Submitted",
-        description: "Your multi-page form has been submitted successfully!",
-      });
-    }
+    handleSubmit(e);
   };
 
   if (totalPages === 0) {
@@ -127,7 +125,7 @@ export const MultiPageForm = ({ fields, formId, onSubmissionSuccess }: MultiPage
       )}
 
       {/* Form content */}
-      <form onSubmit={handleSubmit} className="p-6">
+      <form onSubmit={onSubmit} className="p-6">
         <div className="space-y-6">
           {currentPageFields.map(field => (
             <FormFieldRenderer
@@ -167,9 +165,10 @@ export const MultiPageForm = ({ fields, formId, onSubmissionSuccess }: MultiPage
               <Button
                 type="submit"
                 className="flex items-center"
+                disabled={isSubmitting}
               >
                 <Send className="w-4 h-4 mr-2" />
-                Submit Form
+                {isSubmitting ? 'Submitting...' : 'Submit Form'}
               </Button>
             )}
           </div>
