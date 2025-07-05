@@ -1,133 +1,212 @@
-
 import { useState, useEffect } from 'react';
-import { User } from '@supabase/supabase-js';
+import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
+import { useSupabaseForms } from '@/hooks/useSupabaseForms';
 import { FormBuilder } from '@/components/FormBuilder';
+import { FormPreview } from '@/components/FormPreview';
+import { FormManager } from '@/components/FormManager';
+import { FormSubmissionViewer } from '@/components/FormSubmissionViewer';
 import { Auth } from '@/components/Auth';
-import { Card } from '@/components/ui/card';
+import { FormField, SavedForm } from '@/types/form';
 import { Button } from '@/components/ui/button';
-import { Plus, Settings, LogOut } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { useNavigate } from 'react-router-dom';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/hooks/use-toast';
+import { PlusCircle, Eye, Settings, BarChart3 } from 'lucide-react';
 
 const Index = () => {
-  const [user, setUser] = useState<User | null>(null);
-  const navigate = useNavigate();
+  const { user, signOut } = useSupabaseAuth();
+  const { savedForms, saveForm, deleteForm, refreshForms } = useSupabaseForms(user);
+  
+  const [fields, setFields] = useState<FormField[]>([]);
+  const [currentForm, setCurrentForm] = useState<SavedForm | null>(null);
+  const [activeTab, setActiveTab] = useState('builder');
 
   useEffect(() => {
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setUser(session?.user ?? null);
-      }
-    );
+    if (user) {
+      refreshForms();
+    }
+  }, [user, refreshForms]);
 
-    // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  const handleAuthChange = (newUser: User | null) => {
-    setUser(newUser);
-  };
-
-  const handleSignOut = async () => {
-    try {
-      await supabase.auth.signOut();
-      setUser(null);
+  const handleSaveForm = async (formData: { name: string; description: string; isPublic: boolean }) => {
+    const savedForm = await saveForm(formData, fields, currentForm || undefined);
+    if (savedForm) {
+      setCurrentForm(savedForm);
       toast({
-        title: "Signed out",
-        description: "You have been signed out successfully.",
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to sign out. Please try again.",
-        variant: "destructive",
+        title: "Form Saved",
+        description: `"${formData.name}" has been saved successfully.`,
       });
     }
   };
 
+  const handleLoadForm = (form: SavedForm) => {
+    setFields(form.fields);
+    setCurrentForm(form);
+    setActiveTab('builder');
+  };
+
+  const handleDeleteForm = (formId: string) => {
+    deleteForm(formId);
+    const deletedForm = savedForms.find(f => f.id === formId);
+    if (currentForm?.id === formId) {
+      setCurrentForm(null);
+      setFields([]);
+    }
+  };
+
+  const handleDuplicateForm = (form: SavedForm) => {
+    const duplicatedName = `${form.name} (Copy)`;
+    setFields([...form.fields]);
+    setCurrentForm(null);
+    handleSaveForm({ 
+      name: duplicatedName, 
+      description: form.description || '', 
+      isPublic: form.isPublic 
+    });
+  };
+
+  const handleShareForm = (form: SavedForm) => {
+    if (form.shareUrl) {
+      navigator.clipboard.writeText(form.shareUrl);
+      toast({
+        title: "Share Link Copied",
+        description: "The form share link has been copied to your clipboard.",
+      });
+    }
+  };
+
+  const exportToCSV = () => {
+    if (!currentForm || currentForm.submissions.length === 0) {
+      toast({
+        title: "No Data to Export",
+        description: "There are no submissions to export for this form.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const headers = ['Date', 'IP Address', ...fields.map(field => field.label)];
+    const rows = currentForm.submissions.map(submission => [
+      new Date(submission.submittedAt).toLocaleString(),
+      submission.ipAddress || 'N/A',
+      ...fields.map(field => {
+        const value = submission.data[field.id];
+        return Array.isArray(value) ? value.join(', ') : (value || '');
+      })
+    ]);
+
+    const csvContent = [headers, ...rows]
+      .map(row => row.map(cell => `"${cell}"`).join(','))
+      .join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${currentForm.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_submissions.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    toast({
+      title: "CSV Exported",
+      description: "Form submissions have been exported successfully.",
+    });
+  };
+
+  const handleFormSubmissionSuccess = () => {
+    // Refresh the current form data to show updated analytics
+    if (currentForm && user) {
+      refreshForms();
+    }
+  };
+
   if (!user) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 py-12 px-4">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-8">
-            <div className="flex items-center justify-center mb-4">
-              <Plus className="w-12 h-12 text-purple-600" />
-            </div>
-            <h1 className="text-4xl font-bold text-gray-900 mb-2">
-              Advanced Form Builder
-            </h1>
-            <p className="text-xl text-gray-600 mb-8">
-              Create beautiful, interactive forms with drag-and-drop simplicity
-            </p>
-          </div>
-
-          <div className="mb-8">
-            <Auth onAuthChange={handleAuthChange} />
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
-            <Card className="p-6 text-center">
-              <div className="text-3xl mb-3">🎨</div>
-              <h3 className="font-semibold mb-2">Beautiful Design</h3>
-              <p className="text-sm text-gray-600">Create stunning forms with our modern, responsive design system</p>
-            </Card>
-            <Card className="p-6 text-center">
-              <div className="text-3xl mb-3">⚡</div>
-              <h3 className="font-semibold mb-2">Powerful Features</h3>
-              <p className="text-sm text-gray-600">Multi-page forms, validation, chat integration, and much more</p>
-            </Card>
-            <Card className="p-6 text-center">
-              <div className="text-3xl mb-3">☁️</div>
-              <h3 className="font-semibold mb-2">Cloud Storage</h3>
-              <p className="text-sm text-gray-600">Save your forms securely in the cloud and access them anywhere</p>
-            </Card>
-          </div>
-        </div>
-      </div>
-    );
+    return <Auth />;
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50">
-      {/* Header with logout button */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-6xl mx-auto px-4 py-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <Plus className="w-8 h-8 text-purple-600 mr-3" />
-              <h1 className="text-xl font-bold text-gray-900">Form Builder</h1>
+    <div className="min-h-screen bg-gray-50">
+      <div className="bg-white border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-4">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Form Builder</h1>
+              <p className="text-gray-600">Create, customize, and manage your forms</p>
             </div>
-            <div className="flex items-center space-x-3">
-              <span className="text-sm text-gray-600">{user.email}</span>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => navigate('/settings')}
+            <div className="flex items-center space-x-4">
+              <Button
+                onClick={() => {
+                  setFields([]);
+                  setCurrentForm(null);
+                  setActiveTab('builder');
+                }}
+                className="flex items-center"
               >
-                <Settings className="w-4 h-4 mr-2" />
-                Settings
+                <PlusCircle className="w-4 h-4 mr-2" />
+                New Form
               </Button>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={handleSignOut}
-              >
-                <LogOut className="w-4 h-4 mr-2" />
+              <Button variant="outline" onClick={signOut}>
                 Sign Out
               </Button>
             </div>
           </div>
         </div>
       </div>
-      
-      {/* Main content */}
-      <FormBuilder user={user} />
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="builder" className="flex items-center">
+              <Settings className="w-4 h-4 mr-2" />
+              Builder
+            </TabsTrigger>
+            <TabsTrigger value="preview" className="flex items-center">
+              <Eye className="w-4 h-4 mr-2" />
+              Preview
+            </TabsTrigger>
+            <TabsTrigger value="analytics" className="flex items-center">
+              <BarChart3 className="w-4 h-4 mr-2" />
+              Analytics
+            </TabsTrigger>
+            <TabsTrigger value="forms" className="flex items-center">
+              Forms ({savedForms.length})
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="builder">
+            <FormBuilder 
+              fields={fields} 
+              setFields={setFields}
+              onSave={handleSaveForm}
+              currentForm={currentForm}
+            />
+          </TabsContent>
+
+          <TabsContent value="preview">
+            <FormPreview 
+              fields={fields} 
+              formId={currentForm?.id}
+              onSubmissionSuccess={handleFormSubmissionSuccess}
+            />
+          </TabsContent>
+
+          <TabsContent value="analytics">
+            <FormSubmissionViewer
+              submissions={currentForm?.submissions || []}
+              fields={fields}
+              onExportCSV={exportToCSV}
+            />
+          </TabsContent>
+
+          <TabsContent value="forms">
+            <FormManager
+              savedForms={savedForms}
+              onLoadForm={handleLoadForm}
+              onDeleteForm={handleDeleteForm}
+              onDuplicateForm={handleDuplicateForm}
+              onShareForm={handleShareForm}
+            />
+          </TabsContent>
+        </Tabs>
+      </div>
     </div>
   );
 };

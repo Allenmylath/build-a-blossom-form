@@ -1,30 +1,59 @@
-
-import { FormField } from '@/types/form';
+import React, { useState, useEffect } from 'react';
+import { FormField, FormSubmission } from '@/types/form';
 import { Card } from '@/components/ui/card';
-import { Eye } from 'lucide-react';
-import { MultiPageForm } from './MultiPageForm';
+import { Button } from '@/components/ui/button';
+import { FormFieldRenderer } from './form-preview/FormFieldRenderer';
+import { useFormSubmission } from './form-preview/FormSubmissionHandler';
 import { EmptyFormState } from './form-preview/EmptyFormState';
+import { Send } from 'lucide-react';
 
 interface FormPreviewProps {
   fields: FormField[];
+  formId?: string;
+  onSubmissionSuccess?: () => void;
 }
 
-export const FormPreview = ({ fields }: FormPreviewProps) => {
-  // Filter out page-break fields for display count
-  const displayFields = fields.filter(f => f.type !== 'page-break');
-  
+export const FormPreview = ({ fields, formId, onSubmissionSuccess }: FormPreviewProps) => {
+  const [formData, setFormData] = useState<FormSubmission>({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const { handleSubmit } = useFormSubmission({ 
+    fields, 
+    formData, 
+    setErrors, 
+    formId,
+    onSubmissionSuccess 
+  });
+
+  const updateFormData = (fieldId: string, value: string | string[] | boolean) => {
+    setFormData(prev => ({ ...prev, [fieldId]: value }));
+    if (errors[fieldId]) {
+      setErrors(prev => ({ ...prev, [fieldId]: '' }));
+    }
+  };
+
+  if (fields.length === 0) {
+    return <EmptyFormState />;
+  }
+
   return (
-    <Card className="p-6 bg-white shadow-lg sticky top-6">
-      <h3 className="text-lg font-semibold mb-4 flex items-center">
-        <Eye className="w-5 h-5 mr-2 text-blue-600" />
-        Form Preview
-      </h3>
-      
-      {displayFields.length === 0 ? (
-        <EmptyFormState />
-      ) : (
-        <MultiPageForm fields={fields} />
-      )}
+    <Card className="w-full max-w-2xl mx-auto p-6">
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {fields.map(field => (
+          <FormFieldRenderer
+            key={field.id}
+            field={field}
+            value={formData[field.id]}
+            error={errors[field.id]}
+            onChange={(value) => updateFormData(field.id, value)}
+          />
+        ))}
+        
+        <Button type="submit" className="w-full" size="lg">
+          <Send className="w-4 h-4 mr-2" />
+          Submit Form
+        </Button>
+      </form>
     </Card>
   );
 };
