@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { SavedForm } from '@/types/form';
 import { Card } from '@/components/ui/card';
@@ -5,8 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Save, FolderOpen, Copy, Trash2, Share, BarChart3, Search, Calendar } from 'lucide-react';
+import { Save, FolderOpen, Copy, Trash2, Share, BarChart3, Search, Calendar, TrendingUp } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { FormAnalytics } from './FormAnalytics';
 
 interface FormManagerProps {
   savedForms: SavedForm[];
@@ -25,6 +27,7 @@ export const FormManager = ({
 }: FormManagerProps) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedForm, setSelectedForm] = useState<SavedForm | null>(null);
+  const [showAnalytics, setShowAnalytics] = useState<SavedForm | null>(null);
 
   const filteredForms = savedForms.filter(form =>
     form.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -65,6 +68,15 @@ export const FormManager = ({
       });
     }
   };
+
+  if (showAnalytics) {
+    return (
+      <FormAnalytics 
+        form={showAnalytics} 
+        onClose={() => setShowAnalytics(null)} 
+      />
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -141,6 +153,14 @@ export const FormManager = ({
                   >
                     <Share className="w-4 h-4" />
                   </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setShowAnalytics(form)}
+                    className="bg-purple-50 hover:bg-purple-100 text-purple-700 border-purple-200"
+                  >
+                    <TrendingUp className="w-4 h-4" />
+                  </Button>
                   <Dialog>
                     <DialogTrigger asChild>
                       <Button size="sm" variant="outline" onClick={() => setSelectedForm(form)}>
@@ -149,7 +169,7 @@ export const FormManager = ({
                     </DialogTrigger>
                     <DialogContent className="max-w-2xl">
                       <DialogHeader>
-                        <DialogTitle>Analytics for "{form.name}"</DialogTitle>
+                        <DialogTitle>Quick Stats for "{form.name}"</DialogTitle>
                       </DialogHeader>
                       <div className="space-y-4">
                         <div className="grid grid-cols-2 gap-4">
@@ -174,6 +194,12 @@ export const FormManager = ({
                             </div>
                           </div>
                         )}
+                        <div className="flex justify-end pt-4">
+                          <Button onClick={() => setShowAnalytics(form)}>
+                            <TrendingUp className="w-4 h-4 mr-2" />
+                            View Full Analytics
+                          </Button>
+                        </div>
                       </div>
                     </DialogContent>
                   </Dialog>
