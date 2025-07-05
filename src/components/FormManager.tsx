@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { SavedForm } from '@/types/form';
 import { Card } from '@/components/ui/card';
@@ -49,11 +48,22 @@ export const FormManager = ({
   };
 
   const handleShare = (form: SavedForm) => {
-    onShareForm(form);
-    toast({
-      title: "Share Link Generated",
-      description: "Form share link has been copied to clipboard.",
-    });
+    console.log('Sharing form:', form);
+    console.log('Share URL:', form.shareUrl);
+    
+    if (form.shareUrl) {
+      navigator.clipboard.writeText(form.shareUrl);
+      toast({
+        title: "Share Link Generated",
+        description: "Form share link has been copied to clipboard.",
+      });
+    } else {
+      toast({
+        title: "Error",
+        description: "No share URL available for this form.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (

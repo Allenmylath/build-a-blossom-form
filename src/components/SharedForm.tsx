@@ -16,14 +16,18 @@ export const SharedForm = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    console.log('SharedForm component mounted with ID:', id);
+    
     const fetchSharedForm = async () => {
       if (!id) {
+        console.log('No ID provided');
         setError('Form ID is required');
         setLoading(false);
         return;
       }
 
       try {
+        console.log('Fetching form with ID:', id);
         const { data, error } = await supabase
           .from('forms')
           .select('*')
@@ -31,7 +35,10 @@ export const SharedForm = () => {
           .eq('is_public', true)
           .single();
 
+        console.log('Supabase response:', { data, error });
+
         if (error) {
+          console.error('Supabase error:', error);
           setError('Form not found or not publicly available');
           return;
         }
@@ -48,6 +55,7 @@ export const SharedForm = () => {
           submissions: [],
         };
 
+        console.log('Mapped form:', mappedForm);
         setForm(mappedForm);
       } catch (err) {
         console.error('Error fetching shared form:', err);
@@ -66,6 +74,7 @@ export const SharedForm = () => {
         <Card className="p-8 text-center">
           <Loader2 className="w-8 h-8 mx-auto mb-4 animate-spin text-purple-600" />
           <p className="text-gray-600">Loading form...</p>
+          <p className="text-sm text-gray-400 mt-2">Form ID: {id}</p>
         </Card>
       </div>
     );
@@ -80,6 +89,7 @@ export const SharedForm = () => {
           <p className="text-gray-600 mb-4">
             {error || 'The form you\'re looking for doesn\'t exist or is not publicly available.'}
           </p>
+          <p className="text-sm text-gray-400 mb-4">Form ID: {id}</p>
           <Button onClick={() => window.location.href = '/'}>
             Go to Homepage
           </Button>
