@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { FormSaveDialog } from './FormSaveDialog';
 import { FormExport } from './FormExport';
 import { FormField, SavedForm } from '@/types/form';
@@ -31,6 +31,9 @@ export const FormBuilder = ({
   const isHobbyPlan = true;
   const maxFormsReached = isHobbyPlan && savedForms.length >= 5;
 
+  // Determine if we're in controlled mode (external state) or uncontrolled mode (internal state)
+  const isControlledMode = externalFields !== undefined && externalSetFields !== undefined;
+
   const {
     fields: internalFields,
     setFields: setInternalFields,
@@ -46,17 +49,50 @@ export const FormBuilder = ({
     selectTemplate,
     startNewForm,
   } = useFormBuilder({
-    initialFields: externalFields || [],
-    initialCurrentForm: externalCurrentForm || null,
+    initialFields: isControlledMode ? [] : [], // Don't initialize with external fields to avoid conflicts
+    initialCurrentForm: isControlledMode ? null : null,
     externalOnSave,
     maxFormsReached,
   });
 
+  // Sync external state changes with internal state when in controlled mode
+  useEffect(() => {
+    if (isControlledMode && externalFields) {
+      console.log('Syncing external fields to internal state:', externalFields.length, 'fields');
+      setInternalFields(externalFields);
+    }
+  }, [externalFields, isControlledMode, setInternalFields]);
+
+  useEffect(() => {
+    if (isControlledMode && externalCurrentForm !== undefined) {
+      console.log('Syncing external current form to internal state:', externalCurrentForm?.name);
+      setInternalCurrentForm(externalCurrentForm);
+    }
+  }, [externalCurrentForm, isControlledMode, setInternalCurrentForm]);
+
   // Use external state if provided, otherwise use internal state
-  const activeFields = externalFields || internalFields;
-  const activeSetFields = externalSetFields || setInternalFields;
-  const activeCurrentForm = externalCurrentForm !== undefined ? externalCurrentForm : internalCurrentForm;
-  const activeSetCurrentForm = externalCurrentForm !== undefined ? () => {} : setInternalCurrentForm;
+  const activeFields = isControlledMode ? (externalFields || []) : internalFields;
+  const activeCurrentForm = isControlledMode ? externalCurrentForm : internalCurrentForm;
+
+  // State setters that respect controlled vs uncontrolled mode
+  const handleFieldsChange = (newFields: FormField[] | ((prev: FormField[]) => FormField[])) => {
+    if (isControlledMode && externalSetFields) {
+      if (typeof newFields === 'function') {
+        externalSetFields(prev => newFields(prev));
+      } else {
+        externalSetFields(newFields);
+      }
+    } else {
+      setInternalFields(newFields);
+    }
+  };
+
+  const handleCurrentFormChange = (newForm: SavedForm | null) => {
+    if (!isControlledMode) {
+      setInternalCurrentForm(newForm);
+    }
+    // In controlled mode, parent component manages currentForm state
+  };
 
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [showExportDialog, setShowExportDialog] = useState(false);
@@ -75,11 +111,48 @@ export const FormBuilder = ({
     deleteForm,
     fields: activeFields,
     currentForm: activeCurrentForm,
-    setCurrentForm: activeSetCurrentForm,
-    onLoadForm: loadForm,
-    onSelectTemplate: selectTemplate,
+    setCurrentForm: handleCurrentFormChange,
+    onLoadForm: (form: SavedForm) => {
+      console.log('Loading form in FormBuilder:', form.name);
+      loadForm(form);
+      // Update fields through the proper setter
+      handleFieldsChange(form.fields);
+    },
+    onSelectTemplate: (fields: FormField[]) => {
+      console.log('Selecting template in FormBuilder:', fields.length, 'fields');
+      selectTemplate(fields);
+      // Update fields through the proper setter  
+      handleFieldsChange(fields);
+    },
     externalOnSave,
   });
+
+  const handleAddField = (type: any) => {
+    console.log('Adding field in FormBuilder:', type);
+    addField(type);
+  };
+
+  const handleUpdateField = (fieldId: string, updates: Partial<FormField>) => {
+    console.log('Updating field in FormBuilder:', fieldId);
+    updateField(fieldId, updates);
+  };
+
+  const handleDeleteField = (fieldId: string) => {
+    console.log('Deleting field in FormBuilder:', fieldId);
+    deleteField(fieldId);
+  };
+
+  const handleMoveField = (fieldId: string, direction: 'up' | 'down') => {
+    console.log('Moving field in FormBuilder:', fieldId, direction);
+    moveField(fieldId, direction);
+  };
+
+  const handleStartNewForm = () => {
+    console.log('Starting new form in FormBuilder');
+    startNewForm();
+    handleFieldsChange([]);
+    handleCurrentFormChange(null);
+  };
 
   const onExportImport = (action: 'export' | 'import') => {
     if (action === 'export') {
@@ -88,6 +161,8 @@ export const FormBuilder = ({
       handleExportImport(action);
     }
   };
+
+  console.log('FormBuilder render - activeFields:', activeFields.length, 'activeCurrentForm:', activeCurrentForm?.name);
 
   return (
     <div className="space-y-6">
@@ -105,13 +180,13 @@ export const FormBuilder = ({
           currentForm={activeCurrentForm}
           savedForms={savedForms}
           isHobbyPlan={isHobbyPlan}
-          onAddField={addField}
+          onAddField={handleAddField}
           onSelectField={setSelectedFieldId}
-          onMoveField={moveField}
-          onUpdateField={updateField}
-          onDeleteField={deleteField}
+          onMoveField={handleMoveField}
+          onUpdateField={handleUpdateField}
+          onDeleteField={handleDeleteField}
           onSave={() => setShowSaveDialog(true)}
-          onNew={startNewForm}
+          onNew={handleStartNewForm}
           onExportImport={onExportImport}
           onLoadForm={handleLoadForm}
           onDeleteForm={handleDeleteForm}
