@@ -74,35 +74,6 @@ export const FormBuilder = ({
   const activeFields = isControlledMode ? (externalFields || []) : internalFields;
   const activeCurrentForm = isControlledMode ? externalCurrentForm : internalCurrentForm;
 
-  // State setters that respect controlled vs uncontrolled mode
-  const handleFieldsChange = (newFields: FormField[] | ((prev: FormField[]) => FormField[])) => {
-    console.log('handleFieldsChange called with:', typeof newFields === 'function' ? 'function' : newFields.length, 'fields');
-    
-    if (isControlledMode && externalSetFields) {
-      if (typeof newFields === 'function') {
-        externalSetFields(prev => {
-          const result = newFields(prev);
-          console.log('External fields updated via function, new length:', result.length);
-          return result;
-        });
-      } else {
-        console.log('External fields updated directly, new length:', newFields.length);
-        externalSetFields(newFields);
-      }
-    } else {
-      if (typeof newFields === 'function') {
-        setInternalFields(prev => {
-          const result = newFields(prev);
-          console.log('Internal fields updated via function, new length:', result.length);
-          return result;
-        });
-      } else {
-        console.log('Internal fields updated directly, new length:', newFields.length);
-        setInternalFields(newFields);
-      }
-    }
-  };
-
   const handleCurrentFormChange = (newForm: SavedForm | null) => {
     if (!isControlledMode) {
       setInternalCurrentForm(newForm);
@@ -132,13 +103,17 @@ export const FormBuilder = ({
       console.log('Loading form in FormBuilder:', form.name);
       loadForm(form);
       // Update fields through the proper setter
-      handleFieldsChange(form.fields);
+      if (isControlledMode && externalSetFields) {
+        externalSetFields(form.fields);
+      }
     },
     onSelectTemplate: (fields: FormField[]) => {
       console.log('Selecting template in FormBuilder:', fields.length, 'fields');
       selectTemplate(fields);
       // Update fields through the proper setter  
-      handleFieldsChange(fields);
+      if (isControlledMode && externalSetFields) {
+        externalSetFields(fields);
+      }
     },
     externalOnSave,
   });
@@ -146,66 +121,137 @@ export const FormBuilder = ({
   const handleAddField = (type: any) => {
     console.log('handleAddField called in FormBuilder with type:', type);
     console.log('Current fields before add:', activeFields.length);
+    console.log('Is controlled mode:', isControlledMode);
     
-    // Call the addField function from useFormBuilder
-    addField(type);
-    
-    // Force update the fields state to include the new field
-    // The addField function should have already updated the internal state
-    // but we need to ensure it propagates to external state if in controlled mode
-    if (isControlledMode) {
-      // Get the updated fields from the internal state and propagate to external
-      // This is a bit of a workaround since addField operates on internal state
-      setTimeout(() => {
-        console.log('Syncing internal fields to external after add');
-        handleFieldsChange(internalFields);
-      }, 0);
+    if (isControlledMode && externalSetFields) {
+      // In controlled mode, create the new field and update external state directly
+      const fieldId = `field_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+      const getDefaultFieldLabel = (type: any): string => {
+        const labelMap: Record<string, string> = {
+          text: 'Text Input',
+          email: 'Email Address',
+          number: 'Number Input',
+          textarea: 'Text Area',
+          select: 'Dropdown Selection',
+          radio: 'Radio Buttons',
+          checkbox: 'Checkbox',
+          date: 'Date Picker',
+          file: 'File Upload',
+          phone: 'Phone Number',
+          url: 'Website URL',
+          chat: 'Chat Field',
+          'page-break': 'Page Break'
+        };
+        return labelMap[type] || 'New Field';
+      };
+
+      const getDefaultOptions = (type: any): string[] | undefined => {
+        if (type === 'select' || type === 'radio') {
+          return ['Option 1', 'Option 2', 'Option 3'];
+        }
+        return undefined;
+      };
+
+      const newField: FormField = {
+        id: fieldId,
+        type,
+        label: getDefaultFieldLabel(type),
+        placeholder: type === 'page-break' ? undefined : `Enter your ${getDefaultFieldLabel(type).toLowerCase()}`,
+        required: false,
+        options: getDefaultOptions(type),
+        validation: type === 'text' || type === 'number' ? {} : undefined,
+      };
+      
+      console.log('Adding field directly to external state:', newField);
+      
+      externalSetFields(prev => {
+        const updated = [...prev, newField];
+        console.log('External fields updated, new length:', updated.length);
+        return updated;
+      });
+      
+      setSelectedFieldId(fieldId);
+    } else {
+      // In uncontrolled mode, use the addField function from useFormBuilder
+      console.log('Adding field through useFormBuilder addField');
+      addField(type);
     }
   };
 
   const handleUpdateField = (fieldId: string, updates: Partial<FormField>) => {
     console.log('Updating field in FormBuilder:', fieldId);
-    updateField(fieldId, updates);
     
-    // Sync the update to external state if in controlled mode
-    if (isControlledMode) {
-      setTimeout(() => {
-        console.log('Syncing field update to external state');
-        handleFieldsChange(internalFields);
-      }, 0);
+    if (isControlledMode && externalSetFields) {
+      externalSetFields(prev => {
+        const fieldIndex = prev.findIndex(field => field.id === fieldId);
+        if (fieldIndex === -1) {
+          console.error('Field not found for update:', fieldId);
+          return prev;
+        }
+        
+        const updatedFields = [...prev];
+        updatedFields[fieldIndex] = { ...updatedFields[fieldIndex], ...updates };
+        
+        console.log('Field updated in external state:', updatedFields[fieldIndex]);
+        return updatedFields;
+      });
+    } else {
+      updateField(fieldId, updates);
     }
   };
 
   const handleDeleteField = (fieldId: string) => {
     console.log('Deleting field in FormBuilder:', fieldId);
-    deleteField(fieldId);
     
-    // Sync the deletion to external state if in controlled mode
-    if (isControlledMode) {
-      setTimeout(() => {
-        console.log('Syncing field deletion to external state');
-        handleFieldsChange(internalFields);
-      }, 0);
+    if (isControlledMode && externalSetFields) {
+      externalSetFields(prev => {
+        const filtered = prev.filter(field => field.id !== fieldId);
+        console.log('Fields after deletion in external state:', filtered.length);
+        return filtered;
+      });
+      
+      setSelectedFieldId(prev => prev === fieldId ? null : prev);
+    } else {
+      deleteField(fieldId);
     }
   };
 
   const handleMoveField = (fieldId: string, direction: 'up' | 'down') => {
     console.log('Moving field in FormBuilder:', fieldId, direction);
-    moveField(fieldId, direction);
     
-    // Sync the move to external state if in controlled mode
-    if (isControlledMode) {
-      setTimeout(() => {
-        console.log('Syncing field move to external state');
-        handleFieldsChange(internalFields);
-      }, 0);
+    if (isControlledMode && externalSetFields) {
+      externalSetFields(prev => {
+        const index = prev.findIndex(f => f.id === fieldId);
+        if (index === -1) {
+          console.error('Field not found for move:', fieldId);
+          return prev;
+        }
+        
+        const newIndex = direction === 'up' ? index - 1 : index + 1;
+        if (newIndex < 0 || newIndex >= prev.length) {
+          console.log('Cannot move field - would be out of bounds');
+          return prev;
+        }
+        
+        const newFields = [...prev];
+        [newFields[index], newFields[newIndex]] = [newFields[newIndex], newFields[index]];
+        
+        console.log('Field moved in external state');
+        return newFields;
+      });
+    } else {
+      moveField(fieldId, direction);
     }
   };
 
   const handleStartNewForm = () => {
     console.log('Starting new form in FormBuilder');
     startNewForm();
-    handleFieldsChange([]);
+    
+    if (isControlledMode && externalSetFields) {
+      externalSetFields([]);
+    }
+    
     handleCurrentFormChange(null);
   };
 
