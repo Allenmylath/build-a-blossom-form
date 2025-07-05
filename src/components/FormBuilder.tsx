@@ -76,14 +76,30 @@ export const FormBuilder = ({
 
   // State setters that respect controlled vs uncontrolled mode
   const handleFieldsChange = (newFields: FormField[] | ((prev: FormField[]) => FormField[])) => {
+    console.log('handleFieldsChange called with:', typeof newFields === 'function' ? 'function' : newFields.length, 'fields');
+    
     if (isControlledMode && externalSetFields) {
       if (typeof newFields === 'function') {
-        externalSetFields(prev => newFields(prev));
+        externalSetFields(prev => {
+          const result = newFields(prev);
+          console.log('External fields updated via function, new length:', result.length);
+          return result;
+        });
       } else {
+        console.log('External fields updated directly, new length:', newFields.length);
         externalSetFields(newFields);
       }
     } else {
-      setInternalFields(newFields);
+      if (typeof newFields === 'function') {
+        setInternalFields(prev => {
+          const result = newFields(prev);
+          console.log('Internal fields updated via function, new length:', result.length);
+          return result;
+        });
+      } else {
+        console.log('Internal fields updated directly, new length:', newFields.length);
+        setInternalFields(newFields);
+      }
     }
   };
 
@@ -128,23 +144,62 @@ export const FormBuilder = ({
   });
 
   const handleAddField = (type: any) => {
-    console.log('Adding field in FormBuilder:', type);
+    console.log('handleAddField called in FormBuilder with type:', type);
+    console.log('Current fields before add:', activeFields.length);
+    
+    // Call the addField function from useFormBuilder
     addField(type);
+    
+    // Force update the fields state to include the new field
+    // The addField function should have already updated the internal state
+    // but we need to ensure it propagates to external state if in controlled mode
+    if (isControlledMode) {
+      // Get the updated fields from the internal state and propagate to external
+      // This is a bit of a workaround since addField operates on internal state
+      setTimeout(() => {
+        console.log('Syncing internal fields to external after add');
+        handleFieldsChange(internalFields);
+      }, 0);
+    }
   };
 
   const handleUpdateField = (fieldId: string, updates: Partial<FormField>) => {
     console.log('Updating field in FormBuilder:', fieldId);
     updateField(fieldId, updates);
+    
+    // Sync the update to external state if in controlled mode
+    if (isControlledMode) {
+      setTimeout(() => {
+        console.log('Syncing field update to external state');
+        handleFieldsChange(internalFields);
+      }, 0);
+    }
   };
 
   const handleDeleteField = (fieldId: string) => {
     console.log('Deleting field in FormBuilder:', fieldId);
     deleteField(fieldId);
+    
+    // Sync the deletion to external state if in controlled mode
+    if (isControlledMode) {
+      setTimeout(() => {
+        console.log('Syncing field deletion to external state');
+        handleFieldsChange(internalFields);
+      }, 0);
+    }
   };
 
   const handleMoveField = (fieldId: string, direction: 'up' | 'down') => {
     console.log('Moving field in FormBuilder:', fieldId, direction);
     moveField(fieldId, direction);
+    
+    // Sync the move to external state if in controlled mode
+    if (isControlledMode) {
+      setTimeout(() => {
+        console.log('Syncing field move to external state');
+        handleFieldsChange(internalFields);
+      }, 0);
+    }
   };
 
   const handleStartNewForm = () => {

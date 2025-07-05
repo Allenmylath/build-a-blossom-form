@@ -25,6 +25,18 @@ export const FieldTypesPanel = ({ onAddField }: FieldTypesPanelProps) => {
     { type: 'page-break', label: 'Page Break', icon: '📄' },
   ];
 
+  const handleAddField = (type: FormFieldType) => {
+    console.log('FieldTypesPanel - Button clicked for type:', type);
+    console.log('FieldTypesPanel - onAddField function:', typeof onAddField);
+    
+    if (typeof onAddField === 'function') {
+      console.log('FieldTypesPanel - Calling onAddField with type:', type);
+      onAddField(type);
+    } else {
+      console.error('FieldTypesPanel - onAddField is not a function:', onAddField);
+    }
+  };
+
   return (
     <Card className="p-6 bg-white shadow-lg">
       <h3 className="text-lg font-semibold mb-4 flex items-center">
@@ -36,7 +48,7 @@ export const FieldTypesPanel = ({ onAddField }: FieldTypesPanelProps) => {
           <Button
             key={type}
             variant="outline"
-            onClick={() => onAddField(type)}
+            onClick={() => handleAddField(type)}
             className="h-auto p-4 flex flex-col items-center space-y-2 hover:bg-purple-50 hover:border-purple-300 transition-colors"
           >
             <span className="text-2xl">{icon}</span>

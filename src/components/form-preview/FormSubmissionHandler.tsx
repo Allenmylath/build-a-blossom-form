@@ -26,6 +26,8 @@ export const useFormSubmission = ({
     
     try {
       console.log('Starting form submission process');
+      console.log('Form ID:', formId);
+      console.log('Form data:', formData);
       
       if (setIsSubmitting) {
         setIsSubmitting(true);
@@ -62,6 +64,7 @@ export const useFormSubmission = ({
             const ipResponse = await fetch('https://api.ipify.org?format=json');
             const ipData = await ipResponse.json();
             ipAddress = ipData?.ip || null;
+            console.log('Retrieved IP address:', ipAddress);
           } catch (ipError) {
             console.log('Could not fetch IP address:', ipError);
           }
@@ -104,12 +107,13 @@ export const useFormSubmission = ({
             description: `Your response has been recorded. Reference #${submissionReference}`,
           });
 
-          // Call success callback
+          // Call success callback AFTER successful database save
           if (onSubmissionSuccess) {
-            console.log('Calling submission success callback');
+            console.log('Calling submission success callback after database save');
+            // Give a small delay to ensure the database transaction is fully committed
             setTimeout(() => {
               onSubmissionSuccess();
-            }, 500); // Small delay to ensure toast is shown
+            }, 1000);
           }
         } catch (error) {
           console.error('Network error during form submission:', error);
@@ -124,6 +128,7 @@ export const useFormSubmission = ({
           });
         }
       } else {
+        console.log('No form ID provided - running in preview mode');
         // For forms without ID (preview mode), just show success message
         const mockReference = Date.now().toString().slice(-6).toUpperCase();
         
