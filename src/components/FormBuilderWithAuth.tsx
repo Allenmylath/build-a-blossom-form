@@ -4,7 +4,7 @@ import { User } from '@supabase/supabase-js';
 import { FormBuilder } from './FormBuilder';
 import { Auth } from './Auth';
 import { Card } from '@/components/ui/card';
-import { FormPlus } from 'lucide-react';
+import { Plus } from 'lucide-react';
 
 export const FormBuilderWithAuth = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -19,7 +19,7 @@ export const FormBuilderWithAuth = () => {
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-8">
             <div className="flex items-center justify-center mb-4">
-              <FormPlus className="w-12 h-12 text-purple-600" />
+              <Plus className="w-12 h-12 text-purple-600" />
             </div>
             <h1 className="text-4xl font-bold text-gray-900 mb-2">
               Advanced Form Builder

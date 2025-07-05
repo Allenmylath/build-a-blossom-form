@@ -42,7 +42,7 @@ export const useSupabaseForms = (user: User | null) => {
         id: form.id,
         name: form.name,
         description: form.description,
-        fields: form.fields as FormField[],
+        fields: (form.fields as unknown as FormField[]) || [],
         createdAt: new Date(form.created_at),
         updatedAt: new Date(form.updated_at),
         isPublic: form.is_public,
@@ -91,7 +91,7 @@ export const useSupabaseForms = (user: User | null) => {
           .update({
             name: formData.name,
             description: formData.description,
-            fields: fields,
+            fields: fields as unknown as any,
             is_public: formData.isPublic,
             share_url: shareUrl + existingForm.id,
           })
@@ -113,7 +113,7 @@ export const useSupabaseForms = (user: User | null) => {
           id: data.id,
           name: data.name,
           description: data.description,
-          fields: data.fields as FormField[],
+          fields: (data.fields as unknown as FormField[]) || [],
           createdAt: new Date(data.created_at),
           updatedAt: new Date(data.updated_at),
           isPublic: data.is_public,
@@ -131,7 +131,7 @@ export const useSupabaseForms = (user: User | null) => {
             user_id: user.id,
             name: formData.name,
             description: formData.description,
-            fields: fields,
+            fields: fields as unknown as any,
             is_public: formData.isPublic,
           })
           .select()
@@ -162,7 +162,7 @@ export const useSupabaseForms = (user: User | null) => {
           id: data.id,
           name: data.name,
           description: data.description,
-          fields: data.fields as FormField[],
+          fields: (data.fields as unknown as FormField[]) || [],
           createdAt: new Date(data.created_at),
           updatedAt: new Date(data.updated_at),
           isPublic: data.is_public,
