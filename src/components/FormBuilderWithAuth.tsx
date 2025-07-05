@@ -13,6 +13,10 @@ export const FormBuilderWithAuth = () => {
     setUser(newUser);
   };
 
+  const handleSignOut = () => {
+    setUser(null);
+  };
+
   if (!user) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 py-12 px-4">

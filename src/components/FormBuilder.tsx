@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { FormFieldEditor } from './FormFieldEditor';
 import { FormPreview } from './FormPreview';
@@ -9,18 +8,21 @@ import { FormExport } from './FormExport';
 import { BuilderPanel } from './form-builder/BuilderPanel';
 import { FormActions } from './form-builder/FormActions';
 import { FormField, FormFieldType, FormTemplate, SavedForm } from '@/types/form';
-import { Plus, Eye, FolderOpen, FileText, MessageCircle } from 'lucide-react';
+import { Plus, Eye, FolderOpen, FileText, MessageCircle, Settings, LogOut } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
 import { ConversationalForm } from './ConversationalForm';
 import { useSupabaseForms } from '@/hooks/useSupabaseForms';
 import { User } from '@supabase/supabase-js';
+import { useNavigate } from 'react-router-dom';
 
 interface FormBuilderProps {
   user: User;
 }
 
 export const FormBuilder = ({ user }: FormBuilderProps) => {
+  const navigate = useNavigate();
   const [fields, setFields] = useState<FormField[]>([]);
   const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null);
   const [currentForm, setCurrentForm] = useState<SavedForm | null>(null);
@@ -28,6 +30,10 @@ export const FormBuilder = ({ user }: FormBuilderProps) => {
   const [showExportDialog, setShowExportDialog] = useState(false);
 
   const { savedForms, loading, saveForm, deleteForm } = useSupabaseForms(user);
+
+  // Check if user is on hobby plan (max 5 forms)
+  const isHobbyPlan = true; // This would come from your subscription check
+  const maxFormsReached = isHobbyPlan && savedForms.length >= 5;
 
   const addField = (type: FormFieldType) => {
     const newField: FormField = {
@@ -69,6 +75,15 @@ export const FormBuilder = ({ user }: FormBuilderProps) => {
   };
 
   const handleSaveForm = async (formData: { name: string; description: string; isPublic: boolean }) => {
+    if (maxFormsReached && !currentForm) {
+      toast({
+        title: "Form Limit Reached",
+        description: "Hobby plan allows maximum 5 forms. Please upgrade to create more forms.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const savedFormData = await saveForm(formData, fields, currentForm || undefined);
     
     if (savedFormData) {
@@ -98,6 +113,15 @@ export const FormBuilder = ({ user }: FormBuilderProps) => {
   };
 
   const handleDuplicateForm = async (form: SavedForm) => {
+    if (maxFormsReached) {
+      toast({
+        title: "Form Limit Reached",
+        description: "Hobby plan allows maximum 5 forms. Please upgrade to create more forms.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const duplicatedFormData = await saveForm(
       {
         name: `${form.name} (Copy)`,
@@ -136,6 +160,15 @@ export const FormBuilder = ({ user }: FormBuilderProps) => {
   };
 
   const handleNewForm = () => {
+    if (maxFormsReached) {
+      toast({
+        title: "Form Limit Reached",
+        description: "Hobby plan allows maximum 5 forms. Please upgrade to create more forms.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setFields([]);
     setSelectedFieldId(null);
     setCurrentForm(null);
@@ -165,19 +198,41 @@ export const FormBuilder = ({ user }: FormBuilderProps) => {
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Form Builder</h1>
             <p className="text-gray-600">Welcome back, {user.email}</p>
+            {isHobbyPlan && (
+              <p className="text-sm text-orange-600">
+                Hobby Plan: {savedForms.length}/5 forms used
+              </p>
+            )}
           </div>
-          {currentForm && (
-            <div className="text-right">
-              <h2 className="font-semibold">{currentForm.name}</h2>
-              <p className="text-sm text-gray-500">Last updated: {currentForm.updatedAt.toLocaleDateString()}</p>
-            </div>
-          )}
+          <div className="flex items-center gap-2">
+            {currentForm && (
+              <div className="text-right mr-4">
+                <h2 className="font-semibold">{currentForm.name}</h2>
+                <p className="text-sm text-gray-500">Last updated: {currentForm.updatedAt.toLocaleDateString()}</p>
+              </div>
+            )}
+            <Button
+              variant="outline"
+              onClick={() => navigate('/settings')}
+              className="flex items-center"
+            >
+              <Settings className="w-4 h-4 mr-2" />
+              Settings
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => navigate('/pricing')}
+              className="flex items-center"
+            >
+              Upgrade Plan
+            </Button>
+          </div>
         </div>
       </div>
 
       <div className="max-w-6xl mx-auto px-4">
         <Tabs defaultValue="builder" className="w-full">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className={`grid w-full ${isHobbyPlan ? 'grid-cols-4' : 'grid-cols-5'}`}>
             <TabsTrigger value="builder" className="flex items-center">
               <Plus className="w-4 h-4 mr-2" />
               Builder
@@ -194,10 +249,12 @@ export const FormBuilder = ({ user }: FormBuilderProps) => {
               <FolderOpen className="w-4 h-4 mr-2" />
               Manage
             </TabsTrigger>
-            <TabsTrigger value="chat" className="flex items-center">
-              <MessageCircle className="w-4 h-4 mr-2" />
-              Chat Form
-            </TabsTrigger>
+            {!isHobbyPlan && (
+              <TabsTrigger value="chat" className="flex items-center">
+                <MessageCircle className="w-4 h-4 mr-2" />
+                Chat Form
+              </TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value="builder">
@@ -250,18 +307,20 @@ export const FormBuilder = ({ user }: FormBuilderProps) => {
             />
           </TabsContent>
 
-          <TabsContent value="chat" className="space-y-6">
-            <div className="text-center mb-6">
-              <h2 className="text-2xl font-bold mb-2 flex items-center justify-center">
-                <MessageCircle className="w-6 h-6 mr-2 text-purple-600" />
-                Conversational Form
-              </h2>
-              <p className="text-gray-600">
-                Advanced form with voice and text chat capabilities powered by AI bot
-              </p>
-            </div>
-            <ConversationalForm />
-          </TabsContent>
+          {!isHobbyPlan && (
+            <TabsContent value="chat" className="space-y-6">
+              <div className="text-center mb-6">
+                <h2 className="text-2xl font-bold mb-2 flex items-center justify-center">
+                  <MessageCircle className="w-6 h-6 mr-2 text-purple-600" />
+                  Conversational Form
+                </h2>
+                <p className="text-gray-600">
+                  Advanced form with voice and text chat capabilities powered by AI bot
+                </p>
+              </div>
+              <ConversationalForm />
+            </TabsContent>
+          )}
         </Tabs>
       </div>
 
