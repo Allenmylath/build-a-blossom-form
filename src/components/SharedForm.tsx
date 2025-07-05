@@ -16,18 +16,30 @@ export const SharedForm = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    console.log('SharedForm component mounted with ID:', id);
+    console.log('SharedForm component mounted');
+    console.log('URL params:', { id });
+    console.log('Window location:', window.location.href);
     
     const fetchSharedForm = async () => {
       if (!id) {
-        console.log('No ID provided');
+        console.log('No ID provided in URL params');
         setError('Form ID is required');
         setLoading(false);
         return;
       }
 
       try {
-        console.log('Fetching form with ID:', id);
+        console.log('Attempting to fetch form with ID:', id);
+        
+        // Try to fetch the form regardless of is_public first to see if it exists
+        const { data: allData, error: allError } = await supabase
+          .from('forms')
+          .select('*')
+          .eq('id', id);
+
+        console.log('All forms query result:', { allData, allError });
+
+        // Now try the public form query
         const { data, error } = await supabase
           .from('forms')
           .select('*')
@@ -35,13 +47,25 @@ export const SharedForm = () => {
           .eq('is_public', true)
           .single();
 
-        console.log('Supabase response:', { data, error });
+        console.log('Public form query result:', { data, error });
 
         if (error) {
           console.error('Supabase error:', error);
-          setError('Form not found or not publicly available');
+          if (allData && allData.length > 0) {
+            setError('This form exists but is not publicly available');
+          } else {
+            setError('Form not found');
+          }
           return;
         }
+
+        if (!data) {
+          console.log('No data returned from query');
+          setError('Form not found');
+          return;
+        }
+
+        console.log('Successfully fetched form data:', data);
 
         const mappedForm: SavedForm = {
           id: data.id,
@@ -55,11 +79,11 @@ export const SharedForm = () => {
           submissions: [],
         };
 
-        console.log('Mapped form:', mappedForm);
+        console.log('Mapped form for display:', mappedForm);
         setForm(mappedForm);
       } catch (err) {
-        console.error('Error fetching shared form:', err);
-        setError('Failed to load form');
+        console.error('Error in fetchSharedForm:', err);
+        setError('Failed to load form due to an unexpected error');
       } finally {
         setLoading(false);
       }
@@ -68,6 +92,8 @@ export const SharedForm = () => {
     fetchSharedForm();
   }, [id]);
 
+  console.log('Current state:', { form, loading, error, id });
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 flex items-center justify-center">
@@ -75,6 +101,7 @@ export const SharedForm = () => {
           <Loader2 className="w-8 h-8 mx-auto mb-4 animate-spin text-purple-600" />
           <p className="text-gray-600">Loading form...</p>
           <p className="text-sm text-gray-400 mt-2">Form ID: {id}</p>
+          <p className="text-xs text-gray-300 mt-1">URL: {window.location.href}</p>
         </Card>
       </div>
     );
@@ -89,7 +116,8 @@ export const SharedForm = () => {
           <p className="text-gray-600 mb-4">
             {error || 'The form you\'re looking for doesn\'t exist or is not publicly available.'}
           </p>
-          <p className="text-sm text-gray-400 mb-4">Form ID: {id}</p>
+          <p className="text-sm text-gray-400 mb-2">Form ID: {id}</p>
+          <p className="text-xs text-gray-300 mb-4">URL: {window.location.href}</p>
           <Button onClick={() => window.location.href = '/'}>
             Go to Homepage
           </Button>
