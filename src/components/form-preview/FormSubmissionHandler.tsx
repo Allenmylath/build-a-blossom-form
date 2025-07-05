@@ -67,12 +67,26 @@ export const useFormSubmission = ({
             description: "Your response has been recorded and saved.",
           });
 
-          // Call success callback to refresh parent data - ensure this happens after successful save
+          // Call success callback with proper delay and retry mechanism
           if (onSubmissionSuccess) {
             console.log('Calling submission success callback after successful save');
-            setTimeout(() => {
-              onSubmissionSuccess();
-            }, 100); // Small delay to ensure database transaction is complete
+            
+            // Wait longer to ensure database write is fully committed
+            setTimeout(async () => {
+              try {
+                await onSubmissionSuccess();
+              } catch (error) {
+                console.error('Error in submission success callback:', error);
+                // Retry once after additional delay
+                setTimeout(() => {
+                  try {
+                    onSubmissionSuccess();
+                  } catch (retryError) {
+                    console.error('Retry also failed:', retryError);
+                  }
+                }, 1000);
+              }
+            }, 1500); // Increased from 100ms to 1500ms
           }
         } catch (error) {
           console.error('Network error during form submission:', error);

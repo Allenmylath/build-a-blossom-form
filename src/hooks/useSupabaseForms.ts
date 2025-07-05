@@ -9,9 +9,9 @@ export const useSupabaseForms = (user: User | null) => {
   const [savedForms, setSavedForms] = useState<SavedForm[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // Fetch forms from Supabase
-  const fetchForms = useCallback(async () => {
-    if (!user) return;
+  // Fetch forms from Supabase and return the data
+  const fetchForms = useCallback(async (): Promise<SavedForm[]> => {
+    if (!user) return [];
     
     setLoading(true);
     try {
@@ -38,7 +38,7 @@ export const useSupabaseForms = (user: User | null) => {
           description: error.message,
           variant: "destructive",
         });
-        return;
+        return [];
       }
 
       console.log('Fetched forms data:', forms);
@@ -69,6 +69,7 @@ export const useSupabaseForms = (user: User | null) => {
 
       console.log('Mapped forms:', mappedForms);
       setSavedForms(mappedForms);
+      return mappedForms;
     } catch (error) {
       console.error('Error fetching forms:', error);
       toast({
@@ -76,10 +77,70 @@ export const useSupabaseForms = (user: User | null) => {
         description: "Failed to load forms. Please try again.",
         variant: "destructive",
       });
+      return [];
     } finally {
       setLoading(false);
     }
   }, [user]);
+
+  // Refresh single form by ID and return updated form
+  const refreshSingleForm = async (formId: string): Promise<SavedForm | null> => {
+    if (!user) return null;
+    
+    try {
+      console.log('Refreshing single form:', formId);
+      
+      const { data: form, error } = await supabase
+        .from('forms')
+        .select(`
+          *,
+          form_submissions (
+            id,
+            data,
+            submitted_at,
+            ip_address
+          )
+        `)
+        .eq('id', formId)
+        .eq('user_id', user.id)
+        .single();
+
+      if (error) {
+        console.error('Error refreshing form:', error);
+        return null;
+      }
+
+      const submissions: FormSubmissionData[] = form.form_submissions.map((sub: any) => ({
+        id: sub.id,
+        formId: form.id,
+        data: sub.data,
+        submittedAt: new Date(sub.submitted_at),
+        ipAddress: sub.ip_address,
+      }));
+
+      const updatedForm: SavedForm = {
+        id: form.id,
+        name: form.name,
+        description: form.description,
+        fields: (form.fields as unknown as FormField[]) || [],
+        createdAt: new Date(form.created_at),
+        updatedAt: new Date(form.updated_at),
+        isPublic: form.is_public,
+        shareUrl: form.share_url,
+        submissions,
+      };
+
+      console.log('Refreshed form with submissions:', updatedForm.submissions.length);
+
+      // Update the form in state
+      setSavedForms(forms => forms.map(f => f.id === updatedForm.id ? updatedForm : f));
+      
+      return updatedForm;
+    } catch (error) {
+      console.error('Error refreshing single form:', error);
+      return null;
+    }
+  };
 
   // Save form to Supabase
   const saveForm = async (formData: { name: string; description: string; isPublic: boolean }, fields: FormField[], existingForm?: SavedForm) => {
@@ -247,5 +308,6 @@ export const useSupabaseForms = (user: User | null) => {
     saveForm,
     deleteForm,
     refreshForms: fetchForms,
+    refreshSingleForm,
   };
 };

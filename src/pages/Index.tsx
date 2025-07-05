@@ -15,11 +15,12 @@ import { PlusCircle, Eye, Settings, BarChart3 } from 'lucide-react';
 
 const Index = () => {
   const { user, signOut } = useSupabaseAuth();
-  const { savedForms, saveForm, deleteForm, refreshForms } = useSupabaseForms(user);
+  const { savedForms, saveForm, deleteForm, refreshForms, refreshSingleForm } = useSupabaseForms(user);
   
   const [fields, setFields] = useState<FormField[]>([]);
   const [currentForm, setCurrentForm] = useState<SavedForm | null>(null);
   const [activeTab, setActiveTab] = useState('builder');
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -122,26 +123,35 @@ const Index = () => {
   const handleFormSubmissionSuccess = async () => {
     console.log('Form submission success callback triggered');
     
+    if (!currentForm) {
+      console.log('No current form to refresh');
+      return;
+    }
+
+    setIsRefreshing(true);
+    
     try {
-      // Refresh the forms data to get updated submissions
-      await refreshForms();
+      console.log('Refreshing form data after submission for form:', currentForm.id);
       
-      // If we have a current form, find and update it with the latest data
-      if (currentForm && user) {
-        // Wait a bit for the refresh to complete, then find the updated form
-        setTimeout(() => {
-          const updatedForm = savedForms.find(f => f.id === currentForm.id);
-          if (updatedForm) {
-            console.log('Updating current form with fresh data:', updatedForm);
-            setCurrentForm(updatedForm);
-            
-            // Show success message
-            toast({
-              title: "Submission Recorded",
-              description: "Your form submission has been saved and analytics updated.",
-            });
-          }
-        }, 500);
+      // Use refreshSingleForm for targeted update
+      const updatedForm = await refreshSingleForm(currentForm.id);
+      
+      if (updatedForm) {
+        console.log('Successfully refreshed form with updated submissions:', updatedForm.submissions.length);
+        setCurrentForm(updatedForm);
+        
+        toast({
+          title: "Submission Recorded",
+          description: `Form submission saved successfully. Total submissions: ${updatedForm.submissions.length}`,
+        });
+      } else {
+        console.log('Failed to refresh form, falling back to full refresh');
+        // Fallback to full refresh if single form refresh fails
+        const allForms = await refreshForms();
+        const refreshedForm = allForms.find(f => f.id === currentForm.id);
+        if (refreshedForm) {
+          setCurrentForm(refreshedForm);
+        }
       }
     } catch (error) {
       console.error('Error refreshing form data after submission:', error);
@@ -150,6 +160,8 @@ const Index = () => {
         description: "Submission saved but analytics may not be updated immediately.",
         variant: "destructive",
       });
+    } finally {
+      setIsRefreshing(false);
     }
   };
 
@@ -210,6 +222,9 @@ const Index = () => {
                   {currentForm.submissions.length}
                 </span>
               )}
+              {isRefreshing && (
+                <span className="ml-1 animate-spin">⟳</span>
+              )}
             </TabsTrigger>
             <TabsTrigger value="forms" className="flex items-center">
               Forms ({savedForms.length})
@@ -218,11 +233,11 @@ const Index = () => {
 
           <TabsContent value="builder">
             <FormBuilder 
-              fields={fields} 
-              setFields={setFields}
               onSave={handleSaveForm}
               currentForm={currentForm}
               user={user}
+              fields={fields}
+              setFields={setFields}
             />
           </TabsContent>
 
@@ -239,6 +254,7 @@ const Index = () => {
               submissions={currentForm?.submissions || []}
               fields={fields}
               onExportCSV={exportToCSV}
+              isRefreshing={isRefreshing}
             />
           </TabsContent>
 
