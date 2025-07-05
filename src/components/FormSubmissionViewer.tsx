@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Eye, Download, Calendar, MapPin, Loader2 } from 'lucide-react';
+import { Eye, Download, Calendar, MapPin, Loader2, Hash } from 'lucide-react';
 
 interface FormSubmissionViewerProps {
   submissions: FormSubmissionData[];
@@ -62,6 +62,7 @@ export const FormSubmissionViewer = ({ submissions, fields, onExportCSV, isRefre
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>Reference ID</TableHead>
                 <TableHead>Date & Time</TableHead>
                 <TableHead>IP Address</TableHead>
                 <TableHead>Preview</TableHead>
@@ -71,6 +72,14 @@ export const FormSubmissionViewer = ({ submissions, fields, onExportCSV, isRefre
             <TableBody>
               {submissions.map((submission) => (
                 <TableRow key={submission.id}>
+                  <TableCell>
+                    <div className="flex items-center">
+                      <Hash className="w-4 h-4 mr-2 text-blue-500" />
+                      <Badge variant="secondary" className="font-mono">
+                        {submission.id.slice(0, 8).toUpperCase()}
+                      </Badge>
+                    </div>
+                  </TableCell>
                   <TableCell>
                     <div className="flex items-center">
                       <Calendar className="w-4 h-4 mr-2 text-gray-400" />
@@ -107,7 +116,12 @@ export const FormSubmissionViewer = ({ submissions, fields, onExportCSV, isRefre
                       </DialogTrigger>
                       <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
                         <DialogHeader>
-                          <DialogTitle>Submission Details</DialogTitle>
+                          <DialogTitle className="flex items-center">
+                            Submission Details
+                            <Badge variant="secondary" className="ml-2 font-mono">
+                              #{selectedSubmission?.id.slice(0, 8).toUpperCase()}
+                            </Badge>
+                          </DialogTitle>
                         </DialogHeader>
                         {selectedSubmission && (
                           <div className="space-y-4">

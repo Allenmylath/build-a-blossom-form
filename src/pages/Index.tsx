@@ -92,10 +92,11 @@ const Index = () => {
       return;
     }
 
-    const headers = ['Date', 'IP Address', ...fields.map(field => field.label)];
+    const headers = ['Date', 'IP Address', 'Reference ID', ...fields.map(field => field.label)];
     const rows = currentForm.submissions.map(submission => [
       new Date(submission.submittedAt).toLocaleString(),
       submission.ipAddress || 'N/A',
+      submission.id.slice(0, 8).toUpperCase(),
       ...fields.map(field => {
         const value = submission.data[field.id];
         return Array.isArray(value) ? value.join(', ') : (value || '');
@@ -140,9 +141,13 @@ const Index = () => {
         console.log('Successfully refreshed form with updated submissions:', updatedForm.submissions.length);
         setCurrentForm(updatedForm);
         
+        // Get the latest submission for reference
+        const latestSubmission = updatedForm.submissions[updatedForm.submissions.length - 1];
+        const submissionReference = latestSubmission?.id?.slice(0, 8).toUpperCase() || 'UNKNOWN';
+        
         toast({
-          title: "Submission Recorded",
-          description: `Form submission saved successfully. Total submissions: ${updatedForm.submissions.length}`,
+          title: "Analytics Updated",
+          description: `Latest submission #${submissionReference} is now visible in analytics. Total: ${updatedForm.submissions.length}`,
         });
       } else {
         console.log('Failed to refresh form, falling back to full refresh');

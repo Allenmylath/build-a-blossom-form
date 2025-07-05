@@ -62,9 +62,13 @@ export const useFormSubmission = ({
 
           console.log('Form submission saved successfully:', data);
 
+          // Extract the submission ID for proof
+          const submissionId = data[0]?.id;
+          const submissionReference = submissionId ? submissionId.slice(0, 8).toUpperCase() : 'UNKNOWN';
+
           toast({
             title: "Form Submitted Successfully!",
-            description: "Your response has been recorded and saved.",
+            description: `Your response has been recorded. Reference #${submissionReference}`,
           });
 
           // Call success callback with proper delay and retry mechanism
@@ -97,10 +101,11 @@ export const useFormSubmission = ({
           });
         }
       } else {
-        // For forms without ID (preview mode), just show success message
+        // For forms without ID (preview mode), just show success message with mock reference
+        const mockReference = Date.now().toString().slice(-6).toUpperCase();
         toast({
           title: "Form Submitted Successfully!",
-          description: "This is a preview - check the console to see the submitted data.",
+          description: `This is a preview - Reference #PREV${mockReference}`,
         });
       }
     }
