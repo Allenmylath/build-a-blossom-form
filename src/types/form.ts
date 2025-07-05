@@ -1,5 +1,4 @@
-
-export type FormFieldType = 'text' | 'email' | 'number' | 'textarea' | 'select' | 'radio' | 'checkbox' | 'date' | 'file' | 'phone' | 'url';
+export type FormFieldType = 'text' | 'email' | 'number' | 'textarea' | 'select' | 'radio' | 'checkbox' | 'date' | 'file' | 'phone' | 'url' | 'chat' | 'page-break';
 
 export interface FormField {
   id: string;
@@ -12,6 +11,12 @@ export interface FormField {
     min?: number;
     max?: number;
     pattern?: string;
+  };
+  // Chat-specific properties
+  chatConfig?: {
+    botName?: string;
+    welcomeMessage?: string;
+    apiUrl?: string;
   };
 }
 

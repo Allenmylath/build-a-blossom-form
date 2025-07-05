@@ -1,11 +1,12 @@
 
-import { FormField, FormSubmission } from '@/types/form';
+import { FormField } from '@/types/form';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
+import { ChatFormField } from '../form-fields/ChatFormField';
 
 interface FormFieldRendererProps {
   field: FormField;
@@ -15,146 +16,177 @@ interface FormFieldRendererProps {
 }
 
 export const FormFieldRenderer = ({ field, value, error, onChange }: FormFieldRendererProps) => {
-  const hasError = !!error;
-
-  const renderLabel = () => (
-    <Label htmlFor={field.id}>
-      {field.label}
-      {field.required && <span className="text-red-500 ml-1">*</span>}
-    </Label>
-  );
-
-  const renderError = () => (
-    hasError && <p className="text-red-500 text-sm">{error}</p>
-  );
-
-  switch (field.type) {
-    case 'text':
-    case 'email':
-    case 'number':
-    case 'url':
-    case 'phone':
-      return (
-        <div className="space-y-2">
-          {renderLabel()}
-          <Input
-            id={field.id}
-            type={field.type === 'phone' ? 'tel' : field.type}
-            placeholder={field.placeholder}
-            value={value as string || ''}
-            onChange={(e) => onChange(e.target.value)}
-            className={hasError ? 'border-red-500' : ''}
+  const renderField = () => {
+    switch (field.type) {
+      case 'chat':
+        return (
+          <ChatFormField
+            field={field}
+            value={value}
+            onChange={onChange}
+            error={error}
           />
-          {renderError()}
-        </div>
-      );
-    
-    case 'textarea':
-      return (
-        <div className="space-y-2">
-          {renderLabel()}
-          <Textarea
-            id={field.id}
-            placeholder={field.placeholder}
-            value={value as string || ''}
-            onChange={(e) => onChange(e.target.value)}
-            className={hasError ? 'border-red-500' : ''}
-            rows={3}
-          />
-          {renderError()}
-        </div>
-      );
-    
-    case 'select':
-      return (
-        <div className="space-y-2">
-          {renderLabel()}
-          <Select onValueChange={onChange}>
-            <SelectTrigger className={hasError ? 'border-red-500' : ''}>
-              <SelectValue placeholder={field.placeholder || 'Select an option'} />
-            </SelectTrigger>
-            <SelectContent>
-              {field.options?.map((option, index) => (
-                <SelectItem key={index} value={option}>
-                  {option}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {renderError()}
-        </div>
-      );
-    
-    case 'radio':
-      return (
-        <div className="space-y-2">
-          <Label>
-            {field.label}
-            {field.required && <span className="text-red-500 ml-1">*</span>}
-          </Label>
-          <RadioGroup
-            onValueChange={onChange}
-            className={hasError ? 'border border-red-500 rounded p-2' : ''}
-          >
-            {field.options?.map((option, index) => (
-              <div key={index} className="flex items-center space-x-2">
-                <RadioGroupItem value={option} id={`${field.id}-${index}`} />
-                <Label htmlFor={`${field.id}-${index}`}>{option}</Label>
-              </div>
-            ))}
-          </RadioGroup>
-          {renderError()}
-        </div>
-      );
-    
-    case 'checkbox':
-      return (
-        <div className="space-y-2">
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id={field.id}
-              checked={value as boolean || false}
-              onCheckedChange={onChange}
-            />
-            <Label htmlFor={field.id}>
+        );
+
+      case 'text':
+      case 'email':
+      case 'url':
+      case 'phone':
+        return (
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-700">
               {field.label}
               {field.required && <span className="text-red-500 ml-1">*</span>}
-            </Label>
+            </label>
+            <Input
+              type={field.type === 'text' ? 'text' : field.type}
+              placeholder={field.placeholder}
+              value={value || ''}
+              onChange={(e) => onChange(e.target.value)}
+              className={error ? 'border-red-500' : ''}
+            />
+            {error && <p className="text-sm text-red-600">{error}</p>}
           </div>
-          {renderError()}
-        </div>
-      );
+        );
 
-    case 'date':
-      return (
-        <div className="space-y-2">
-          {renderLabel()}
-          <Input
-            id={field.id}
-            type="date"
-            value={value as string || ''}
-            onChange={(e) => onChange(e.target.value)}
-            className={hasError ? 'border-red-500' : ''}
-          />
-          {renderError()}
-        </div>
-      );
+      case 'number':
+        return (
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-700">
+              {field.label}
+              {field.required && <span className="text-red-500 ml-1">*</span>}
+            </label>
+            <Input
+              type="number"
+              placeholder={field.placeholder}
+              value={value || ''}
+              onChange={(e) => onChange(e.target.value)}
+              min={field.validation?.min}
+              max={field.validation?.max}
+              className={error ? 'border-red-500' : ''}
+            />
+            {error && <p className="text-sm text-red-600">{error}</p>}
+          </div>
+        );
 
-    case 'file':
-      return (
-        <div className="space-y-2">
-          {renderLabel()}
-          <Input
-            id={field.id}
-            type="file"
-            onChange={(e) => onChange(e.target.files?.[0]?.name || '')}
-            className={hasError ? 'border-red-500' : ''}
-          />
-          {renderError()}
-        </div>
-      );
-    
-    default:
-      return null;
-  }
+      case 'textarea':
+        return (
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-700">
+              {field.label}
+              {field.required && <span className="text-red-500 ml-1">*</span>}
+            </label>
+            <Textarea
+              placeholder={field.placeholder}
+              value={value || ''}
+              onChange={(e) => onChange(e.target.value)}
+              className={error ? 'border-red-500' : ''}
+            />
+            {error && <p className="text-sm text-red-600">{error}</p>}
+          </div>
+        );
+
+      case 'select':
+        return (
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-700">
+              {field.label}
+              {field.required && <span className="text-red-500 ml-1">*</span>}
+            </label>
+            <Select value={value || ''} onValueChange={onChange}>
+              <SelectTrigger className={error ? 'border-red-500' : ''}>
+                <SelectValue placeholder={field.placeholder || 'Select an option'} />
+              </SelectTrigger>
+              <SelectContent>
+                {field.options?.map((option, index) => (
+                  <SelectItem key={index} value={option}>
+                    {option}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {error && <p className="text-sm text-red-600">{error}</p>}
+          </div>
+        );
+
+      case 'radio':
+        return (
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-700">
+              {field.label}
+              {field.required && <span className="text-red-500 ml-1">*</span>}
+            </label>
+            <RadioGroup value={value || ''} onValueChange={onChange}>
+              {field.options?.map((option, index) => (
+                <div key={index} className="flex items-center space-x-2">
+                  <RadioGroupItem value={option} id={`${field.id}-${index}`} />
+                  <Label htmlFor={`${field.id}-${index}`}>{option}</Label>
+                </div>
+              ))}
+            </RadioGroup>
+            {error && <p className="text-sm text-red-600">{error}</p>}
+          </div>
+        );
+
+      case 'checkbox':
+        return (
+          <div className="space-y-2">
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id={field.id}
+                checked={value || false}
+                onCheckedChange={onChange}
+              />
+              <Label htmlFor={field.id} className="text-sm font-medium text-gray-700">
+                {field.label}
+                {field.required && <span className="text-red-500 ml-1">*</span>}
+              </Label>
+            </div>
+            {error && <p className="text-sm text-red-600">{error}</p>}
+          </div>
+        );
+
+      case 'date':
+        return (
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-700">
+              {field.label}
+              {field.required && <span className="text-red-500 ml-1">*</span>}
+            </label>
+            <Input
+              type="date"
+              value={value || ''}
+              onChange={(e) => onChange(e.target.value)}
+              className={error ? 'border-red-500' : ''}
+            />
+            {error && <p className="text-sm text-red-600">{error}</p>}
+          </div>
+        );
+
+      case 'file':
+        return (
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-700">
+              {field.label}
+              {field.required && <span className="text-red-500 ml-1">*</span>}
+            </label>
+            <Input
+              type="file"
+              onChange={(e) => onChange(e.target.files?.[0])}
+              className={error ? 'border-red-500' : ''}
+            />
+            {error && <p className="text-sm text-red-600">{error}</p>}
+          </div>
+        );
+
+      default:
+        return (
+          <div className="p-4 border border-dashed border-gray-300 rounded-lg text-center text-gray-500">
+            Unsupported field type: {field.type}
+          </div>
+        );
+    }
+  };
+
+  return renderField();
 };

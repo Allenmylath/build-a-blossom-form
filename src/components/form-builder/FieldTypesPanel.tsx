@@ -21,6 +21,8 @@ export const FieldTypesPanel = ({ onAddField }: FieldTypesPanelProps) => {
     { type: 'file', label: 'File Upload', icon: '📎' },
     { type: 'phone', label: 'Phone Number', icon: '📞' },
     { type: 'url', label: 'Website URL', icon: '🔗' },
+    { type: 'chat', label: 'Chat Form', icon: '💬' },
+    { type: 'page-break', label: 'Page Break', icon: '📄' },
   ];
 
   return (
