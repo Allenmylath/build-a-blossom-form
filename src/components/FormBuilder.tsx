@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { FormFieldEditor } from './FormFieldEditor';
 import { FormPreview } from './FormPreview';
@@ -19,13 +20,25 @@ import { useNavigate } from 'react-router-dom';
 
 interface FormBuilderProps {
   user: User;
+  onSave?: (formData: { name: string; description: string; isPublic: boolean }) => Promise<void>;
+  currentForm?: SavedForm | null;
+  fields?: FormField[];
+  setFields?: React.Dispatch<React.SetStateAction<FormField[]>>;
 }
 
-export const FormBuilder = ({ user }: FormBuilderProps) => {
+export const FormBuilder = ({ user, onSave: externalOnSave, currentForm: externalCurrentForm, fields: externalFields, setFields: externalSetFields }: FormBuilderProps) => {
   const navigate = useNavigate();
-  const [fields, setFields] = useState<FormField[]>([]);
+  
+  // Use external state if provided, otherwise use internal state
+  const [internalFields, setInternalFields] = useState<FormField[]>([]);
+  const [internalCurrentForm, setInternalCurrentForm] = useState<SavedForm | null>(null);
+  
+  const fields = externalFields || internalFields;
+  const setFields = externalSetFields || setInternalFields;
+  const currentForm = externalCurrentForm || internalCurrentForm;
+  const setCurrentForm = externalCurrentForm !== undefined ? () => {} : setInternalCurrentForm;
+
   const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null);
-  const [currentForm, setCurrentForm] = useState<SavedForm | null>(null);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [showExportDialog, setShowExportDialog] = useState(false);
 
@@ -75,6 +88,12 @@ export const FormBuilder = ({ user }: FormBuilderProps) => {
   };
 
   const handleSaveForm = async (formData: { name: string; description: string; isPublic: boolean }) => {
+    // Use external onSave if provided, otherwise use internal logic
+    if (externalOnSave) {
+      await externalOnSave(formData);
+      return;
+    }
+
     if (maxFormsReached && !currentForm) {
       toast({
         title: "Form Limit Reached",
@@ -97,7 +116,9 @@ export const FormBuilder = ({ user }: FormBuilderProps) => {
 
   const handleLoadForm = (form: SavedForm) => {
     setFields(form.fields);
-    setCurrentForm(form);
+    if (!externalCurrentForm) {
+      setCurrentForm(form);
+    }
     setSelectedFieldId(null);
     toast({
       title: "Form Loaded",
@@ -107,7 +128,7 @@ export const FormBuilder = ({ user }: FormBuilderProps) => {
 
   const handleDeleteForm = async (formId: string) => {
     await deleteForm(formId);
-    if (currentForm?.id === formId) {
+    if (currentForm?.id === formId && !externalCurrentForm) {
       setCurrentForm(null);
     }
   };
@@ -152,7 +173,9 @@ export const FormBuilder = ({ user }: FormBuilderProps) => {
   const handleSelectTemplate = (template: FormTemplate) => {
     setFields(template.fields);
     setSelectedFieldId(null);
-    setCurrentForm(null);
+    if (!externalCurrentForm) {
+      setCurrentForm(null);
+    }
     toast({
       title: "Template Applied",
       description: `"${template.name}" template has been applied to your form.`,
@@ -171,7 +194,9 @@ export const FormBuilder = ({ user }: FormBuilderProps) => {
 
     setFields([]);
     setSelectedFieldId(null);
-    setCurrentForm(null);
+    if (!externalCurrentForm) {
+      setCurrentForm(null);
+    }
     toast({
       title: "New Form Started",
       description: "You can now start building your new form.",
