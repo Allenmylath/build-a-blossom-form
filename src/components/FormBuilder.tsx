@@ -120,7 +120,7 @@ export const FormBuilder = ({
 
   const handleAddField = (type: any) => {
     console.log('handleAddField called in FormBuilder with type:', type);
-    console.log('Current fields before add:', activeFields.length);
+    console.log('Current activeFields before add:', activeFields.length);
     console.log('Is controlled mode:', isControlledMode);
     
     if (isControlledMode && externalSetFields) {
@@ -164,12 +164,14 @@ export const FormBuilder = ({
       
       console.log('Adding field directly to external state:', newField);
       
-      externalSetFields(prev => {
-        const updated = [...prev, newField];
-        console.log('External fields updated, new length:', updated.length);
-        return updated;
-      });
+      // Update external state immediately
+      const updatedFields = [...activeFields, newField];
+      externalSetFields(updatedFields);
       
+      // Also update internal state to ensure immediate UI update
+      setInternalFields(updatedFields);
+      
+      console.log('Fields updated, new length:', updatedFields.length);
       setSelectedFieldId(fieldId);
     } else {
       // In uncontrolled mode, use the addField function from useFormBuilder
@@ -182,19 +184,19 @@ export const FormBuilder = ({
     console.log('Updating field in FormBuilder:', fieldId);
     
     if (isControlledMode && externalSetFields) {
-      externalSetFields(prev => {
-        const fieldIndex = prev.findIndex(field => field.id === fieldId);
-        if (fieldIndex === -1) {
-          console.error('Field not found for update:', fieldId);
-          return prev;
-        }
-        
-        const updatedFields = [...prev];
-        updatedFields[fieldIndex] = { ...updatedFields[fieldIndex], ...updates };
-        
-        console.log('Field updated in external state:', updatedFields[fieldIndex]);
-        return updatedFields;
-      });
+      const fieldIndex = activeFields.findIndex(field => field.id === fieldId);
+      if (fieldIndex === -1) {
+        console.error('Field not found for update:', fieldId);
+        return;
+      }
+      
+      const updatedFields = [...activeFields];
+      updatedFields[fieldIndex] = { ...updatedFields[fieldIndex], ...updates };
+      
+      externalSetFields(updatedFields);
+      setInternalFields(updatedFields);
+      
+      console.log('Field updated in external state:', updatedFields[fieldIndex]);
     } else {
       updateField(fieldId, updates);
     }
@@ -204,12 +206,12 @@ export const FormBuilder = ({
     console.log('Deleting field in FormBuilder:', fieldId);
     
     if (isControlledMode && externalSetFields) {
-      externalSetFields(prev => {
-        const filtered = prev.filter(field => field.id !== fieldId);
-        console.log('Fields after deletion in external state:', filtered.length);
-        return filtered;
-      });
+      const filteredFields = activeFields.filter(field => field.id !== fieldId);
       
+      externalSetFields(filteredFields);
+      setInternalFields(filteredFields);
+      
+      console.log('Fields after deletion in external state:', filteredFields.length);
       setSelectedFieldId(prev => prev === fieldId ? null : prev);
     } else {
       deleteField(fieldId);
@@ -220,25 +222,25 @@ export const FormBuilder = ({
     console.log('Moving field in FormBuilder:', fieldId, direction);
     
     if (isControlledMode && externalSetFields) {
-      externalSetFields(prev => {
-        const index = prev.findIndex(f => f.id === fieldId);
-        if (index === -1) {
-          console.error('Field not found for move:', fieldId);
-          return prev;
-        }
-        
-        const newIndex = direction === 'up' ? index - 1 : index + 1;
-        if (newIndex < 0 || newIndex >= prev.length) {
-          console.log('Cannot move field - would be out of bounds');
-          return prev;
-        }
-        
-        const newFields = [...prev];
-        [newFields[index], newFields[newIndex]] = [newFields[newIndex], newFields[index]];
-        
-        console.log('Field moved in external state');
-        return newFields;
-      });
+      const index = activeFields.findIndex(f => f.id === fieldId);
+      if (index === -1) {
+        console.error('Field not found for move:', fieldId);
+        return;
+      }
+      
+      const newIndex = direction === 'up' ? index - 1 : index + 1;
+      if (newIndex < 0 || newIndex >= activeFields.length) {
+        console.log('Cannot move field - would be out of bounds');
+        return;
+      }
+      
+      const newFields = [...activeFields];
+      [newFields[index], newFields[newIndex]] = [newFields[newIndex], newFields[index]];
+      
+      externalSetFields(newFields);
+      setInternalFields(newFields);
+      
+      console.log('Field moved in external state');
     } else {
       moveField(fieldId, direction);
     }
@@ -250,6 +252,7 @@ export const FormBuilder = ({
     
     if (isControlledMode && externalSetFields) {
       externalSetFields([]);
+      setInternalFields([]);
     }
     
     handleCurrentFormChange(null);
