@@ -5,10 +5,10 @@ import { FormTemplates } from './FormTemplates';
 import { FormManager } from './FormManager';
 import { FormSaveDialog } from './FormSaveDialog';
 import { FormExport } from './FormExport';
-import { FormField, FormFieldType, FormTemplate, SavedForm, FormSubmissionData } from '@/types/form';
-import { Plus, Settings, Eye, Save, FolderOpen, FileText, Download, Upload, Copy, MessageCircle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
+import { BuilderPanel } from './form-builder/BuilderPanel';
+import { FormActions } from './form-builder/FormActions';
+import { FormField, FormFieldType, FormTemplate, SavedForm } from '@/types/form';
+import { Plus, Eye, FolderOpen, FileText, MessageCircle } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/hooks/use-toast';
 import { ConversationalForm } from './ConversationalForm';
@@ -16,7 +16,6 @@ import { ConversationalForm } from './ConversationalForm';
 export const FormBuilder = () => {
   const [fields, setFields] = useState<FormField[]>([]);
   const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'builder' | 'preview' | 'templates' | 'manage'>('builder');
   const [savedForms, setSavedForms] = useState<SavedForm[]>([]);
   const [currentForm, setCurrentForm] = useState<SavedForm | null>(null);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
@@ -102,7 +101,6 @@ export const FormBuilder = () => {
     setFields(form.fields);
     setCurrentForm(form);
     setSelectedFieldId(null);
-    setActiveTab('builder');
     toast({
       title: "Form Loaded",
       description: `"${form.name}" is now ready for editing.`,
@@ -140,7 +138,6 @@ export const FormBuilder = () => {
     setFields(template.fields);
     setSelectedFieldId(null);
     setCurrentForm(null);
-    setActiveTab('builder');
     toast({
       title: "Template Applied",
       description: `"${template.name}" template has been applied to your form.`,
@@ -151,7 +148,6 @@ export const FormBuilder = () => {
     setFields([]);
     setSelectedFieldId(null);
     setCurrentForm(null);
-    setActiveTab('builder');
     toast({
       title: "New Form Started",
       description: "You can now start building your new form.",
@@ -171,20 +167,6 @@ export const FormBuilder = () => {
   };
 
   const selectedField = fields.find(f => f.id === selectedFieldId);
-
-  const fieldTypes: { type: FormFieldType; label: string; icon: string }[] = [
-    { type: 'text', label: 'Text Input', icon: '📝' },
-    { type: 'email', label: 'Email', icon: '📧' },
-    { type: 'number', label: 'Number', icon: '🔢' },
-    { type: 'textarea', label: 'Textarea', icon: '📄' },
-    { type: 'select', label: 'Dropdown', icon: '📋' },
-    { type: 'radio', label: 'Radio Buttons', icon: '🔘' },
-    { type: 'checkbox', label: 'Checkbox', icon: '☑️' },
-    { type: 'date', label: 'Date Picker', icon: '📅' },
-    { type: 'file', label: 'File Upload', icon: '📎' },
-    { type: 'phone', label: 'Phone Number', icon: '📞' },
-    { type: 'url', label: 'Website URL', icon: '🔗' },
-  ];
 
   return (
     <div className="space-y-6">
@@ -213,93 +195,24 @@ export const FormBuilder = () => {
         </TabsList>
 
         <TabsContent value="builder">
+          <FormActions
+            onSave={() => setShowSaveDialog(true)}
+            onNew={handleNewForm}
+            onExportImport={handleExportImport}
+            hasFields={fields.length > 0}
+          />
+          
           <div className="grid lg:grid-cols-3 gap-6">
-            {/* Builder Panel */}
-            <div className="lg:col-span-2 space-y-6">
-              {/* Field Types */}
-              <Card className="p-6 bg-white shadow-lg">
-                <h3 className="text-lg font-semibold mb-4 flex items-center">
-                  <Plus className="w-5 h-5 mr-2 text-purple-600" />
-                  Add Form Fields
-                </h3>
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                  {fieldTypes.map(({ type, label, icon }) => (
-                    <Button
-                      key={type}
-                      variant="outline"
-                      onClick={() => addField(type)}
-                      className="h-auto p-4 flex flex-col items-center space-y-2 hover:bg-purple-50 hover:border-purple-300 transition-colors"
-                    >
-                      <span className="text-2xl">{icon}</span>
-                      <span className="text-xs text-center">{label}</span>
-                    </Button>
-                  ))}
-                </div>
-              </Card>
+            <BuilderPanel
+              fields={fields}
+              selectedFieldId={selectedFieldId}
+              onAddField={addField}
+              onSelectField={setSelectedFieldId}
+              onMoveField={moveField}
+            />
 
-              {/* Field List */}
-              <Card className="p-6 bg-white shadow-lg">
-                <h3 className="text-lg font-semibold mb-4">Form Fields ({fields.length})</h3>
-                {fields.length === 0 ? (
-                  <div className="text-center py-8 text-gray-500">
-                    <Plus className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                    <p>No fields added yet</p>
-                    <p className="text-sm">Add your first field above to get started</p>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {fields.map((field, index) => (
-                      <div
-                        key={field.id}
-                        className={`p-3 border rounded-lg cursor-pointer transition-all ${
-                          selectedFieldId === field.id
-                            ? 'border-purple-500 bg-purple-50'
-                            : 'border-gray-200 hover:border-gray-300'
-                        }`}
-                        onClick={() => setSelectedFieldId(field.id)}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <span className="font-medium">{field.label}</span>
-                            <span className="text-sm text-gray-500 ml-2">({field.type})</span>
-                            {field.required && (
-                              <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded ml-2">Required</span>
-                            )}
-                          </div>
-                          <div className="flex space-x-1">
-                            {index > 0 && (
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  moveField(field.id, 'up');
-                                }}
-                              >
-                                ↑
-                              </Button>
-                            )}
-                            {index < fields.length - 1 && (
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  moveField(field.id, 'down');
-                                }}
-                              >
-                                ↓
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </Card>
-
-              {/* Field Editor */}
+            {/* Field Editor and Preview Panel */}
+            <div className="space-y-6">
               {selectedField && (
                 <FormFieldEditor
                   field={selectedField}
@@ -307,10 +220,6 @@ export const FormBuilder = () => {
                   onDelete={() => deleteField(selectedField.id)}
                 />
               )}
-            </div>
-
-            {/* Preview Panel */}
-            <div>
               <FormPreview fields={fields} />
             </div>
           </div>
