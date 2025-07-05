@@ -402,7 +402,7 @@ export const FormAnalytics = ({ form, onClose }: FormAnalyticsProps) => {
                           dataKey="value"
                         >
                           {fieldAnalytic.data.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.colors.length]} />
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                           ))}
                         </Pie>
                         <ChartTooltip content={<ChartTooltipContent />} />

@@ -76,9 +76,10 @@ export const SharedForm = () => {
         console.log('Successfully fetched form data:', data);
         console.log('Form submissions data:', data.form_submissions);
 
-        // Map the submissions properly
+        // Map the submissions properly - including the required formId
         const submissions = (data.form_submissions || []).map((sub: any) => ({
           id: sub.id,
+          formId: data.id, // Add the required formId property
           data: sub.data || {},
           submittedAt: sub.submitted_at,
           ipAddress: sub.ip_address,
