@@ -39,10 +39,18 @@ export const SharedForm = () => {
 
         console.log('All forms query result:', { allData, allError });
 
-        // Now try the public form query
+        // Now try the public form query with submissions included
         const { data, error } = await supabase
           .from('forms')
-          .select('*')
+          .select(`
+            *,
+            form_submissions (
+              id,
+              data,
+              submitted_at,
+              ip_address
+            )
+          `)
           .eq('id', id)
           .eq('is_public', true)
           .single();
@@ -66,6 +74,15 @@ export const SharedForm = () => {
         }
 
         console.log('Successfully fetched form data:', data);
+        console.log('Form submissions data:', data.form_submissions);
+
+        // Map the submissions properly
+        const submissions = (data.form_submissions || []).map((sub: any) => ({
+          id: sub.id,
+          data: sub.data || {},
+          submittedAt: sub.submitted_at,
+          ipAddress: sub.ip_address,
+        }));
 
         const mappedForm: SavedForm = {
           id: data.id,
@@ -76,10 +93,11 @@ export const SharedForm = () => {
           updatedAt: new Date(data.updated_at),
           isPublic: data.is_public,
           shareUrl: data.share_url,
-          submissions: [],
+          submissions: submissions,
         };
 
         console.log('Mapped form for display:', mappedForm);
+        console.log('Form submissions count:', submissions.length);
         setForm(mappedForm);
       } catch (err) {
         console.error('Error in fetchSharedForm:', err);
@@ -135,7 +153,7 @@ export const SharedForm = () => {
             <p className="text-gray-600 mb-4">{form.description}</p>
           )}
           <p className="text-sm text-gray-500">
-            Shared by: Form Builder • {form.fields.length} fields
+            Shared by: Form Builder • {form.fields.length} fields • {form.submissions.length} submissions
           </p>
         </Card>
         

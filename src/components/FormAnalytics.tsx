@@ -8,11 +8,11 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { Download, TrendingUp, Users, Calendar, FileText, Eye } from 'lucide-react';
+import { Download, TrendingUp, Users, Calendar, FileText, Eye, AlertCircle } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 interface FormAnalyticsProps {
-  form: SavedForm;
+  form: SavedForm | null;
   onClose: () => void;
 }
 
@@ -21,10 +21,42 @@ const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff7300', '#8dd1e1'];
 export const FormAnalytics = ({ form, onClose }: FormAnalyticsProps) => {
   const [selectedEntry, setSelectedEntry] = useState<string | null>(null);
 
+  // Handle null form case
+  if (!form) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">Form Analytics</h2>
+            <p className="text-gray-600">No form selected for analytics</p>
+          </div>
+          <Button variant="outline" onClick={onClose}>
+            <Eye className="w-4 h-4 mr-2" />
+            Back to Builder
+          </Button>
+        </div>
+        
+        <Card className="p-8 text-center">
+          <AlertCircle className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+          <h3 className="text-lg font-semibold text-gray-600 mb-2">No Form Selected</h3>
+          <p className="text-gray-500 mb-4">
+            Please load a form first to view its analytics and submission data.
+          </p>
+          <Button onClick={onClose}>
+            Go to Form Builder
+          </Button>
+        </Card>
+      </div>
+    );
+  }
+
   // Calculate analytics data
   const analytics = useMemo(() => {
-    const submissions = form.submissions;
+    const submissions = form.submissions || [];
     const totalSubmissions = submissions.length;
+    
+    console.log('FormAnalytics calculating data for form:', form.name);
+    console.log('Total submissions:', totalSubmissions);
     
     // Calculate submission trends by date
     const submissionsByDate = submissions.reduce((acc, sub) => {
@@ -85,7 +117,7 @@ export const FormAnalytics = ({ form, onClose }: FormAnalyticsProps) => {
   }, [form]);
 
   const handleDownloadCSV = () => {
-    if (form.submissions.length === 0) {
+    if (!form || form.submissions.length === 0) {
       toast({
         title: "No Data",
         description: "There are no submissions to export.",
@@ -94,14 +126,17 @@ export const FormAnalytics = ({ form, onClose }: FormAnalyticsProps) => {
       return;
     }
 
+    console.log('Exporting CSV for form:', form.name, 'with', form.submissions.length, 'submissions');
+
     // Create CSV headers
-    const headers = ['Submission Date', 'IP Address', ...form.fields.map(field => field.label)];
+    const headers = ['Submission Date', 'IP Address', 'Reference ID', ...form.fields.map(field => field.label)];
     
     // Create CSV rows
     const rows = form.submissions.map(submission => {
       const row = [
         new Date(submission.submittedAt).toLocaleString(),
         submission.ipAddress || 'N/A',
+        submission.id.slice(0, 8).toUpperCase(),
         ...form.fields.map(field => {
           const value = submission.data[field.id];
           if (Array.isArray(value)) {
@@ -367,7 +402,7 @@ export const FormAnalytics = ({ form, onClose }: FormAnalyticsProps) => {
                           dataKey="value"
                         >
                           {fieldAnalytic.data.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.colors.length]} />
                           ))}
                         </Pie>
                         <ChartTooltip content={<ChartTooltipContent />} />

@@ -1,11 +1,10 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { useSupabaseForms } from '@/hooks/useSupabaseForms';
 import { FormBuilder } from '@/components/FormBuilder';
 import { FormPreview } from '@/components/FormPreview';
 import { FormManager } from '@/components/FormManager';
-import { FormSubmissionViewer } from '@/components/FormSubmissionViewer';
+import { FormAnalytics } from '@/components/FormAnalytics';
 import { Auth } from '@/components/Auth';
 import { FormField, SavedForm } from '@/types/form';
 import { Button } from '@/components/ui/button';
@@ -388,12 +387,24 @@ const Index = () => {
           </TabsContent>
 
           <TabsContent value="analytics">
-            <FormSubmissionViewer
-              submissions={currentForm?.submissions || []}
-              fields={fields}
-              onExportCSV={exportToCSV}
-              isRefreshing={isRefreshing}
-            />
+            {currentForm ? (
+              <FormAnalytics
+                form={currentForm}
+                onClose={() => setActiveTab('builder')}
+              />
+            ) : (
+              <div className="text-center py-12">
+                <BarChart3 className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+                <h3 className="text-lg font-semibold text-gray-600 mb-2">No Form Selected</h3>
+                <p className="text-gray-500 mb-4">
+                  Please select a form from the Forms tab or create a new one to view analytics.
+                </p>
+                <div className="space-x-4">
+                  <Button onClick={() => setActiveTab('forms')}>View Forms</Button>
+                  <Button onClick={handleNewForm} variant="outline">Create New Form</Button>
+                </div>
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="forms">
