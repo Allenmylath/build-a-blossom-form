@@ -4,14 +4,14 @@ import { User } from '@supabase/supabase-js';
 import { FormBuilder } from '@/components/FormBuilder';
 import { Auth } from '@/components/Auth';
 import { Card } from '@/components/ui/card';
-import { Plus } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Plus, Settings, LogOut } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
-import Settings from './Settings';
+import { toast } from '@/hooks/use-toast';
 
 const Index = () => {
   const [user, setUser] = useState<User | null>(null);
-  const [showSettings, setShowSettings] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -34,16 +34,22 @@ const Index = () => {
     setUser(newUser);
   };
 
-  const handleSignOut = () => {
-    setUser(null);
-    setShowSettings(false);
+  const handleSignOut = async () => {
+    try {
+      await supabase.auth.signOut();
+      setUser(null);
+      toast({
+        title: "Signed out",
+        description: "You have been signed out successfully.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to sign out. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
-
-  // Check if we should show settings page
-  const currentPath = window.location.pathname;
-  if (currentPath === '/settings' && user) {
-    return <Settings user={user} onSignOut={handleSignOut} />;
-  }
 
   if (!user) {
     return (
@@ -78,7 +84,7 @@ const Index = () => {
             </Card>
             <Card className="p-6 text-center">
               <div className="text-3xl mb-3">☁️</div>
-              <h3 className="font-sembiold mb-2">Cloud Storage</h3>
+              <h3 className="font-semibold mb-2">Cloud Storage</h3>
               <p className="text-sm text-gray-600">Save your forms securely in the cloud and access them anywhere</p>
             </Card>
           </div>
@@ -87,7 +93,43 @@ const Index = () => {
     );
   }
 
-  return <FormBuilder user={user} />;
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50">
+      {/* Header with logout button */}
+      <div className="bg-white shadow-sm border-b">
+        <div className="max-w-6xl mx-auto px-4 py-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <Plus className="w-8 h-8 text-purple-600 mr-3" />
+              <h1 className="text-xl font-bold text-gray-900">Form Builder</h1>
+            </div>
+            <div className="flex items-center space-x-3">
+              <span className="text-sm text-gray-600">{user.email}</span>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => navigate('/settings')}
+              >
+                <Settings className="w-4 h-4 mr-2" />
+                Settings
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={handleSignOut}
+              >
+                <LogOut className="w-4 h-4 mr-2" />
+                Sign Out
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      {/* Main content */}
+      <FormBuilder user={user} />
+    </div>
+  );
 };
 
 export default Index;
