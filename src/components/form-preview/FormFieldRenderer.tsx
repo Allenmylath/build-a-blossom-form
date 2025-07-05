@@ -18,6 +18,10 @@ interface FormFieldRendererProps {
 export const FormFieldRenderer = ({ field, value, error, onChange }: FormFieldRendererProps) => {
   const renderField = () => {
     switch (field.type) {
+      case 'page-break':
+        // Page breaks are handled by the parent component and don't render anything
+        return null;
+
       case 'chat':
         return (
           <ChatFormField

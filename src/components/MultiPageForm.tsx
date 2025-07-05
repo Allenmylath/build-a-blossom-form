@@ -6,13 +6,16 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { ChevronLeft, ChevronRight, Send } from 'lucide-react';
 import { FormFieldRenderer } from './form-preview/FormFieldRenderer';
+import { FormSubmissionHandler } from './form-preview/FormSubmissionHandler';
 import { toast } from '@/hooks/use-toast';
 
 interface MultiPageFormProps {
   fields: FormField[];
+  formId?: string;
+  onSubmissionSuccess?: () => void;
 }
 
-export const MultiPageForm = ({ fields }: MultiPageFormProps) => {
+export const MultiPageForm = ({ fields, formId, onSubmissionSuccess }: MultiPageFormProps) => {
   const [currentPage, setCurrentPage] = useState(0);
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -28,7 +31,7 @@ export const MultiPageForm = ({ fields }: MultiPageFormProps) => {
     return acc;
   }, [] as FormField[][]);
 
-  // If no page breaks, put all fields in one page
+  // If no page breaks, put all non-page-break fields in one page
   if (pages.length === 0 && fields.length > 0) {
     pages.push(fields.filter(f => f.type !== 'page-break'));
   }
@@ -77,13 +80,27 @@ export const MultiPageForm = ({ fields }: MultiPageFormProps) => {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (validateCurrentPage()) {
-      console.log('Form submitted:', formData);
+    
+    if (!validateCurrentPage()) {
+      toast({
+        title: "Validation Error",
+        description: "Please fill in all required fields.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Handle form submission
+    if (formId) {
+      const submissionHandler = new FormSubmissionHandler();
+      await submissionHandler.submitForm(formId, formData, onSubmissionSuccess);
+    } else {
+      console.log('Multi-page form preview submission:', formData);
       toast({
         title: "Form Submitted",
-        description: "Your form has been submitted successfully!",
+        description: "Your multi-page form has been submitted successfully!",
       });
     }
   };
