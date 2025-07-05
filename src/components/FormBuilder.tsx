@@ -6,11 +6,12 @@ import { FormManager } from './FormManager';
 import { FormSaveDialog } from './FormSaveDialog';
 import { FormExport } from './FormExport';
 import { FormField, FormFieldType, FormTemplate, SavedForm, FormSubmissionData } from '@/types/form';
-import { Plus, Settings, Eye, Save, FolderOpen, FileText, Download, Upload, Copy } from 'lucide-react';
+import { Plus, Settings, Eye, Save, FolderOpen, FileText, Download, Upload, Copy, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/hooks/use-toast';
+import { ConversationalForm } from './ConversationalForm';
 
 export const FormBuilder = () => {
   const [fields, setFields] = useState<FormField[]>([]);
@@ -186,42 +187,11 @@ export const FormBuilder = () => {
   ];
 
   return (
-    <div className="max-w-7xl mx-auto">
-      {/* Enhanced Header */}
-      <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
-        <div>
-          <h2 className="text-xl font-bold text-gray-900">
-            {currentForm ? `Editing: ${currentForm.name}` : 'Form Builder'}
-          </h2>
-          <p className="text-sm text-gray-600">
-            {currentForm ? 'Make changes to your form' : 'Create beautiful forms with drag-and-drop ease'}
-          </p>
-        </div>
-        <div className="flex space-x-2">
-          <Button variant="outline" onClick={handleNewForm}>
-            <Plus className="w-4 h-4 mr-2" />
-            New Form
-          </Button>
-          <Button variant="outline" onClick={() => setShowSaveDialog(true)} disabled={fields.length === 0}>
-            <Save className="w-4 h-4 mr-2" />
-            {currentForm ? 'Update' : 'Save'}
-          </Button>
-          <Button variant="outline" onClick={() => handleExportImport('export')} disabled={fields.length === 0}>
-            <Download className="w-4 h-4 mr-2" />
-            Export
-          </Button>
-          <Button variant="outline" onClick={() => handleExportImport('import')}>
-            <Upload className="w-4 h-4 mr-2" />
-            Import
-          </Button>
-        </div>
-      </div>
-
-      {/* Enhanced Tabs */}
-      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as any)} className="mb-6">
-        <TabsList className="grid w-full grid-cols-4">
+    <div className="space-y-6">
+      <Tabs defaultValue="builder" className="w-full">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="builder" className="flex items-center">
-            <Settings className="w-4 h-4 mr-2" />
+            <Plus className="w-4 h-4 mr-2" />
             Builder
           </TabsTrigger>
           <TabsTrigger value="preview" className="flex items-center">
@@ -234,7 +204,11 @@ export const FormBuilder = () => {
           </TabsTrigger>
           <TabsTrigger value="manage" className="flex items-center">
             <FolderOpen className="w-4 h-4 mr-2" />
-            My Forms ({savedForms.length})
+            Manage
+          </TabsTrigger>
+          <TabsTrigger value="chat" className="flex items-center">
+            <MessageCircle className="w-4 h-4 mr-2" />
+            Chat Form
           </TabsTrigger>
         </TabsList>
 
@@ -360,6 +334,19 @@ export const FormBuilder = () => {
             onDuplicateForm={handleDuplicateForm}
             onShareForm={handleShareForm}
           />
+        </TabsContent>
+
+        <TabsContent value="chat" className="space-y-6">
+          <div className="text-center mb-6">
+            <h2 className="text-2xl font-bold mb-2 flex items-center justify-center">
+              <MessageCircle className="w-6 h-6 mr-2 text-purple-600" />
+              Conversational Form
+            </h2>
+            <p className="text-gray-600">
+              Advanced form with voice and text chat capabilities powered by AI bot
+            </p>
+          </div>
+          <ConversationalForm />
         </TabsContent>
       </Tabs>
 
