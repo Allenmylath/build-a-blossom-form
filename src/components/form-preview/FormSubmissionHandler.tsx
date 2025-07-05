@@ -62,16 +62,18 @@ export const useFormSubmission = ({
 
           console.log('Form submission saved successfully:', data);
 
-          // Call success callback to refresh parent data
-          if (onSubmissionSuccess) {
-            console.log('Calling submission success callback');
-            await onSubmissionSuccess();
-          }
-          
           toast({
             title: "Form Submitted Successfully!",
             description: "Your response has been recorded and saved.",
           });
+
+          // Call success callback to refresh parent data - ensure this happens after successful save
+          if (onSubmissionSuccess) {
+            console.log('Calling submission success callback after successful save');
+            setTimeout(() => {
+              onSubmissionSuccess();
+            }, 100); // Small delay to ensure database transaction is complete
+          }
         } catch (error) {
           console.error('Network error during form submission:', error);
           toast({

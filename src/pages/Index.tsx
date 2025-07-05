@@ -121,15 +121,35 @@ const Index = () => {
 
   const handleFormSubmissionSuccess = async () => {
     console.log('Form submission success callback triggered');
-    // Refresh the forms data to get updated submissions
-    await refreshForms();
     
-    // If we have a current form, update it with the latest data
-    if (currentForm && user) {
-      const updatedForm = savedForms.find(f => f.id === currentForm.id);
-      if (updatedForm) {
-        setCurrentForm(updatedForm);
+    try {
+      // Refresh the forms data to get updated submissions
+      await refreshForms();
+      
+      // If we have a current form, find and update it with the latest data
+      if (currentForm && user) {
+        // Wait a bit for the refresh to complete, then find the updated form
+        setTimeout(() => {
+          const updatedForm = savedForms.find(f => f.id === currentForm.id);
+          if (updatedForm) {
+            console.log('Updating current form with fresh data:', updatedForm);
+            setCurrentForm(updatedForm);
+            
+            // Show success message
+            toast({
+              title: "Submission Recorded",
+              description: "Your form submission has been saved and analytics updated.",
+            });
+          }
+        }, 500);
       }
+    } catch (error) {
+      console.error('Error refreshing form data after submission:', error);
+      toast({
+        title: "Refresh Error",
+        description: "Submission saved but analytics may not be updated immediately.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -197,7 +217,13 @@ const Index = () => {
           </TabsList>
 
           <TabsContent value="builder">
-            <FormBuilder user={user} />
+            <FormBuilder 
+              fields={fields} 
+              setFields={setFields}
+              onSave={handleSaveForm}
+              currentForm={currentForm}
+              user={user}
+            />
           </TabsContent>
 
           <TabsContent value="preview">

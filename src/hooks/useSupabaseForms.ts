@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { FormField, SavedForm, FormSubmissionData } from '@/types/form';
 import { User } from '@supabase/supabase-js';
@@ -10,11 +10,13 @@ export const useSupabaseForms = (user: User | null) => {
   const [loading, setLoading] = useState(false);
 
   // Fetch forms from Supabase
-  const fetchForms = async () => {
+  const fetchForms = useCallback(async () => {
     if (!user) return;
     
     setLoading(true);
     try {
+      console.log('Fetching forms for user:', user.id);
+      
       const { data: forms, error } = await supabase
         .from('forms')
         .select(`
@@ -30,6 +32,7 @@ export const useSupabaseForms = (user: User | null) => {
         .order('updated_at', { ascending: false });
 
       if (error) {
+        console.error('Error fetching forms:', error);
         toast({
           title: "Error loading forms",
           description: error.message,
@@ -38,24 +41,33 @@ export const useSupabaseForms = (user: User | null) => {
         return;
       }
 
-      const mappedForms: SavedForm[] = forms.map(form => ({
-        id: form.id,
-        name: form.name,
-        description: form.description,
-        fields: (form.fields as unknown as FormField[]) || [],
-        createdAt: new Date(form.created_at),
-        updatedAt: new Date(form.updated_at),
-        isPublic: form.is_public,
-        shareUrl: form.share_url,
-        submissions: form.form_submissions.map((sub: any) => ({
+      console.log('Fetched forms data:', forms);
+
+      const mappedForms: SavedForm[] = forms.map(form => {
+        const submissions: FormSubmissionData[] = form.form_submissions.map((sub: any) => ({
           id: sub.id,
           formId: form.id,
           data: sub.data,
           submittedAt: new Date(sub.submitted_at),
           ipAddress: sub.ip_address,
-        })) as FormSubmissionData[],
-      }));
+        }));
 
+        console.log(`Form ${form.name} has ${submissions.length} submissions:`, submissions);
+
+        return {
+          id: form.id,
+          name: form.name,
+          description: form.description,
+          fields: (form.fields as unknown as FormField[]) || [],
+          createdAt: new Date(form.created_at),
+          updatedAt: new Date(form.updated_at),
+          isPublic: form.is_public,
+          shareUrl: form.share_url,
+          submissions,
+        };
+      });
+
+      console.log('Mapped forms:', mappedForms);
       setSavedForms(mappedForms);
     } catch (error) {
       console.error('Error fetching forms:', error);
@@ -67,7 +79,7 @@ export const useSupabaseForms = (user: User | null) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
 
   // Save form to Supabase
   const saveForm = async (formData: { name: string; description: string; isPublic: boolean }, fields: FormField[], existingForm?: SavedForm) => {
@@ -227,7 +239,7 @@ export const useSupabaseForms = (user: User | null) => {
     } else {
       setSavedForms([]);
     }
-  }, [user]);
+  }, [user, fetchForms]);
 
   return {
     savedForms,
