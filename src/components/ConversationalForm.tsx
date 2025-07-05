@@ -1,234 +1,161 @@
-
 import { useState, useRef, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { MessageCircle, Mic, MicOff, Send, Volume2, VolumeX } from 'lucide-react';
+import { MessageCircle, Send, Loader2, Settings } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 interface ChatMessage {
   id: string;
-  type: 'user' | 'bot';
+  type: 'user' | 'bot' | 'error';
   content: string;
   timestamp: Date;
-  isVoice?: boolean;
 }
 
 interface ConversationalFormProps {
-  websocketUrl?: string;
+  apiUrl?: string;
   botName?: string;
+  conversationId?: string;
 }
 
 export const ConversationalForm = ({ 
-  websocketUrl = 'ws://localhost:8080', 
-  botName = 'Assistant' 
+  apiUrl = '/api/chat', 
+  botName = 'Assistant',
+  conversationId
 }: ConversationalFormProps) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputMessage, setInputMessage] = useState('');
-  const [isConnected, setIsConnected] = useState(false);
-  const [isRecording, setIsRecording] = useState(false);
-  const [isSpeaking, setIsSpeaking] = useState(false);
-  const [speechEnabled, setSpeechEnabled] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+  const [currentConversationId, setCurrentConversationId] = useState(
+    conversationId || `conv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+  );
   
-  const wsRef = useRef<WebSocket | null>(null);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const speechSynthesisRef = useRef<SpeechSynthesisUtterance | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    connectWebSocket();
-    return () => {
-      if (wsRef.current) {
-        wsRef.current.close();
-      }
-      stopSpeaking();
-    };
+    // Add welcome message
+    addBotMessage("Hello! I'm your AI assistant. How can I help you today?");
+    
+    // Focus input
+    inputRef.current?.focus();
   }, []);
 
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
 
-  const connectWebSocket = () => {
-    try {
-      wsRef.current = new WebSocket(websocketUrl);
-      
-      wsRef.current.onopen = () => {
-        setIsConnected(true);
-        toast({
-          title: "Connected",
-          description: "Connected to the bot successfully!",
-        });
-        addBotMessage("Hello! I'm your AI assistant. You can type or speak to me.");
-      };
-
-      wsRef.current.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        addBotMessage(data.message || data.content || event.data);
-      };
-
-      wsRef.current.onclose = () => {
-        setIsConnected(false);
-        toast({
-          title: "Disconnected",
-          description: "Connection to bot lost. Attempting to reconnect...",
-          variant: "destructive",
-        });
-        // Attempt to reconnect after 3 seconds
-        setTimeout(connectWebSocket, 3000);
-      };
-
-      wsRef.current.onerror = (error) => {
-        console.error('WebSocket error:', error);
-        toast({
-          title: "Connection Error",
-          description: "Failed to connect to the bot server.",
-          variant: "destructive",
-        });
-      };
-    } catch (error) {
-      console.error('Failed to create WebSocket connection:', error);
-      // Simulate bot for demo purposes when WebSocket fails
-      setIsConnected(true);
-      addBotMessage("Hello! I'm your AI assistant. (Demo mode - WebSocket connection failed)");
-    }
-  };
-
-  const addMessage = (type: 'user' | 'bot', content: string, isVoice = false) => {
+  const addMessage = (type: 'user' | 'bot' | 'error', content: string) => {
     const newMessage: ChatMessage = {
-      id: Date.now().toString(),
+      id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       type,
       content,
       timestamp: new Date(),
-      isVoice,
     };
     setMessages(prev => [...prev, newMessage]);
+    return newMessage.id;
   };
 
-  const addBotMessage = (content: string) => {
-    addMessage('bot', content);
-    if (speechEnabled) {
-      speakText(content);
-    }
-  };
+  const addBotMessage = (content: string) => addMessage('bot', content);
+  const addErrorMessage = (content: string) => addMessage('error', content);
 
-  const sendMessage = (message: string, isVoice = false) => {
-    if (!message.trim()) return;
+  const sendMessage = async (message: string) => {
+    if (!message.trim() || isLoading) return;
 
-    addMessage('user', message, isVoice);
-    
-    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify({
-        message,
-        type: isVoice ? 'voice' : 'text',
-        timestamp: new Date().toISOString(),
-      }));
-    } else {
-      // Simulate bot response for demo
-      setTimeout(() => {
-        const responses = [
-          "I understand you said: " + message,
-          "That's interesting! Tell me more.",
-          "I'm here to help. What else would you like to know?",
-          "Thanks for sharing that with me!",
-        ];
-        const randomResponse = responses[Math.floor(Math.random() * responses.length)];
-        addBotMessage(randomResponse);
-      }, 1000);
+    const userMessage = message.trim();
+    setInputMessage('');
+    setIsLoading(true);
+
+    // Add user message immediately
+    addMessage('user', userMessage);
+
+    try {
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: userMessage,
+          conversationId: currentConversationId,
+          timestamp: new Date().toISOString(),
+          // Optional: Add user context
+          metadata: {
+            userAgent: navigator.userAgent,
+            sessionId: currentConversationId,
+          }
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      
+      // Handle different response formats
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      const botResponse = data.message || data.response || data.reply || 'I received your message but couldn\'t generate a response.';
+      
+      // Update conversation ID if server provides a new one
+      if (data.conversationId) {
+        setCurrentConversationId(data.conversationId);
+      }
+
+      addBotMessage(botResponse);
+
+    } catch (error) {
+      console.error('Chat API Error:', error);
+      
+      let errorMessage = 'Sorry, I\'m having trouble connecting right now. Please try again.';
+      
+      if (error instanceof Error) {
+        if (error.message.includes('fetch')) {
+          errorMessage = 'Unable to connect to the chat service. Please check your connection.';
+        } else if (error.message.includes('HTTP 429')) {
+          errorMessage = 'Too many requests. Please wait a moment before trying again.';
+        } else if (error.message.includes('HTTP 500')) {
+          errorMessage = 'The chat service is experiencing issues. Please try again later.';
+        } else {
+          errorMessage = `Error: ${error.message}`;
+        }
+      }
+
+      addErrorMessage(errorMessage);
+      
+      toast({
+        title: "Chat Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
+
+    } finally {
+      setIsLoading(false);
+      // Re-focus input for better UX
+      setTimeout(() => inputRef.current?.focus(), 100);
     }
   };
 
   const handleSendMessage = () => {
     sendMessage(inputMessage);
-    setInputMessage('');
   };
 
-  const startRecording = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
-      const audioChunks: Blob[] = [];
-
-      mediaRecorder.ondataavailable = (event) => {
-        audioChunks.push(event.data);
-      };
-
-      mediaRecorder.onstop = () => {
-        const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
-        // Here you would typically send the audio to a speech-to-text service
-        // For demo purposes, we'll simulate speech recognition
-        simulateSpeechRecognition();
-      };
-
-      mediaRecorderRef.current = mediaRecorder;
-      mediaRecorder.start();
-      setIsRecording(true);
-      
-      toast({
-        title: "Recording Started",
-        description: "Speak now... Click the mic button again to stop.",
-      });
-    } catch (error) {
-      console.error('Error accessing microphone:', error);
-      toast({
-        title: "Microphone Error",
-        description: "Could not access microphone. Please check permissions.",
-        variant: "destructive",
-      });
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
     }
   };
 
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
-      mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
-      setIsRecording(false);
-    }
-  };
-
-  const simulateSpeechRecognition = () => {
-    const speechResults = [
-      "Hello, how are you today?",
-      "Can you help me with my question?",
-      "What can you do for me?",
-      "I need some assistance please.",
-    ];
-    const randomSpeech = speechResults[Math.floor(Math.random() * speechResults.length)];
-    sendMessage(randomSpeech, true);
-  };
-
-  const speakText = (text: string) => {
-    if (!speechEnabled || !('speechSynthesis' in window)) return;
-
-    stopSpeaking();
-    
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = 0.9;
-    utterance.pitch = 1;
-    utterance.volume = 0.8;
-    
-    utterance.onstart = () => setIsSpeaking(true);
-    utterance.onend = () => setIsSpeaking(false);
-    utterance.onerror = () => setIsSpeaking(false);
-    
-    speechSynthesisRef.current = utterance;
-    window.speechSynthesis.speak(utterance);
-  };
-
-  const stopSpeaking = () => {
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-      setIsSpeaking(false);
-    }
-  };
-
-  const toggleSpeech = () => {
-    setSpeechEnabled(!speechEnabled);
-    if (!speechEnabled) {
-      stopSpeaking();
-    }
+  const clearChat = () => {
+    setMessages([]);
+    setCurrentConversationId(`conv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
+    addBotMessage("Chat cleared. How can I help you?");
   };
 
   const scrollToBottom = () => {
@@ -239,33 +166,45 @@ export const ConversationalForm = ({
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
+  const getMessageColor = (type: ChatMessage['type']) => {
+    switch (type) {
+      case 'user': return 'bg-blue-600 text-white';
+      case 'bot': return 'bg-gray-100 text-gray-900';
+      case 'error': return 'bg-red-100 text-red-800 border border-red-200';
+      default: return 'bg-gray-100 text-gray-900';
+    }
+  };
+
   return (
     <Card className="w-full max-w-4xl mx-auto h-[600px] flex flex-col">
-      <div className="p-4 border-b bg-gradient-to-r from-purple-50 to-blue-50">
+      {/* Header */}
+      <div className="p-4 border-b bg-gradient-to-r from-blue-50 to-purple-50">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <MessageCircle className="w-6 h-6 text-purple-600" />
+            <MessageCircle className="w-6 h-6 text-blue-600" />
             <div>
-              <h2 className="text-lg font-semibold">Conversational Form</h2>
-              <p className="text-sm text-gray-600">Chat with {botName}</p>
+              <h2 className="text-lg font-semibold">AI Chat Assistant</h2>
+              <p className="text-sm text-gray-600">Powered by {botName}</p>
             </div>
           </div>
           <div className="flex items-center space-x-2">
-            <Badge variant={isConnected ? "default" : "destructive"}>
-              {isConnected ? "Connected" : "Disconnected"}
+            <Badge variant="outline" className="text-xs">
+              ID: {currentConversationId.slice(-8)}
             </Badge>
             <Button
               size="sm"
               variant="outline"
-              onClick={toggleSpeech}
-              className={speechEnabled ? "text-green-600" : "text-gray-400"}
+              onClick={clearChat}
+              className="h-8"
             >
-              {speechEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+              <Settings className="w-4 h-4 mr-1" />
+              Clear
             </Button>
           </div>
         </div>
       </div>
 
+      {/* Messages */}
       <ScrollArea className="flex-1 p-4">
         <div className="space-y-4">
           {messages.map((message) => (
@@ -273,34 +212,26 @@ export const ConversationalForm = ({
               key={message.id}
               className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
             >
-              <div
-                className={`max-w-[70%] rounded-lg px-4 py-2 ${
-                  message.type === 'user'
-                    ? 'bg-purple-600 text-white'
-                    : 'bg-gray-100 text-gray-900'
-                }`}
-              >
+              <div className={`max-w-[75%] rounded-lg px-4 py-3 ${getMessageColor(message.type)}`}>
                 <div className="flex items-center space-x-2 mb-1">
                   <span className="text-sm font-medium">
-                    {message.type === 'user' ? 'You' : botName}
+                    {message.type === 'user' ? 'You' : message.type === 'error' ? 'Error' : botName}
                   </span>
-                  {message.isVoice && (
-                    <Badge variant="secondary" className="text-xs">
-                      Voice
-                    </Badge>
-                  )}
                   <span className="text-xs opacity-70">
                     {formatTime(message.timestamp)}
                   </span>
                 </div>
-                <p className="text-sm">{message.content}</p>
+                <p className="text-sm whitespace-pre-wrap">{message.content}</p>
               </div>
             </div>
           ))}
-          {isSpeaking && (
+          
+          {/* Loading indicator */}
+          {isLoading && (
             <div className="flex justify-start">
-              <div className="bg-blue-100 text-blue-600 rounded-lg px-4 py-2">
-                <span className="text-sm">🗣️ Speaking...</span>
+              <div className="bg-gray-100 rounded-lg px-4 py-3 flex items-center space-x-2">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span className="text-sm text-gray-600">{botName} is typing...</span>
               </div>
             </div>
           )}
@@ -308,34 +239,39 @@ export const ConversationalForm = ({
         <div ref={messagesEndRef} />
       </ScrollArea>
 
-      <div className="p-4 border-t">
+      {/* Input */}
+      <div className="p-4 border-t bg-gray-50">
         <div className="flex space-x-2">
           <Input
+            ref={inputRef}
             value={inputMessage}
             onChange={(e) => setInputMessage(e.target.value)}
+            onKeyPress={handleKeyPress}
             placeholder="Type your message..."
-            onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
             className="flex-1"
+            disabled={isLoading}
+            maxLength={1000}
           />
           <Button
             onClick={handleSendMessage}
-            disabled={!inputMessage.trim() || !isConnected}
-            className="px-4"
+            disabled={!inputMessage.trim() || isLoading}
+            className="px-6"
           >
-            <Send className="w-4 h-4" />
-          </Button>
-          <Button
-            onClick={isRecording ? stopRecording : startRecording}
-            variant={isRecording ? "destructive" : "outline"}
-            className="px-4"
-            disabled={!isConnected}
-          >
-            {isRecording ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+            {isLoading ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Send className="w-4 h-4" />
+            )}
           </Button>
         </div>
-        <p className="text-xs text-gray-500 mt-2 text-center">
-          Type a message or click the microphone to speak. The bot will respond with both text and speech.
-        </p>
+        <div className="flex justify-between items-center mt-2">
+          <p className="text-xs text-gray-500">
+            Press Enter to send • Shift+Enter for new line
+          </p>
+          <p className="text-xs text-gray-400">
+            {inputMessage.length}/1000
+          </p>
+        </div>
       </div>
     </Card>
   );
