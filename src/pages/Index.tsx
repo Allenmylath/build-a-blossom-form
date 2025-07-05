@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { useSupabaseForms } from '@/hooks/useSupabaseForms';
@@ -118,8 +119,13 @@ const Index = () => {
     }
   };
 
+  const handleAuthChange = (newUser: any) => {
+    // This function is required by the Auth component but we handle auth state in useSupabaseAuth
+    console.log('Auth state changed:', newUser);
+  };
+
   if (!user) {
-    return <Auth />;
+    return <Auth onAuthChange={handleAuthChange} />;
   }
 
   return (
@@ -173,10 +179,7 @@ const Index = () => {
 
           <TabsContent value="builder">
             <FormBuilder 
-              fields={fields} 
-              setFields={setFields}
-              onSave={handleSaveForm}
-              currentForm={currentForm}
+              user={user}
             />
           </TabsContent>
 
