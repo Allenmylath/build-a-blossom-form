@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { useSupabaseForms } from '@/hooks/useSupabaseForms';
 import { FormBuilder } from '@/components/FormBuilder';
@@ -22,116 +22,237 @@ const Index = () => {
   const [activeTab, setActiveTab] = useState('builder');
   const [isRefreshing, setIsRefreshing] = useState(false);
 
+  // Synchronize fields when currentForm changes
   useEffect(() => {
-    if (user) {
-      refreshForms();
-    }
-  }, [user, refreshForms]);
-
-  // Update fields when currentForm changes
-  useEffect(() => {
-    if (currentForm) {
-      setFields(currentForm.fields);
+    if (currentForm && Array.isArray(currentForm.fields)) {
+      console.log('Current form changed, updating fields:', currentForm.name, 'with', currentForm.fields.length, 'fields');
+      setFields([...currentForm.fields]); // Create new array to trigger re-renders
+    } else if (currentForm === null) {
+      console.log('Current form cleared, resetting fields');
+      setFields([]);
     }
   }, [currentForm]);
 
-  const handleSaveForm = async (formData: { name: string; description: string; isPublic: boolean }) => {
-    const savedForm = await saveForm(formData, fields, currentForm || undefined);
-    if (savedForm) {
-      setCurrentForm(savedForm);
+  const handleSaveForm = useCallback(async (formData: { name: string; description: string; isPublic: boolean }) => {
+    try {
+      console.log('Saving form with data:', formData, 'and', fields.length, 'fields');
+      
+      if (fields.length === 0) {
+        toast({
+          title: "No Fields",
+          description: "Please add at least one field before saving the form.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      const savedForm = await saveForm(formData, fields, currentForm || undefined);
+      if (savedForm) {
+        console.log('Form saved successfully, updating current form');
+        setCurrentForm(savedForm);
+        toast({
+          title: "Form Saved",
+          description: `"${formData.name}" has been saved successfully.`,
+        });
+      }
+    } catch (error) {
+      console.error('Error in handleSaveForm:', error);
       toast({
-        title: "Form Saved",
-        description: `"${formData.name}" has been saved successfully.`,
-      });
-    }
-  };
-
-  const handleLoadForm = (form: SavedForm) => {
-    setFields(form.fields);
-    setCurrentForm(form);
-    setActiveTab('builder');
-  };
-
-  const handleDeleteForm = (formId: string) => {
-    deleteForm(formId);
-    const deletedForm = savedForms.find(f => f.id === formId);
-    if (currentForm?.id === formId) {
-      setCurrentForm(null);
-      setFields([]);
-    }
-  };
-
-  const handleDuplicateForm = (form: SavedForm) => {
-    const duplicatedName = `${form.name} (Copy)`;
-    setFields([...form.fields]);
-    setCurrentForm(null);
-    handleSaveForm({ 
-      name: duplicatedName, 
-      description: form.description || '', 
-      isPublic: form.isPublic 
-    });
-  };
-
-  const handleShareForm = (form: SavedForm) => {
-    if (form.shareUrl) {
-      navigator.clipboard.writeText(form.shareUrl);
-      toast({
-        title: "Share Link Copied",
-        description: "The form share link has been copied to your clipboard.",
-      });
-    }
-  };
-
-  const exportToCSV = () => {
-    if (!currentForm || currentForm.submissions.length === 0) {
-      toast({
-        title: "No Data to Export",
-        description: "There are no submissions to export for this form.",
+        title: "Save Error",
+        description: "Failed to save form. Please try again.",
         variant: "destructive",
       });
-      return;
     }
+  }, [fields, currentForm, saveForm]);
 
-    const headers = ['Date', 'IP Address', 'Reference ID', ...fields.map(field => field.label)];
-    const rows = currentForm.submissions.map(submission => [
-      new Date(submission.submittedAt).toLocaleString(),
-      submission.ipAddress || 'N/A',
-      submission.id.slice(0, 8).toUpperCase(),
-      ...fields.map(field => {
-        const value = submission.data[field.id];
-        return Array.isArray(value) ? value.join(', ') : (value || '');
-      })
-    ]);
-
-    const csvContent = [headers, ...rows]
-      .map(row => row.map(cell => `"${cell}"`).join(','))
-      .join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${currentForm.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_submissions.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-
-    toast({
-      title: "CSV Exported",
-      description: "Form submissions have been exported successfully.",
-    });
-  };
-
-  const handleFormSubmissionSuccess = async () => {
-    console.log('Form submission success callback triggered');
-    
-    if (!currentForm) {
-      console.log('No current form to refresh');
-      return;
-    }
-
-    setIsRefreshing(true);
-    
+  const handleLoadForm = useCallback((form: SavedForm) => {
     try {
+      console.log('Loading form:', form.name, 'with', form.fields.length, 'fields');
+      
+      if (!Array.isArray(form.fields)) {
+        console.error('Invalid form fields data:', form.fields);
+        toast({
+          title: "Invalid Form",
+          description: "This form has corrupted data and cannot be loaded.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      setCurrentForm(form);
+      setFields([...form.fields]); // Ensure we create a new array reference
+      setActiveTab('builder');
+      
+      toast({
+        title: "Form Loaded",
+        description: `"${form.name}" is now ready for editing.`,
+      });
+    } catch (error) {
+      console.error('Error in handleLoadForm:', error);
+      toast({
+        title: "Load Error",
+        description: "Failed to load form. Please try again.",
+        variant: "destructive",
+      });
+    }
+  }, []);
+
+  const handleDeleteForm = useCallback(async (formId: string) => {
+    try {
+      console.log('Deleting form:', formId);
+      
+      const deletedForm = savedForms.find(f => f.id === formId);
+      await deleteForm(formId);
+      
+      // Clear current form and fields if we deleted the currently loaded form
+      if (currentForm?.id === formId) {
+        console.log('Deleted form was currently loaded, clearing state');
+        setCurrentForm(null);
+        setFields([]);
+      }
+      
+      if (deletedForm) {
+        toast({
+          title: "Form Deleted",
+          description: `"${deletedForm.name}" has been deleted successfully.`,
+        });
+      }
+    } catch (error) {
+      console.error('Error in handleDeleteForm:', error);
+      toast({
+        title: "Delete Error",
+        description: "Failed to delete form. Please try again.",
+        variant: "destructive",
+      });
+    }
+  }, [savedForms, currentForm, deleteForm]);
+
+  const handleDuplicateForm = useCallback(async (form: SavedForm) => {
+    try {
+      console.log('Duplicating form:', form.name);
+      
+      if (!Array.isArray(form.fields)) {
+        toast({
+          title: "Invalid Form",
+          description: "This form has corrupted data and cannot be duplicated.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      const duplicatedName = `${form.name} (Copy)`;
+      const savedForm = await saveForm({ 
+        name: duplicatedName, 
+        description: form.description || '', 
+        isPublic: form.isPublic 
+      }, form.fields);
+      
+      if (savedForm) {
+        toast({
+          title: "Form Duplicated",
+          description: `"${duplicatedName}" has been created successfully.`,
+        });
+      }
+    } catch (error) {
+      console.error('Error in handleDuplicateForm:', error);
+      toast({
+        title: "Duplicate Error",
+        description: "Failed to duplicate form. Please try again.",
+        variant: "destructive",
+      });
+    }
+  }, [saveForm]);
+
+  const handleShareForm = useCallback((form: SavedForm) => {
+    try {
+      console.log('Sharing form:', form.name);
+      
+      if (form.shareUrl) {
+        navigator.clipboard.writeText(form.shareUrl);
+        toast({
+          title: "Share Link Copied",
+          description: "The form share link has been copied to your clipboard.",
+        });
+      } else {
+        toast({
+          title: "No Share Link",
+          description: "This form doesn't have a share link yet. Please save it first.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error in handleShareForm:', error);
+      toast({
+        title: "Share Error",
+        description: "Failed to copy share link. Please try again.",
+        variant: "destructive",
+      });
+    }
+  }, []);
+
+  const exportToCSV = useCallback(() => {
+    try {
+      if (!currentForm || currentForm.submissions.length === 0) {
+        toast({
+          title: "No Data to Export",
+          description: "There are no submissions to export for this form.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      console.log('Exporting CSV for form:', currentForm.name, 'with', currentForm.submissions.length, 'submissions');
+
+      const headers = ['Date', 'IP Address', 'Reference ID', ...fields.map(field => field.label)];
+      const rows = currentForm.submissions.map(submission => [
+        new Date(submission.submittedAt).toLocaleString(),
+        submission.ipAddress || 'N/A',
+        submission.id.slice(0, 8).toUpperCase(),
+        ...fields.map(field => {
+          const value = submission.data[field.id];
+          return Array.isArray(value) ? value.join(', ') : (value || '');
+        })
+      ]);
+
+      const csvContent = [headers, ...rows]
+        .map(row => row.map(cell => `"${cell}"`).join(','))
+        .join('\n');
+
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${currentForm.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_submissions.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      toast({
+        title: "CSV Exported",
+        description: "Form submissions have been exported successfully.",
+      });
+    } catch (error) {
+      console.error('Error in exportToCSV:', error);
+      toast({
+        title: "Export Error",
+        description: "Failed to export CSV. Please try again.",
+        variant: "destructive",
+      });
+    }
+  }, [currentForm, fields]);
+
+  const handleFormSubmissionSuccess = useCallback(async () => {
+    try {
+      console.log('Form submission success callback triggered');
+      
+      if (!currentForm) {
+        console.log('No current form to refresh');
+        return;
+      }
+
+      setIsRefreshing(true);
+      
       console.log('Refreshing form data after submission for form:', currentForm.id);
       
       // Use refreshSingleForm for targeted update
@@ -168,7 +289,23 @@ const Index = () => {
     } finally {
       setIsRefreshing(false);
     }
-  };
+  }, [currentForm, refreshSingleForm, refreshForms]);
+
+  const handleNewForm = useCallback(() => {
+    try {
+      console.log('Starting new form');
+      setFields([]);
+      setCurrentForm(null);
+      setActiveTab('builder');
+      
+      toast({
+        title: "New Form",
+        description: "You can now start building your new form.",
+      });
+    } catch (error) {
+      console.error('Error in handleNewForm:', error);
+    }
+  }, []);
 
   const handleAuthChange = (newUser: any) => {
     // This function is required by the Auth component but we handle auth state in useSupabaseAuth
@@ -190,11 +327,7 @@ const Index = () => {
             </div>
             <div className="flex items-center space-x-4">
               <Button
-                onClick={() => {
-                  setFields([]);
-                  setCurrentForm(null);
-                  setActiveTab('builder');
-                }}
+                onClick={handleNewForm}
                 className="flex items-center"
               >
                 <PlusCircle className="w-4 h-4 mr-2" />

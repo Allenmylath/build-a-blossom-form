@@ -10,6 +10,7 @@ interface UseFormSubmissionProps {
   setErrors: (errors: Record<string, string>) => void;
   formId?: string;
   onSubmissionSuccess?: () => void;
+  setIsSubmitting?: (isSubmitting: boolean) => void;
 }
 
 export const useFormSubmission = ({ 
@@ -17,16 +18,38 @@ export const useFormSubmission = ({
   formData, 
   setErrors, 
   formId,
-  onSubmissionSuccess 
+  onSubmissionSuccess,
+  setIsSubmitting
 }: UseFormSubmissionProps) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const newErrors = validateForm(fields, formData);
-    setErrors(newErrors);
-    
-    if (Object.keys(newErrors).length === 0) {
-      console.log('Form submitted:', formData);
+    try {
+      console.log('Starting form submission process');
+      
+      if (setIsSubmitting) {
+        setIsSubmitting(true);
+      }
+      
+      // Validate form data
+      const newErrors = validateForm(fields, formData);
+      setErrors(newErrors);
+      
+      if (Object.keys(newErrors).length > 0) {
+        console.log('Form validation failed:', newErrors);
+        if (setIsSubmitting) {
+          setIsSubmitting(false);
+        }
+        
+        toast({
+          title: "Validation Error",
+          description: "Please fix the highlighted errors before submitting.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      console.log('Form validation passed, submitting data:', formData);
       
       // Save to database if we have a form ID
       if (formId) {
@@ -34,16 +57,22 @@ export const useFormSubmission = ({
           console.log('Saving submission to database for form:', formId);
           
           // Get user's IP address (simplified - in production you might want a more robust solution)
-          const ipResponse = await fetch('https://api.ipify.org?format=json').catch(() => null);
-          const ipData = ipResponse ? await ipResponse.json().catch(() => null) : null;
+          let ipAddress = null;
+          try {
+            const ipResponse = await fetch('https://api.ipify.org?format=json');
+            const ipData = await ipResponse.json();
+            ipAddress = ipData?.ip || null;
+          } catch (ipError) {
+            console.log('Could not fetch IP address:', ipError);
+          }
           
           const submissionData = {
             form_id: formId,
             data: formData,
-            ip_address: ipData?.ip || null,
+            ip_address: ipAddress,
           };
           
-          console.log('Submitting data:', submissionData);
+          console.log('Submitting data to Supabase:', submissionData);
           
           const { data, error } = await supabase
             .from('form_submissions')
@@ -52,6 +81,10 @@ export const useFormSubmission = ({
 
           if (error) {
             console.error('Error saving form submission:', error);
+            if (setIsSubmitting) {
+              setIsSubmitting(false);
+            }
+            
             toast({
               title: "Submission Error",
               description: "There was an error saving your submission. Please try again.",
@@ -71,29 +104,19 @@ export const useFormSubmission = ({
             description: `Your response has been recorded. Reference #${submissionReference}`,
           });
 
-          // Call success callback with proper delay and retry mechanism
+          // Call success callback
           if (onSubmissionSuccess) {
-            console.log('Calling submission success callback after successful save');
-            
-            // Wait longer to ensure database write is fully committed
-            setTimeout(async () => {
-              try {
-                await onSubmissionSuccess();
-              } catch (error) {
-                console.error('Error in submission success callback:', error);
-                // Retry once after additional delay
-                setTimeout(() => {
-                  try {
-                    onSubmissionSuccess();
-                  } catch (retryError) {
-                    console.error('Retry also failed:', retryError);
-                  }
-                }, 1000);
-              }
-            }, 1500); // Increased from 100ms to 1500ms
+            console.log('Calling submission success callback');
+            setTimeout(() => {
+              onSubmissionSuccess();
+            }, 500); // Small delay to ensure toast is shown
           }
         } catch (error) {
           console.error('Network error during form submission:', error);
+          if (setIsSubmitting) {
+            setIsSubmitting(false);
+          }
+          
           toast({
             title: "Network Error",
             description: "Please check your connection and try again.",
@@ -101,13 +124,33 @@ export const useFormSubmission = ({
           });
         }
       } else {
-        // For forms without ID (preview mode), just show success message with mock reference
+        // For forms without ID (preview mode), just show success message
         const mockReference = Date.now().toString().slice(-6).toUpperCase();
+        
+        // Simulate network delay for better UX
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
         toast({
           title: "Form Submitted Successfully!",
           description: `This is a preview - Reference #PREV${mockReference}`,
         });
+        
+        if (onSubmissionSuccess) {
+          console.log('Calling submission success callback for preview mode');
+          onSubmissionSuccess();
+        }
       }
+    } catch (error) {
+      console.error('Unexpected error during form submission:', error);
+      if (setIsSubmitting) {
+        setIsSubmitting(false);
+      }
+      
+      toast({
+        title: "Unexpected Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
