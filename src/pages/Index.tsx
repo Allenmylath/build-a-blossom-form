@@ -197,12 +197,7 @@ const Index = () => {
           </TabsList>
 
           <TabsContent value="builder">
-            <FormBuilder 
-              fields={fields} 
-              setFields={setFields}
-              onSave={handleSaveForm}
-              currentForm={currentForm}
-            />
+            <FormBuilder user={user} />
           </TabsContent>
 
           <TabsContent value="preview">
