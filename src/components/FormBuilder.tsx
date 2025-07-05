@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { FormFieldEditor } from './FormFieldEditor';
 import { FormPreview } from './FormPreview';
@@ -12,14 +13,21 @@ import { Plus, Eye, FolderOpen, FileText, MessageCircle } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/hooks/use-toast';
 import { ConversationalForm } from './ConversationalForm';
+import { useSupabaseForms } from '@/hooks/useSupabaseForms';
+import { User } from '@supabase/supabase-js';
 
-export const FormBuilder = () => {
+interface FormBuilderProps {
+  user: User;
+}
+
+export const FormBuilder = ({ user }: FormBuilderProps) => {
   const [fields, setFields] = useState<FormField[]>([]);
   const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null);
-  const [savedForms, setSavedForms] = useState<SavedForm[]>([]);
   const [currentForm, setCurrentForm] = useState<SavedForm | null>(null);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [showExportDialog, setShowExportDialog] = useState(false);
+
+  const { savedForms, loading, saveForm, deleteForm } = useSupabaseForms(user);
 
   const addField = (type: FormFieldType) => {
     const newField: FormField = {
@@ -60,39 +68,14 @@ export const FormBuilder = () => {
     setFields(newFields);
   };
 
-  const handleSaveForm = (formData: { name: string; description: string; isPublic: boolean }) => {
-    const now = new Date();
+  const handleSaveForm = async (formData: { name: string; description: string; isPublic: boolean }) => {
+    const savedFormData = await saveForm(formData, fields, currentForm || undefined);
     
-    if (currentForm) {
-      // Update existing form
-      const updatedForm: SavedForm = {
-        ...currentForm,
-        ...formData,
-        fields,
-        updatedAt: now,
-      };
-      setSavedForms(forms => forms.map(f => f.id === currentForm.id ? updatedForm : f));
-      setCurrentForm(updatedForm);
+    if (savedFormData) {
+      setCurrentForm(savedFormData);
       toast({
-        title: "Form Updated",
-        description: `"${formData.name}" has been updated successfully.`,
-      });
-    } else {
-      // Create new form
-      const newForm: SavedForm = {
-        id: `form_${Date.now()}`,
-        ...formData,
-        fields,
-        createdAt: now,
-        updatedAt: now,
-        submissions: [],
-        shareUrl: `${window.location.origin}/form/form_${Date.now()}`,
-      };
-      setSavedForms(forms => [...forms, newForm]);
-      setCurrentForm(newForm);
-      toast({
-        title: "Form Saved",
-        description: `"${formData.name}" has been saved successfully.`,
+        title: currentForm ? "Form Updated" : "Form Saved",
+        description: `"${formData.name}" has been ${currentForm ? 'updated' : 'saved'} successfully.`,
       });
     }
   };
@@ -107,30 +90,38 @@ export const FormBuilder = () => {
     });
   };
 
-  const handleDeleteForm = (formId: string) => {
-    setSavedForms(forms => forms.filter(f => f.id !== formId));
+  const handleDeleteForm = async (formId: string) => {
+    await deleteForm(formId);
     if (currentForm?.id === formId) {
       setCurrentForm(null);
     }
   };
 
-  const handleDuplicateForm = (form: SavedForm) => {
-    const now = new Date();
-    const duplicatedForm: SavedForm = {
-      ...form,
-      id: `form_${Date.now()}`,
-      name: `${form.name} (Copy)`,
-      createdAt: now,
-      updatedAt: now,
-      submissions: [],
-      shareUrl: `${window.location.origin}/form/form_${Date.now()}`,
-    };
-    setSavedForms(forms => [...forms, duplicatedForm]);
+  const handleDuplicateForm = async (form: SavedForm) => {
+    const duplicatedFormData = await saveForm(
+      {
+        name: `${form.name} (Copy)`,
+        description: form.description || '',
+        isPublic: form.isPublic
+      },
+      form.fields
+    );
+
+    if (duplicatedFormData) {
+      toast({
+        title: "Form Duplicated",
+        description: `"${form.name}" has been duplicated successfully.`,
+      });
+    }
   };
 
   const handleShareForm = (form: SavedForm) => {
     if (form.shareUrl) {
       navigator.clipboard.writeText(form.shareUrl);
+      toast({
+        title: "Share Link Generated",
+        description: "Form share link has been copied to clipboard.",
+      });
     }
   };
 
@@ -158,7 +149,6 @@ export const FormBuilder = () => {
     if (action === 'export') {
       setShowExportDialog(true);
     } else {
-      // Import functionality would go here
       toast({
         title: "Import Feature",
         description: "Import functionality coming soon!",
@@ -170,96 +160,111 @@ export const FormBuilder = () => {
 
   return (
     <div className="space-y-6">
-      <Tabs defaultValue="builder" className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="builder" className="flex items-center">
-            <Plus className="w-4 h-4 mr-2" />
-            Builder
-          </TabsTrigger>
-          <TabsTrigger value="preview" className="flex items-center">
-            <Eye className="w-4 h-4 mr-2" />
-            Preview
-          </TabsTrigger>
-          <TabsTrigger value="templates" className="flex items-center">
-            <FileText className="w-4 h-4 mr-2" />
-            Templates
-          </TabsTrigger>
-          <TabsTrigger value="manage" className="flex items-center">
-            <FolderOpen className="w-4 h-4 mr-2" />
-            Manage
-          </TabsTrigger>
-          <TabsTrigger value="chat" className="flex items-center">
-            <MessageCircle className="w-4 h-4 mr-2" />
-            Chat Form
-          </TabsTrigger>
-        </TabsList>
+      <div className="bg-white p-4 border-b shadow-sm">
+        <div className="max-w-6xl mx-auto flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Form Builder</h1>
+            <p className="text-gray-600">Welcome back, {user.email}</p>
+          </div>
+          {currentForm && (
+            <div className="text-right">
+              <h2 className="font-semibold">{currentForm.name}</h2>
+              <p className="text-sm text-gray-500">Last updated: {currentForm.updatedAt.toLocaleDateString()}</p>
+            </div>
+          )}
+        </div>
+      </div>
 
-        <TabsContent value="builder">
-          <FormActions
-            onSave={() => setShowSaveDialog(true)}
-            onNew={handleNewForm}
-            onExportImport={handleExportImport}
-            hasFields={fields.length > 0}
-          />
-          
-          <div className="grid lg:grid-cols-3 gap-6">
-            <BuilderPanel
-              fields={fields}
-              selectedFieldId={selectedFieldId}
-              onAddField={addField}
-              onSelectField={setSelectedFieldId}
-              onMoveField={moveField}
+      <div className="max-w-6xl mx-auto px-4">
+        <Tabs defaultValue="builder" className="w-full">
+          <TabsList className="grid w-full grid-cols-5">
+            <TabsTrigger value="builder" className="flex items-center">
+              <Plus className="w-4 h-4 mr-2" />
+              Builder
+            </TabsTrigger>
+            <TabsTrigger value="preview" className="flex items-center">
+              <Eye className="w-4 h-4 mr-2" />
+              Preview
+            </TabsTrigger>
+            <TabsTrigger value="templates" className="flex items-center">
+              <FileText className="w-4 h-4 mr-2" />
+              Templates
+            </TabsTrigger>
+            <TabsTrigger value="manage" className="flex items-center">
+              <FolderOpen className="w-4 h-4 mr-2" />
+              Manage
+            </TabsTrigger>
+            <TabsTrigger value="chat" className="flex items-center">
+              <MessageCircle className="w-4 h-4 mr-2" />
+              Chat Form
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="builder">
+            <FormActions
+              onSave={() => setShowSaveDialog(true)}
+              onNew={handleNewForm}
+              onExportImport={handleExportImport}
+              hasFields={fields.length > 0}
             />
+            
+            <div className="grid lg:grid-cols-3 gap-6">
+              <BuilderPanel
+                fields={fields}
+                selectedFieldId={selectedFieldId}
+                onAddField={addField}
+                onSelectField={setSelectedFieldId}
+                onMoveField={moveField}
+              />
 
-            {/* Field Editor and Preview Panel */}
-            <div className="space-y-6">
-              {selectedField && (
-                <FormFieldEditor
-                  field={selectedField}
-                  onUpdate={(updates) => updateField(selectedField.id, updates)}
-                  onDelete={() => deleteField(selectedField.id)}
-                />
-              )}
+              <div className="space-y-6">
+                {selectedField && (
+                  <FormFieldEditor
+                    field={selectedField}
+                    onUpdate={(updates) => updateField(selectedField.id, updates)}
+                    onDelete={() => deleteField(selectedField.id)}
+                  />
+                )}
+                <FormPreview fields={fields} />
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="preview">
+            <div className="max-w-2xl mx-auto">
               <FormPreview fields={fields} />
             </div>
-          </div>
-        </TabsContent>
+          </TabsContent>
 
-        <TabsContent value="preview">
-          <div className="max-w-2xl mx-auto">
-            <FormPreview fields={fields} />
-          </div>
-        </TabsContent>
+          <TabsContent value="templates">
+            <FormTemplates onSelectTemplate={handleSelectTemplate} />
+          </TabsContent>
 
-        <TabsContent value="templates">
-          <FormTemplates onSelectTemplate={handleSelectTemplate} />
-        </TabsContent>
+          <TabsContent value="manage">
+            <FormManager
+              savedForms={savedForms}
+              onLoadForm={handleLoadForm}
+              onDeleteForm={handleDeleteForm}
+              onDuplicateForm={handleDuplicateForm}
+              onShareForm={handleShareForm}
+            />
+          </TabsContent>
 
-        <TabsContent value="manage">
-          <FormManager
-            savedForms={savedForms}
-            onLoadForm={handleLoadForm}
-            onDeleteForm={handleDeleteForm}
-            onDuplicateForm={handleDuplicateForm}
-            onShareForm={handleShareForm}
-          />
-        </TabsContent>
+          <TabsContent value="chat" className="space-y-6">
+            <div className="text-center mb-6">
+              <h2 className="text-2xl font-bold mb-2 flex items-center justify-center">
+                <MessageCircle className="w-6 h-6 mr-2 text-purple-600" />
+                Conversational Form
+              </h2>
+              <p className="text-gray-600">
+                Advanced form with voice and text chat capabilities powered by AI bot
+              </p>
+            </div>
+            <ConversationalForm />
+          </TabsContent>
+        </Tabs>
+      </div>
 
-        <TabsContent value="chat" className="space-y-6">
-          <div className="text-center mb-6">
-            <h2 className="text-2xl font-bold mb-2 flex items-center justify-center">
-              <MessageCircle className="w-6 h-6 mr-2 text-purple-600" />
-              Conversational Form
-            </h2>
-            <p className="text-gray-600">
-              Advanced form with voice and text chat capabilities powered by AI bot
-            </p>
-          </div>
-          <ConversationalForm />
-        </TabsContent>
-      </Tabs>
-
-      {/* Dialogs */}
       <FormSaveDialog
         isOpen={showSaveDialog}
         onClose={() => setShowSaveDialog(false)}
