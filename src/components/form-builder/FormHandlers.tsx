@@ -26,6 +26,8 @@ export const useFormHandlers = ({
   externalOnSave,
 }: UseFormHandlersProps) => {
   const handleSaveForm = async (formData: { name: string; description: string; isPublic: boolean }) => {
+    console.log('Handling save form:', formData);
+    
     if (externalOnSave) {
       await externalOnSave(formData);
       return;
@@ -52,10 +54,12 @@ export const useFormHandlers = ({
   };
 
   const handleLoadForm = (form: SavedForm) => {
+    console.log('Handling load form:', form);
     onLoadForm(form);
   };
 
   const handleDeleteForm = async (formId: string) => {
+    console.log('Handling delete form:', formId);
     await deleteForm(formId);
     if (currentForm?.id === formId) {
       setCurrentForm(null);
@@ -63,6 +67,7 @@ export const useFormHandlers = ({
   };
 
   const handleDuplicateForm = async (form: SavedForm) => {
+    console.log('Handling duplicate form:', form);
     if (maxFormsReached) {
       toast({
         title: "Form Limit Reached",
@@ -90,6 +95,7 @@ export const useFormHandlers = ({
   };
 
   const handleShareForm = (form: SavedForm) => {
+    console.log('Handling share form:', form);
     if (form.shareUrl) {
       navigator.clipboard.writeText(form.shareUrl);
       toast({
@@ -100,6 +106,7 @@ export const useFormHandlers = ({
   };
 
   const handleSelectTemplate = (template: FormTemplate) => {
+    console.log('Handling select template:', template);
     onSelectTemplate(template.fields);
     toast({
       title: "Template Applied",
@@ -108,6 +115,7 @@ export const useFormHandlers = ({
   };
 
   const handleExportImport = (action: 'export' | 'import') => {
+    console.log('Handling export/import:', action);
     if (action === 'export') {
       // This would be handled by the parent component
     } else {

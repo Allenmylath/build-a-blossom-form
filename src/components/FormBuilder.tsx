@@ -32,10 +32,10 @@ export const FormBuilder = ({
   const maxFormsReached = isHobbyPlan && savedForms.length >= 5;
 
   const {
-    fields,
-    setFields,
-    currentForm,
-    setCurrentForm,
+    fields: internalFields,
+    setFields: setInternalFields,
+    currentForm: internalCurrentForm,
+    setCurrentForm: setInternalCurrentForm,
     selectedFieldId,
     setSelectedFieldId,
     addField,
@@ -52,10 +52,11 @@ export const FormBuilder = ({
     maxFormsReached,
   });
 
-  // Override with external state if provided
-  const finalFields = externalFields || fields;
-  const finalSetFields = externalSetFields || setFields;
-  const finalCurrentForm = externalCurrentForm || currentForm;
+  // Use external state if provided, otherwise use internal state
+  const activeFields = externalFields || internalFields;
+  const activeSetFields = externalSetFields || setInternalFields;
+  const activeCurrentForm = externalCurrentForm !== undefined ? externalCurrentForm : internalCurrentForm;
+  const activeSetCurrentForm = externalCurrentForm !== undefined ? () => {} : setInternalCurrentForm;
 
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [showExportDialog, setShowExportDialog] = useState(false);
@@ -72,9 +73,9 @@ export const FormBuilder = ({
     maxFormsReached,
     saveForm,
     deleteForm,
-    fields: finalFields,
-    currentForm: finalCurrentForm,
-    setCurrentForm: externalCurrentForm !== undefined ? () => {} : setCurrentForm,
+    fields: activeFields,
+    currentForm: activeCurrentForm,
+    setCurrentForm: activeSetCurrentForm,
     onLoadForm: loadForm,
     onSelectTemplate: selectTemplate,
     externalOnSave,
@@ -92,16 +93,16 @@ export const FormBuilder = ({
     <div className="space-y-6">
       <FormBuilderHeader
         user={user}
-        currentForm={finalCurrentForm}
+        currentForm={activeCurrentForm}
         savedFormsCount={savedForms.length}
         isHobbyPlan={isHobbyPlan}
       />
 
       <div className="max-w-6xl mx-auto px-4">
         <FormBuilderTabs
-          fields={finalFields}
+          fields={activeFields}
           selectedFieldId={selectedFieldId}
-          currentForm={finalCurrentForm}
+          currentForm={activeCurrentForm}
           savedForms={savedForms}
           isHobbyPlan={isHobbyPlan}
           onAddField={addField}
@@ -124,18 +125,18 @@ export const FormBuilder = ({
         isOpen={showSaveDialog}
         onClose={() => setShowSaveDialog(false)}
         onSave={handleSaveForm}
-        initialData={finalCurrentForm ? {
-          name: finalCurrentForm.name,
-          description: finalCurrentForm.description || '',
-          isPublic: finalCurrentForm.isPublic
+        initialData={activeCurrentForm ? {
+          name: activeCurrentForm.name,
+          description: activeCurrentForm.description || '',
+          isPublic: activeCurrentForm.isPublic
         } : undefined}
       />
 
       <FormExport
         isOpen={showExportDialog}
         onClose={() => setShowExportDialog(false)}
-        fields={finalFields}
-        formName={finalCurrentForm?.name || 'Untitled Form'}
+        fields={activeFields}
+        formName={activeCurrentForm?.name || 'Untitled Form'}
       />
     </div>
   );

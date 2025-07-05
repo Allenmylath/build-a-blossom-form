@@ -21,6 +21,8 @@ export const useFormBuilder = ({
   const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null);
 
   const addField = useCallback((type: FormFieldType) => {
+    console.log('Adding field of type:', type);
+    
     const newField: FormField = {
       id: `field_${Date.now()}`,
       type,
@@ -30,22 +32,41 @@ export const useFormBuilder = ({
       options: type === 'select' || type === 'radio' ? ['Option 1', 'Option 2'] : undefined,
     };
     
-    setFields(prev => [...prev, newField]);
+    console.log('Created new field:', newField);
+    
+    setFields(prev => {
+      const updated = [...prev, newField];
+      console.log('Updated fields:', updated);
+      return updated;
+    });
     setSelectedFieldId(newField.id);
+    
+    toast({
+      title: "Field Added",
+      description: `${type} field has been added to your form.`,
+    });
   }, []);
 
   const updateField = useCallback((fieldId: string, updates: Partial<FormField>) => {
+    console.log('Updating field:', fieldId, 'with updates:', updates);
     setFields(prev => prev.map(field => 
       field.id === fieldId ? { ...field, ...updates } : field
     ));
   }, []);
 
   const deleteField = useCallback((fieldId: string) => {
+    console.log('Deleting field:', fieldId);
     setFields(prev => prev.filter(field => field.id !== fieldId));
     setSelectedFieldId(prev => prev === fieldId ? null : prev);
+    
+    toast({
+      title: "Field Deleted",
+      description: "Field has been removed from your form.",
+    });
   }, []);
 
   const moveField = useCallback((fieldId: string, direction: 'up' | 'down') => {
+    console.log('Moving field:', fieldId, 'direction:', direction);
     setFields(prev => {
       const index = prev.findIndex(f => f.id === fieldId);
       if (index === -1) return prev;
@@ -60,6 +81,7 @@ export const useFormBuilder = ({
   }, []);
 
   const loadForm = useCallback((form: SavedForm) => {
+    console.log('Loading form:', form);
     setFields(form.fields);
     setCurrentForm(form);
     setSelectedFieldId(null);
@@ -70,12 +92,19 @@ export const useFormBuilder = ({
   }, []);
 
   const selectTemplate = useCallback((fields: FormField[]) => {
+    console.log('Selecting template with fields:', fields);
     setFields(fields);
     setSelectedFieldId(null);
     setCurrentForm(null);
+    
+    toast({
+      title: "Template Applied",
+      description: "Template has been applied to your form.",
+    });
   }, []);
 
   const startNewForm = useCallback(() => {
+    console.log('Starting new form, max forms reached:', maxFormsReached);
     if (maxFormsReached) {
       toast({
         title: "Form Limit Reached",
