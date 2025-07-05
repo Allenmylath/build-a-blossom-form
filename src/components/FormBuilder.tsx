@@ -8,7 +8,7 @@ import { FormExport } from './FormExport';
 import { BuilderPanel } from './form-builder/BuilderPanel';
 import { FormActions } from './form-builder/FormActions';
 import { FormField, FormFieldType, FormTemplate, SavedForm } from '@/types/form';
-import { Plus, Eye, FolderOpen, FileText, MessageCircle, Settings, LogOut } from 'lucide-react';
+import { Plus, Eye, FolderOpen, FileText, MessageCircle } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
@@ -211,14 +211,6 @@ export const FormBuilder = ({ user }: FormBuilderProps) => {
                 <p className="text-sm text-gray-500">Last updated: {currentForm.updatedAt.toLocaleDateString()}</p>
               </div>
             )}
-            <Button
-              variant="outline"
-              onClick={() => navigate('/settings')}
-              className="flex items-center"
-            >
-              <Settings className="w-4 h-4 mr-2" />
-              Settings
-            </Button>
             <Button
               variant="outline"
               onClick={() => navigate('/pricing')}
