@@ -27,6 +27,13 @@ const Index = () => {
     }
   }, [user, refreshForms]);
 
+  // Update fields when currentForm changes
+  useEffect(() => {
+    if (currentForm) {
+      setFields(currentForm.fields);
+    }
+  }, [currentForm]);
+
   const handleSaveForm = async (formData: { name: string; description: string; isPublic: boolean }) => {
     const savedForm = await saveForm(formData, fields, currentForm || undefined);
     if (savedForm) {
@@ -112,10 +119,17 @@ const Index = () => {
     });
   };
 
-  const handleFormSubmissionSuccess = () => {
-    // Refresh the current form data to show updated analytics
+  const handleFormSubmissionSuccess = async () => {
+    console.log('Form submission success callback triggered');
+    // Refresh the forms data to get updated submissions
+    await refreshForms();
+    
+    // If we have a current form, update it with the latest data
     if (currentForm && user) {
-      refreshForms();
+      const updatedForm = savedForms.find(f => f.id === currentForm.id);
+      if (updatedForm) {
+        setCurrentForm(updatedForm);
+      }
     }
   };
 
@@ -171,6 +185,11 @@ const Index = () => {
             <TabsTrigger value="analytics" className="flex items-center">
               <BarChart3 className="w-4 h-4 mr-2" />
               Analytics
+              {currentForm && currentForm.submissions.length > 0 && (
+                <span className="ml-1 bg-blue-500 text-white text-xs rounded-full px-2 py-0.5">
+                  {currentForm.submissions.length}
+                </span>
+              )}
             </TabsTrigger>
             <TabsTrigger value="forms" className="flex items-center">
               Forms ({savedForms.length})
@@ -179,7 +198,10 @@ const Index = () => {
 
           <TabsContent value="builder">
             <FormBuilder 
-              user={user}
+              fields={fields} 
+              setFields={setFields}
+              onSave={handleSaveForm}
+              currentForm={currentForm}
             />
           </TabsContent>
 

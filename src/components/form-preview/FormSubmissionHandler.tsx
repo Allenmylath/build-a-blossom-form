@@ -31,17 +31,24 @@ export const useFormSubmission = ({
       // Save to database if we have a form ID
       if (formId) {
         try {
+          console.log('Saving submission to database for form:', formId);
+          
           // Get user's IP address (simplified - in production you might want a more robust solution)
           const ipResponse = await fetch('https://api.ipify.org?format=json').catch(() => null);
           const ipData = ipResponse ? await ipResponse.json().catch(() => null) : null;
           
-          const { error } = await supabase
+          const submissionData = {
+            form_id: formId,
+            data: formData,
+            ip_address: ipData?.ip || null,
+          };
+          
+          console.log('Submitting data:', submissionData);
+          
+          const { data, error } = await supabase
             .from('form_submissions')
-            .insert({
-              form_id: formId,
-              data: formData,
-              ip_address: ipData?.ip || null,
-            });
+            .insert(submissionData)
+            .select();
 
           if (error) {
             console.error('Error saving form submission:', error);
@@ -53,8 +60,13 @@ export const useFormSubmission = ({
             return;
           }
 
+          console.log('Form submission saved successfully:', data);
+
           // Call success callback to refresh parent data
-          onSubmissionSuccess?.();
+          if (onSubmissionSuccess) {
+            console.log('Calling submission success callback');
+            await onSubmissionSuccess();
+          }
           
           toast({
             title: "Form Submitted Successfully!",
