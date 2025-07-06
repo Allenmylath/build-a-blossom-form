@@ -77,7 +77,7 @@ export const FormBuilder = ({ user }: FormBuilderProps) => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-green-50">
       <NavigationHeader />
       <div className="max-w-7xl mx-auto p-6">
         <FormBuilderHeader 

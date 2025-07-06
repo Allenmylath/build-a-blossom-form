@@ -25,25 +25,25 @@ export const NavigationHeader = () => {
   }
 
   return (
-    <header className="bg-white border-b border-gray-200 px-4 py-3">
+    <header className="bg-white border-b border-green-200 px-4 py-3 shadow-sm">
       <div className="max-w-6xl mx-auto flex items-center justify-between">
-        <Link to="/" className="text-xl font-bold text-gray-900">
+        <Link to="/" className="text-xl font-bold text-green-700 hover:text-green-800">
           Form Builder
         </Link>
         
         <NavigationMenu>
           <NavigationMenuList>
             <NavigationMenuItem>
-              <NavigationMenuTrigger>
+              <NavigationMenuTrigger className="text-black hover:text-green-700">
                 <User className="w-4 h-4 mr-2" />
                 Account
               </NavigationMenuTrigger>
               <NavigationMenuContent>
-                <div className="w-48 p-2">
+                <div className="w-48 p-2 bg-white">
                   <NavigationMenuLink asChild>
                     <Link 
                       to="/settings" 
-                      className="flex items-center px-3 py-2 text-sm hover:bg-gray-100 rounded-md"
+                      className="flex items-center px-3 py-2 text-sm text-black hover:bg-green-50 hover:text-green-700 rounded-md"
                     >
                       <Settings className="w-4 h-4 mr-2" />
                       Settings
@@ -52,7 +52,7 @@ export const NavigationHeader = () => {
                   <NavigationMenuLink asChild>
                     <Link 
                       to="/knowledge-base" 
-                      className="flex items-center px-3 py-2 text-sm hover:bg-gray-100 rounded-md"
+                      className="flex items-center px-3 py-2 text-sm text-black hover:bg-green-50 hover:text-green-700 rounded-md"
                     >
                       <Database className="w-4 h-4 mr-2" />
                       Knowledge Base
@@ -61,16 +61,16 @@ export const NavigationHeader = () => {
                   <NavigationMenuLink asChild>
                     <Link 
                       to="/pricing" 
-                      className="flex items-center px-3 py-2 text-sm hover:bg-gray-100 rounded-md"
+                      className="flex items-center px-3 py-2 text-sm text-black hover:bg-green-50 hover:text-green-700 rounded-md"
                     >
                       <DollarSign className="w-4 h-4 mr-2" />
                       Pricing
                     </Link>
                   </NavigationMenuLink>
-                  <div className="border-t my-1"></div>
+                  <div className="border-t border-green-200 my-1"></div>
                   <button 
                     onClick={handleSignOut}
-                    className="flex items-center w-full px-3 py-2 text-sm hover:bg-gray-100 rounded-md text-red-600"
+                    className="flex items-center w-full px-3 py-2 text-sm hover:bg-red-50 hover:text-red-600 rounded-md text-red-600"
                   >
                     <LogOut className="w-4 h-4 mr-2" />
                     Sign Out
