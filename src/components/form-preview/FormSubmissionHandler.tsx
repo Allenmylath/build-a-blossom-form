@@ -24,24 +24,21 @@ export const useFormSubmission = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    console.log('Starting form submission process');
+    console.log('Form ID:', formId);
+    console.log('Form data:', formData);
+    
+    if (setIsSubmitting) {
+      setIsSubmitting(true);
+    }
+    
     try {
-      console.log('Starting form submission process');
-      console.log('Form ID:', formId);
-      console.log('Form data:', formData);
-      
-      if (setIsSubmitting) {
-        setIsSubmitting(true);
-      }
-      
       // Validate form data
       const newErrors = validateForm(fields, formData);
       setErrors(newErrors);
       
       if (Object.keys(newErrors).length > 0) {
         console.log('Form validation failed:', newErrors);
-        if (setIsSubmitting) {
-          setIsSubmitting(false);
-        }
         
         toast({
           title: "Validation Error",
@@ -84,9 +81,6 @@ export const useFormSubmission = ({
 
           if (error) {
             console.error('Error saving form submission:', error);
-            if (setIsSubmitting) {
-              setIsSubmitting(false);
-            }
             
             toast({
               title: "Submission Error",
@@ -117,9 +111,6 @@ export const useFormSubmission = ({
           }
         } catch (error) {
           console.error('Network error during form submission:', error);
-          if (setIsSubmitting) {
-            setIsSubmitting(false);
-          }
           
           toast({
             title: "Network Error",
@@ -147,15 +138,17 @@ export const useFormSubmission = ({
       }
     } catch (error) {
       console.error('Unexpected error during form submission:', error);
-      if (setIsSubmitting) {
-        setIsSubmitting(false);
-      }
       
       toast({
         title: "Unexpected Error",
         description: "An unexpected error occurred. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      // Always reset submitting state in the finally block
+      if (setIsSubmitting) {
+        setIsSubmitting(false);
+      }
     }
   };
 

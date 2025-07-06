@@ -81,8 +81,9 @@ export const MultiPageForm = ({ fields, formId, onSubmissionSuccess }: MultiPage
     }
   };
 
+  // Use all fields for submission, not just current page fields
   const { handleSubmit } = useFormSubmission({
-    fields: currentPageFields,
+    fields: fields.filter(f => f.type !== 'page-break'), // All non-page-break fields
     formData,
     setErrors,
     formId,
@@ -91,8 +92,10 @@ export const MultiPageForm = ({ fields, formId, onSubmissionSuccess }: MultiPage
   });
 
   const onSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Validate current page first for immediate feedback
     if (!validateCurrentPage()) {
-      e.preventDefault();
       toast({
         title: "Validation Error",
         description: "Please fill in all required fields.",
@@ -100,6 +103,8 @@ export const MultiPageForm = ({ fields, formId, onSubmissionSuccess }: MultiPage
       });
       return;
     }
+    
+    // For final submission, the handleSubmit will validate all fields
     handleSubmit(e);
   };
 
@@ -144,7 +149,7 @@ export const MultiPageForm = ({ fields, formId, onSubmissionSuccess }: MultiPage
             type="button"
             variant="outline"
             onClick={handlePrevious}
-            disabled={currentPage === 0}
+            disabled={currentPage === 0 || isSubmitting}
             className="flex items-center"
           >
             <ChevronLeft className="w-4 h-4 mr-2" />
@@ -156,6 +161,7 @@ export const MultiPageForm = ({ fields, formId, onSubmissionSuccess }: MultiPage
               <Button
                 type="button"
                 onClick={handleNext}
+                disabled={isSubmitting}
                 className="flex items-center"
               >
                 Next
