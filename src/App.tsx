@@ -21,7 +21,7 @@ function App() {
           {/* Main form builder route */}
           <Route 
             path="/" 
-            element={<FormBuilderWithAuth user={user} loading={loading} />} 
+            element={<FormBuilderWithAuth />} 
           />
           
           {/* Shared form route */}
@@ -34,7 +34,7 @@ function App() {
               user ? (
                 <Settings user={user} onSignOut={signOut} />
               ) : (
-                <FormBuilderWithAuth user={user} loading={loading} />
+                <FormBuilderWithAuth />
               )
             } 
           />
@@ -46,7 +46,7 @@ function App() {
               user ? (
                 <KnowledgeBase user={user} />
               ) : (
-                <FormBuilderWithAuth user={user} loading={loading} />
+                <FormBuilderWithAuth />
               )
             } 
           />
