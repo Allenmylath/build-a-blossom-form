@@ -4,10 +4,16 @@ import { FormField, SavedForm, FormSubmissionData } from '@/types/form';
 import { User } from '@supabase/supabase-js';
 import { toast } from '@/hooks/use-toast';
 
+const HOBBY_PLAN_FORM_LIMIT = 5;
+
 export const useSupabaseForms = (user: User | null) => {
   const [savedForms, setSavedForms] = useState<SavedForm[]>([]);
   const [loading, setLoading] = useState(false);
   const activeOperationsRef = useRef(new Set<string>());
+
+  // Calculate plan limitations
+  const isHobbyPlan = true; // For now, assume all users are on hobby plan
+  const maxFormsReached = savedForms.length >= HOBBY_PLAN_FORM_LIMIT;
 
   // Fetch forms from Supabase and return the data
   const fetchForms = useCallback(async (): Promise<SavedForm[]> => {
@@ -419,5 +425,7 @@ export const useSupabaseForms = (user: User | null) => {
     deleteForm,
     refreshForms: fetchForms,
     refreshSingleForm,
+    maxFormsReached,
+    isHobbyPlan,
   };
 };

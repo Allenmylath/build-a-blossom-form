@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { User } from '@supabase/supabase-js';
 import { FormBuilderTabs } from './form-builder/FormBuilderTabs';
@@ -6,6 +7,7 @@ import { FormPreview } from './FormPreview';
 import { useFormBuilder } from '@/hooks/useFormBuilder';
 import { useSupabaseForms } from '@/hooks/useSupabaseForms';
 import { NavigationHeader } from './NavigationHeader';
+import { FormTemplate } from '@/types/form';
 
 interface FormBuilderProps {
   user: User;
@@ -66,6 +68,10 @@ export const FormBuilder = ({ user }: FormBuilderProps) => {
     }
   };
 
+  const handleSelectTemplate = (template: FormTemplate) => {
+    selectTemplate(template.fields);
+  };
+
   const handleExportImport = (action: 'export' | 'import') => {
     // Handle export/import logic
   };
@@ -104,7 +110,7 @@ export const FormBuilder = ({ user }: FormBuilderProps) => {
           onDeleteForm={handleDeleteForm}
           onDuplicateForm={handleDuplicateForm}
           onShareForm={handleShareForm}
-          onSelectTemplate={selectTemplate}
+          onSelectTemplate={handleSelectTemplate}
         />
       </div>
     </div>
