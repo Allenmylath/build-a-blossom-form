@@ -50,10 +50,10 @@ export const useFormSubmission = ({
       
       console.log('Form validation passed, submitting data:', formData);
       
-      // Save to database if we have a form ID
+      // Save to database if we have a form ID (this is a shared form)
       if (formId) {
         try {
-          console.log('Saving submission to database for form:', formId);
+          console.log('Saving submission to database for shared form:', formId);
           
           // Get user's IP address (simplified - in production you might want a more robust solution)
           let ipAddress = null;
@@ -92,9 +92,22 @@ export const useFormSubmission = ({
 
           console.log('Form submission saved successfully:', data);
 
-          // Extract the submission ID for proof
+          // Extract the REAL submission ID from Supabase response
           const submissionId = data[0]?.id;
-          const submissionReference = submissionId ? submissionId.slice(0, 8).toUpperCase() : 'UNKNOWN';
+          if (!submissionId) {
+            console.error('No submission ID returned from Supabase');
+            toast({
+              title: "Submission Error",
+              description: "Submission saved but could not retrieve confirmation ID.",
+              variant: "destructive",
+            });
+            return;
+          }
+
+          // Create reference from the real Supabase ID (first 8 characters)
+          const submissionReference = submissionId.slice(0, 8).toUpperCase();
+          console.log('Real Supabase submission ID:', submissionId);
+          console.log('Reference ID shown to user:', submissionReference);
 
           toast({
             title: "Form Submitted Successfully!",
@@ -119,8 +132,8 @@ export const useFormSubmission = ({
           });
         }
       } else {
-        console.log('No form ID provided - running in preview mode');
-        // For forms without ID (preview mode), just show success message
+        console.log('No form ID provided - running in PREVIEW mode only');
+        // For forms without ID (preview mode), show preview message
         const mockReference = Date.now().toString().slice(-6).toUpperCase();
         
         // Simulate network delay for better UX
