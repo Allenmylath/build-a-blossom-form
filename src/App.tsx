@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Toaster } from '@/components/ui/toaster';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
-import FormBuilderWithAuth from '@/components/FormBuilderWithAuth';
+import { FormBuilderWithAuth } from '@/components/FormBuilderWithAuth';
 import { SharedForm } from '@/components/SharedForm';
 import Settings from '@/pages/Settings';
 import KnowledgeBase from '@/pages/KnowledgeBase';
