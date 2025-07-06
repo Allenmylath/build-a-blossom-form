@@ -14,9 +14,17 @@ interface FormPreviewProps {
   fields: FormField[];
   formId?: string;
   onSubmissionSuccess?: () => void;
+  onSelectField?: (fieldId: string) => void;
+  selectedField?: FormField | null;
 }
 
-export const FormPreview = ({ fields, formId, onSubmissionSuccess }: FormPreviewProps) => {
+export const FormPreview = ({ 
+  fields, 
+  formId, 
+  onSubmissionSuccess,
+  onSelectField,
+  selectedField 
+}: FormPreviewProps) => {
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -61,13 +69,18 @@ export const FormPreview = ({ fields, formId, onSubmissionSuccess }: FormPreview
       
       <form onSubmit={handleSubmit} className="space-y-6">
         {renderableFields.map(field => (
-          <FormFieldRenderer
+          <div 
             key={field.id}
-            field={field}
-            value={formData[field.id]}
-            error={errors[field.id]}
-            onChange={(value) => updateFormData(field.id, value)}
-          />
+            className={`${selectedField?.id === field.id ? 'ring-2 ring-blue-500 rounded-lg p-2' : ''}`}
+            onClick={() => onSelectField?.(field.id)}
+          >
+            <FormFieldRenderer
+              field={field}
+              value={formData[field.id]}
+              error={errors[field.id]}
+              onChange={(value) => updateFormData(field.id, value)}
+            />
+          </div>
         ))}
         
         <div className="pt-6 border-t">

@@ -19,7 +19,7 @@ export const BuilderPanel = ({
   onMoveField,
 }: BuilderPanelProps) => {
   return (
-    <div className="lg:col-span-2 space-y-6">
+    <div className="space-y-6">
       <FieldTypesPanel onAddField={onAddField} />
       <FieldList
         fields={fields}
