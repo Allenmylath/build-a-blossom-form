@@ -118,6 +118,7 @@ export type Database = {
           fields: Json
           id: string
           is_public: boolean
+          knowledge_base_id: string | null
           name: string
           share_url: string | null
           updated_at: string
@@ -129,6 +130,7 @@ export type Database = {
           fields?: Json
           id?: string
           is_public?: boolean
+          knowledge_base_id?: string | null
           name: string
           share_url?: string | null
           updated_at?: string
@@ -140,8 +142,56 @@ export type Database = {
           fields?: Json
           id?: string
           is_public?: boolean
+          knowledge_base_id?: string | null
           name?: string
           share_url?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "forms_knowledge_base_id_fkey"
+            columns: ["knowledge_base_id"]
+            isOneToOne: false
+            referencedRelation: "knowledge_bases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      knowledge_bases: {
+        Row: {
+          content: string | null
+          created_at: string
+          description: string | null
+          file_path: string
+          file_size: number
+          id: string
+          name: string
+          token_count: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string
+          description?: string | null
+          file_path: string
+          file_size: number
+          id?: string
+          name: string
+          token_count?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string | null
+          created_at?: string
+          description?: string | null
+          file_path?: string
+          file_size?: number
+          id?: string
+          name?: string
+          token_count?: number | null
           updated_at?: string
           user_id?: string
         }

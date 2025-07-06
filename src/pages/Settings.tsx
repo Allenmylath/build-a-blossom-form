@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { User, CreditCard, FileText, LogOut, Upload } from 'lucide-react';
+import { User, CreditCard, FileText, LogOut, Database } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -59,23 +59,6 @@ const Settings = ({ user, onSignOut }: SettingsProps) => {
       title: "Payment Details Saved",
       description: "Your payment information has been updated successfully.",
     });
-  };
-
-  const handleKnowledgeBaseUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file && file.type === 'application/pdf') {
-      // Handle PDF upload for knowledge base
-      toast({
-        title: "PDF Uploaded",
-        description: `${file.name} has been uploaded to your knowledge base.`,
-      });
-    } else {
-      toast({
-        title: "Invalid File",
-        description: "Please upload a PDF file only.",
-        variant: "destructive",
-      });
-    }
   };
 
   return (
@@ -207,33 +190,23 @@ const Settings = ({ user, onSignOut }: SettingsProps) => {
           <TabsContent value="knowledge">
             <Card>
               <CardHeader>
-                <CardTitle>Knowledge Base</CardTitle>
+                <CardTitle>Knowledge Base Management</CardTitle>
                 <CardDescription>
-                  Upload PDF documents to enhance your forms with knowledge base functionality
+                  Upload and manage PDF documents to enhance your chat forms with contextual information
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                  <Upload className="w-12 h-12 mx-auto text-gray-400 mb-4" />
+                <div className="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg">
+                  <Database className="w-12 h-12 mx-auto text-gray-400 mb-4" />
                   <p className="text-gray-600 mb-4">
-                    Upload PDF files to create your knowledge base
+                    Manage your knowledge bases to enhance chat forms
                   </p>
-                  <Input
-                    type="file"
-                    accept=".pdf"
-                    onChange={handleKnowledgeBaseUpload}
-                    className="hidden"
-                    id="pdf-upload"
-                  />
-                  <Label htmlFor="pdf-upload" className="cursor-pointer">
-                    <Button variant="outline" asChild>
-                      <span>Choose PDF File</span>
-                    </Button>
-                  </Label>
+                  <Button onClick={() => navigate('/knowledge-base')}>
+                    Go to Knowledge Base
+                  </Button>
                 </div>
                 <p className="text-sm text-gray-500">
-                  Note: Chat form functionality is not available on the Hobby plan. 
-                  Upload PDFs to create a knowledge base for your forms instead.
+                  Upload PDF files (up to 5MB) to create knowledge bases that can be linked to your forms for enhanced AI responses.
                 </p>
               </CardContent>
             </Card>

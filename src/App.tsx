@@ -1,31 +1,65 @@
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { Toaster } from "@/components/ui/toaster";
-import Index from "@/pages/Index";
-import Pricing from "@/pages/Pricing";
-import Settings from "@/pages/Settings";
-import { SharedForm } from "@/components/SharedForm";
-
-const queryClient = new QueryClient();
+import { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { Toaster } from '@/components/ui/toaster';
+import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
+import FormBuilderWithAuth from '@/components/FormBuilderWithAuth';
+import { SharedForm } from '@/components/SharedForm';
+import Settings from '@/pages/Settings';
+import KnowledgeBase from '@/pages/KnowledgeBase';
+import Pricing from '@/pages/Pricing';
+import NotFound from '@/pages/NotFound';
+import './App.css';
 
 function App() {
-  console.log('App component rendering');
-  console.log('Current URL:', window.location.href);
-  console.log('Current pathname:', window.location.pathname);
-  
+  const { user, loading, signOut } = useSupabaseAuth();
+
   return (
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
+    <Router>
+      <div className="min-h-screen bg-gray-50">
         <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/pricing" element={<Pricing />} />
-          <Route path="/settings" element={<Settings user={null} onSignOut={() => {}} />} />
+          {/* Main form builder route */}
+          <Route 
+            path="/" 
+            element={<FormBuilderWithAuth user={user} loading={loading} />} 
+          />
+          
+          {/* Shared form route */}
           <Route path="/form/:id" element={<SharedForm />} />
+          
+          {/* Settings route */}
+          <Route 
+            path="/settings" 
+            element={
+              user ? (
+                <Settings user={user} onSignOut={signOut} />
+              ) : (
+                <FormBuilderWithAuth user={user} loading={loading} />
+              )
+            } 
+          />
+
+          {/* Knowledge Base route */}
+          <Route 
+            path="/knowledge-base" 
+            element={
+              user ? (
+                <KnowledgeBase user={user} />
+              ) : (
+                <FormBuilderWithAuth user={user} loading={loading} />
+              )
+            } 
+          />
+          
+          {/* Pricing route */}
+          <Route path="/pricing" element={<Pricing />} />
+          
+          {/* 404 route */}
+          <Route path="*" element={<NotFound />} />
         </Routes>
         <Toaster />
-      </BrowserRouter>
-    </QueryClientProvider>
+      </div>
+    </Router>
   );
 }
 
