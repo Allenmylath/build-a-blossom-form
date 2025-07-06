@@ -158,7 +158,7 @@ export const SharedForm = () => {
           </p>
         </Card>
         
-        <FormPreview fields={form.fields} />
+        <FormPreview fields={form.fields} formId={form.id} />
       </div>
     </div>
   );
