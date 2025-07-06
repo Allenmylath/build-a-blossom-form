@@ -5,17 +5,22 @@ import { FormBuilder } from './FormBuilder';
 import { Auth } from './Auth';
 import { Card } from '@/components/ui/card';
 import { Plus } from 'lucide-react';
+import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 
 export const FormBuilderWithAuth = () => {
-  const [user, setUser] = useState<User | null>(null);
+  const { user, loading } = useSupabaseAuth();
 
   const handleAuthChange = (newUser: User | null) => {
-    setUser(newUser);
+    // This will be handled by the useSupabaseAuth hook
   };
 
-  const handleSignOut = () => {
-    setUser(null);
-  };
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 flex items-center justify-center">
+        <div className="text-lg">Loading...</div>
+      </div>
+    );
+  }
 
   if (!user) {
     return (
