@@ -10,11 +10,11 @@ import {
   NavigationMenuList,
   NavigationMenuTrigger,
 } from '@/components/ui/navigation-menu';
-import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
+import { useAppStore } from '@/store';
 
 export const NavigationHeader = () => {
   const location = useLocation();
-  const { user, signOut } = useSupabaseAuth();
+  const { user, signOut } = useAppStore();
 
   const handleSignOut = async () => {
     await signOut();

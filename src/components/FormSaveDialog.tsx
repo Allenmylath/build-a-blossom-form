@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
+import { useAppStore } from '@/store';
 import { useKnowledgeBases } from '@/hooks/useKnowledgeBases';
 import { Database, MessageCircle, AlertCircle } from 'lucide-react';
 import { FormField } from '@/types/form';
@@ -31,7 +31,7 @@ interface FormSaveDialogProps {
 }
 
 export const FormSaveDialog = ({ isOpen, onClose, onSave, initialData, fields = [] }: FormSaveDialogProps) => {
-  const { user } = useSupabaseAuth();
+  const { user } = useAppStore();
   const { knowledgeBases } = useKnowledgeBases(user);
   const [formData, setFormData] = useState({
     name: initialData?.name || '',
