@@ -15,6 +15,8 @@ import './App.css';
 function AppContent() {
   const { user, loading, signOut } = useSupabaseAuth();
 
+  console.log('AppContent render:', { user: !!user, loading });
+
   return (
     <Router>
       <div className="min-h-screen bg-gray-50">
@@ -65,6 +67,8 @@ function AppContent() {
 }
 
 function App() {
+  console.log('App component rendering');
+  
   return (
     <StoreProvider>
       <AppContent />

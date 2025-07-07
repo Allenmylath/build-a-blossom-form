@@ -1,20 +1,32 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { User } from '@supabase/supabase-js';
 import { FormBuilder } from './FormBuilder';
 import { Auth } from './Auth';
 import { Card } from '@/components/ui/card';
 import { Plus } from 'lucide-react';
-import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
+import { useSupabaseAuth } from '@/hooks/useStore';
 
 export const FormBuilderWithAuth = () => {
   const { user, loading } = useSupabaseAuth();
+  const [isReady, setIsReady] = useState(false);
+
+  useEffect(() => {
+    console.log('FormBuilderWithAuth state:', { user: !!user, loading });
+    // Add a small delay to ensure store is fully initialized
+    const timer = setTimeout(() => {
+      setIsReady(true);
+    }, 100);
+    
+    return () => clearTimeout(timer);
+  }, [user, loading]);
 
   const handleAuthChange = (newUser: User | null) => {
+    console.log('Auth change handled:', !!newUser);
     // This will be handled by the useSupabaseAuth hook
   };
 
-  if (loading) {
+  if (loading || !isReady) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 flex items-center justify-center">
         <div className="text-lg">Loading...</div>
