@@ -1,4 +1,5 @@
 
+import { useState } from 'react';
 import { SavedForm, FormTemplate } from '@/types/form';
 import { toast } from '@/hooks/use-toast';
 
@@ -11,7 +12,6 @@ interface UseFormHandlersProps {
   setCurrentForm: (form: SavedForm | null) => void;
   onLoadForm: (form: SavedForm) => void;
   onSelectTemplate: (fields: any[]) => void;
-  externalOnSave?: (formData: { name: string; description: string; isPublic: boolean }) => Promise<void>;
 }
 
 export const useFormHandlers = ({
@@ -23,20 +23,27 @@ export const useFormHandlers = ({
   setCurrentForm,
   onLoadForm,
   onSelectTemplate,
-  externalOnSave,
 }: UseFormHandlersProps) => {
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+
   const handleSaveForm = async (formData: { name: string; description: string; isPublic: boolean }) => {
     console.log('Handling save form:', formData);
     
-    if (externalOnSave) {
-      await externalOnSave(formData);
-      return;
-    }
-
+    // Check if creating new form and limit reached
     if (maxFormsReached && !currentForm) {
       toast({
         title: "Form Limit Reached",
         description: "Hobby plan allows maximum 5 forms. Please upgrade to create more forms.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check if there are fields to save
+    if (fields.length === 0) {
+      toast({
+        title: "No Fields Added",
+        description: "Please add at least one field to your form before saving.",
         variant: "destructive",
       });
       return;
@@ -50,24 +57,34 @@ export const useFormHandlers = ({
         title: currentForm ? "Form Updated" : "Form Saved",
         description: `"${formData.name}" has been ${currentForm ? 'updated' : 'saved'} successfully.`,
       });
+      setShowSaveDialog(false);
     }
   };
 
+  const handleSaveClick = () => {
+    console.log('Save button clicked, fields:', fields.length);
+    
+    if (fields.length === 0) {
+      toast({
+        title: "No Fields Added",
+        description: "Please add at least one field to your form before saving.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setShowSaveDialog(true);
+  };
+
   const handleLoadForm = (form: SavedForm) => {
-    console.log('Handling load form:', form);
     onLoadForm(form);
   };
 
   const handleDeleteForm = async (formId: string) => {
-    console.log('Handling delete form:', formId);
     await deleteForm(formId);
-    if (currentForm?.id === formId) {
-      setCurrentForm(null);
-    }
   };
 
   const handleDuplicateForm = async (form: SavedForm) => {
-    console.log('Handling duplicate form:', form);
     if (maxFormsReached) {
       toast({
         title: "Form Limit Reached",
@@ -76,7 +93,7 @@ export const useFormHandlers = ({
       });
       return;
     }
-
+    
     const duplicatedFormData = await saveForm(
       {
         name: `${form.name} (Copy)`,
@@ -95,29 +112,34 @@ export const useFormHandlers = ({
   };
 
   const handleShareForm = (form: SavedForm) => {
-    console.log('Handling share form:', form);
     if (form.shareUrl) {
       navigator.clipboard.writeText(form.shareUrl);
       toast({
-        title: "Share Link Generated",
+        title: "Share Link Copied",
         description: "Form share link has been copied to clipboard.",
       });
     }
   };
 
   const handleSelectTemplate = (template: FormTemplate) => {
-    console.log('Handling select template:', template);
     onSelectTemplate(template.fields);
-    toast({
-      title: "Template Applied",
-      description: `"${template.name}" template has been applied to your form.`,
-    });
   };
 
   const handleExportImport = (action: 'export' | 'import') => {
-    console.log('Handling export/import:', action);
     if (action === 'export') {
-      // This would be handled by the parent component
+      if (fields.length === 0) {
+        toast({
+          title: "No Fields to Export",
+          description: "Please add fields to your form before exporting.",
+          variant: "destructive",
+        });
+        return;
+      }
+      // Export functionality would be implemented here
+      toast({
+        title: "Export Feature",
+        description: "Export functionality coming soon!",
+      });
     } else {
       toast({
         title: "Import Feature",
@@ -127,7 +149,10 @@ export const useFormHandlers = ({
   };
 
   return {
+    showSaveDialog,
+    setShowSaveDialog,
     handleSaveForm,
+    handleSaveClick,
     handleLoadForm,
     handleDeleteForm,
     handleDuplicateForm,
