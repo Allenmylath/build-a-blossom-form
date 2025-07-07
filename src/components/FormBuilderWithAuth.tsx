@@ -5,10 +5,10 @@ import { FormBuilder } from './FormBuilder';
 import { Auth } from './Auth';
 import { Card } from '@/components/ui/card';
 import { Plus } from 'lucide-react';
-import { useSupabaseAuth } from '@/hooks/useStore';
+import { useAppStore } from '@/store';
 
 export const FormBuilderWithAuth = () => {
-  const { user, loading } = useSupabaseAuth();
+  const { user, authLoading: loading } = useAppStore();
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
@@ -23,7 +23,7 @@ export const FormBuilderWithAuth = () => {
 
   const handleAuthChange = (newUser: User | null) => {
     console.log('Auth change handled:', !!newUser);
-    // This will be handled by the useSupabaseAuth hook
+    // This will be handled by the store's auth management
   };
 
   if (loading || !isReady) {

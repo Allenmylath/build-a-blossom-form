@@ -4,7 +4,7 @@ import { FormBuilderContent } from './form-builder/FormBuilderContent';
 import { NavigationHeader } from './NavigationHeader';
 import { FormSaveDialog } from './FormSaveDialog';
 import { useFormBuilder } from '@/hooks/useFormBuilder';
-import { useSupabaseForms } from '@/hooks/useSupabaseForms';
+import { useAppStore } from '@/store';
 import { useFormHandlers } from '@/hooks/useFormHandlers';
 
 interface FormBuilderProps {
@@ -12,7 +12,14 @@ interface FormBuilderProps {
 }
 
 export const FormBuilder = ({ user }: FormBuilderProps) => {
-  const { savedForms, saveForm, deleteForm, maxFormsReached, isHobbyPlan } = useSupabaseForms(user);
+  const { 
+    savedForms, 
+    formsLoading, 
+    maxFormsReached, 
+    isHobbyPlan,
+    saveForm,
+    deleteForm
+  } = useAppStore();
   
   const {
     fields,

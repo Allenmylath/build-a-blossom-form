@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Toaster } from '@/components/ui/toaster';
 import { StoreProvider } from '@/components/StoreProvider';
-import { useSupabaseAuth } from '@/hooks/useStore';
+import { useAppStore } from '@/store';
 import { FormBuilderWithAuth } from '@/components/FormBuilderWithAuth';
 import { SharedForm } from '@/components/SharedForm';
 import Settings from '@/pages/Settings';
@@ -13,7 +13,8 @@ import NotFound from '@/pages/NotFound';
 import './App.css';
 
 function AppContent() {
-  const { user, loading, signOut } = useSupabaseAuth();
+  const { user, authLoading: loading } = useAppStore();
+  const { signOut } = useAppStore();
 
   console.log('AppContent render:', { user: !!user, loading });
 
