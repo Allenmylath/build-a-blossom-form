@@ -6,6 +6,7 @@ interface UseFormHandlersProps {
   maxFormsReached: boolean;
   saveForm: (formData: { name: string; description: string; isPublic: boolean; knowledgeBaseId?: string }, fields: any[], existingForm?: SavedForm) => Promise<SavedForm | null>;
   deleteForm: (formId: string) => Promise<void>;
+  updateForm: (formId: string, updates: Partial<SavedForm>) => Promise<SavedForm | null>;
   fields: any[];
   currentForm: SavedForm | null;
   setCurrentForm: (form: SavedForm | null) => void;
@@ -17,6 +18,7 @@ export const useFormHandlers = ({
   maxFormsReached,
   saveForm,
   deleteForm,
+  updateForm,
   fields,
   currentForm,
   setCurrentForm,
@@ -72,50 +74,37 @@ export const useFormHandlers = ({
   };
 
   const handleUpdateForm = async (formId: string, updates: Partial<SavedForm>): Promise<SavedForm | null> => {
-    console.log('handleUpdateForm called with:', { formId, updates });
-    
-    // Find the form to update from currentForm if it matches, otherwise we can't update it
-    const formToUpdate = currentForm?.id === formId ? currentForm : null;
-    
-    if (!formToUpdate) {
-      console.error('Form not found for update:', formId);
-      throw new Error('Form not found. Please load the form first by clicking Edit.');
-    }
-
-    // Create updated form data for saveForm function
-    const formData = {
-      name: updates.name !== undefined ? updates.name : formToUpdate.name,
-      description: updates.description !== undefined ? updates.description : (formToUpdate.description || ''),
-      isPublic: updates.isPublic !== undefined ? updates.isPublic : formToUpdate.isPublic,
-      knowledgeBaseId: updates.knowledgeBaseId !== undefined ? updates.knowledgeBaseId : formToUpdate.knowledgeBaseId,
-    };
-
-    console.log('Prepared form data for update:', formData);
-
-    // Check if form has chat field and requires knowledge base
-    const hasChatField = formToUpdate.fields.some(field => field.type === 'chat');
-    if (hasChatField && !formData.knowledgeBaseId) {
-      toast({
-        title: "Knowledge Base Required",
-        description: "Forms with chat fields must have a knowledge base selected.",
-        variant: "destructive",
-      });
-      throw new Error('Knowledge base required for chat forms');
-    }
-
     try {
-      // Use the existing saveForm function to update
-      const updatedForm = await saveForm(formData, formToUpdate.fields, formToUpdate);
+      console.log('handleUpdateForm called with:', { formId, updates });
       
-      if (updatedForm && currentForm?.id === formId) {
-        setCurrentForm(updatedForm);
+      // Call the real updateForm function
+      const updatedForm = await updateForm(formId, updates);
+      
+      if (updatedForm) {
+        // If we're updating the currently loaded form, update it
+        if (currentForm?.id === formId) {
+          setCurrentForm(updatedForm);
+        }
+        
+        toast({
+          title: "Form Updated",
+          description: "Changes have been saved successfully.",
+        });
+        
+        return updatedForm;
+      } else {
+        throw new Error('Update failed');
       }
-
-      console.log('Form updated successfully:', updatedForm);
-      return updatedForm;
     } catch (error) {
       console.error('Error in handleUpdateForm:', error);
-      throw error;
+      
+      toast({
+        title: "Update Failed",
+        description: "Could not save changes. Please try again.",
+        variant: "destructive",
+      });
+      
+      return null;
     }
   };
 

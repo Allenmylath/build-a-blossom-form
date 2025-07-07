@@ -4,6 +4,7 @@ import { User } from '@supabase/supabase-js';
 import { useFormOperations } from './supabase-forms/useFormOperations';
 import { useFormFetcher } from './supabase-forms/useFormFetcher';
 import { HOBBY_PLAN_FORM_LIMIT } from './supabase-forms/constants';
+import { supabase } from '@/integrations/supabase/client';
 
 export const useSupabaseForms = (user: User | null) => {
   const [savedForms, setSavedForms] = useState<SavedForm[]>([]);
@@ -180,6 +181,107 @@ export const useSupabaseForms = (user: User | null) => {
     }
   };
 
+  // Add updateForm function
+  const updateForm = async (formId: string, updates: Partial<SavedForm>): Promise<SavedForm | null> => {
+    if (!user) {
+      console.error('No user available for form update');
+      return null;
+    }
+
+    try {
+      console.log('Updating form:', formId, 'with updates:', updates);
+      
+      // Prepare data for Supabase (convert camelCase to snake_case)
+      const supabaseUpdates: any = {};
+      
+      if (updates.name !== undefined) supabaseUpdates.name = updates.name;
+      if (updates.description !== undefined) supabaseUpdates.description = updates.description;
+      if (updates.isPublic !== undefined) supabaseUpdates.is_public = updates.isPublic;
+      if (updates.fields !== undefined) supabaseUpdates.fields = updates.fields;
+      if (updates.knowledgeBaseId !== undefined) supabaseUpdates.knowledge_base_id = updates.knowledgeBaseId;
+      
+      // Always update the updated_at timestamp
+      supabaseUpdates.updated_at = new Date().toISOString();
+
+      // Optimistically update the UI first
+      const originalForm = savedForms.find(f => f.id === formId);
+      if (originalForm) {
+        const optimisticForm = { ...originalForm, ...updates, updatedAt: new Date() };
+        updateFormsOptimistically(forms => 
+          forms.map(form => form.id === formId ? optimisticForm : form)
+        );
+      }
+
+      // Update in Supabase
+      const { data, error } = await supabase
+        .from('forms')
+        .update(supabaseUpdates)
+        .eq('id', formId)
+        .eq('user_id', user.id) // Security: only update own forms
+        .select(`
+          *,
+          form_submissions (
+            id,
+            data,
+            submitted_at,
+            ip_address
+          )
+        `)
+        .single();
+
+      if (error) {
+        console.error('Supabase update error:', error);
+        
+        // Revert optimistic update on error
+        if (originalForm) {
+          updateFormsOptimistically(forms => 
+            forms.map(form => form.id === formId ? originalForm : form)
+          );
+        }
+        
+        throw error;
+      }
+
+      if (!data) {
+        throw new Error('No data returned from update');
+      }
+
+      // Convert back to frontend format
+      const updatedForm: SavedForm = {
+        id: data.id,
+        name: data.name,
+        description: data.description,
+        fields: data.fields || [],
+        createdAt: new Date(data.created_at),
+        updatedAt: new Date(data.updated_at),
+        isPublic: data.is_public,
+        knowledgeBaseId: data.knowledge_base_id,
+        shareUrl: data.share_url,
+        submissions: (data.form_submissions || []).map((sub: any) => ({
+          id: sub.id,
+          formId: data.id,
+          data: sub.data || {},
+          submittedAt: new Date(sub.submitted_at),
+          ipAddress: sub.ip_address,
+        })),
+      };
+
+      // Update local state with the real data
+      if (isMountedRef.current) {
+        updateFormsOptimistically(forms => 
+          forms.map(form => form.id === formId ? updatedForm : form)
+        );
+      }
+
+      console.log('Form updated successfully:', updatedForm);
+      return updatedForm;
+
+    } catch (error) {
+      console.error('Error updating form:', error);
+      return null;
+    }
+  };
+
   // Load forms only when user changes, with proper cleanup
   useEffect(() => {
     isMountedRef.current = true;
@@ -209,6 +311,7 @@ export const useSupabaseForms = (user: User | null) => {
     loading: loading && !initialLoadComplete, // Only show loading on initial load
     saveForm,
     deleteForm,
+    updateForm,
     refreshForms,
     refreshSingleForm: refreshSingleFormWithState,
     maxFormsReached,

@@ -12,7 +12,7 @@ interface FormBuilderProps {
 }
 
 export const FormBuilder = ({ user }: FormBuilderProps) => {
-  const { savedForms, saveForm, deleteForm, maxFormsReached, isHobbyPlan } = useSupabaseForms(user);
+  const { savedForms, saveForm, deleteForm, updateForm, maxFormsReached, isHobbyPlan } = useSupabaseForms(user);
   
   const {
     fields,
@@ -47,6 +47,7 @@ export const FormBuilder = ({ user }: FormBuilderProps) => {
     maxFormsReached,
     saveForm,
     deleteForm,
+    updateForm,
     fields,
     currentForm,
     setCurrentForm,
