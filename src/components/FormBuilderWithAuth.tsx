@@ -4,19 +4,22 @@ import { FormBuilder } from './FormBuilder';
 import { Auth } from './Auth';
 import { Card } from '@/components/ui/card';
 import { Plus } from 'lucide-react';
+import { useMemo } from 'react';
 
 export const FormBuilderWithAuth = () => {
-  const { user, authLoading, isStable } = useAppStore((state) => ({
-    user: state.user,
-    authLoading: state.authLoading,
-    isStable: state.isStable,
-  }));
+  // Use stable selectors to prevent infinite re-renders
+  const user = useAppStore(state => state.user);
+  const authLoading = useAppStore(state => state.authLoading);
+  const isStable = useAppStore(state => state.isStable);
 
-  console.log('FormBuilderWithAuth render:', { 
-    user: !!user, 
-    authLoading, 
-    isStable 
-  });
+  // Memoize the derived state to prevent unnecessary re-renders
+  const authState = useMemo(() => ({
+    user: !!user,
+    authLoading,
+    isStable
+  }), [user, authLoading, isStable]);
+
+  console.log('FormBuilderWithAuth render:', authState);
 
   // Simple placeholder function - auth state is managed by the store
   const handleAuthChange = () => {
