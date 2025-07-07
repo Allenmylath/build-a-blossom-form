@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Save, FolderOpen, Copy, Trash2, Share, BarChart3, Search, Calendar, TrendingUp, ExternalLink } from 'lucide-react';
+import { Save, FolderOpen, Copy, Trash2, Share, BarChart3, Search, Calendar, TrendingUp, ExternalLink, Lock } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { FormAnalytics } from './FormAnalytics';
 
@@ -70,6 +70,15 @@ export const FormManager = ({
   };
 
   const handleOpenInNewWindow = (form: SavedForm) => {
+    if (!form.isPublic) {
+      toast({
+        title: "Form Not Public",
+        description: "This form is not public yet. Please make it public first by editing the form and enabling the 'Make Public' option.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (form.shareUrl) {
       window.open(form.shareUrl, '_blank', 'noopener,noreferrer');
     } else {
@@ -127,9 +136,14 @@ export const FormManager = ({
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
                       <h3 className="font-bold text-gray-900 text-lg truncate">{form.name}</h3>
-                      {form.isPublic && (
+                      {form.isPublic ? (
                         <Badge variant="secondary" className="bg-green-100 text-green-700 text-xs">
                           Public
+                        </Badge>
+                      ) : (
+                        <Badge variant="secondary" className="bg-gray-100 text-gray-600 text-xs flex items-center gap-1">
+                          <Lock className="w-3 h-3" />
+                          Private
                         </Badge>
                       )}
                     </div>
@@ -155,10 +169,11 @@ export const FormManager = ({
                     <Button
                       size="sm"
                       onClick={() => handleOpenInNewWindow(form)}
-                      className="flex-1 bg-purple-600 hover:bg-purple-700"
+                      className={`flex-1 ${form.isPublic ? 'bg-purple-600 hover:bg-purple-700' : 'bg-gray-400 hover:bg-gray-500'}`}
+                      disabled={!form.isPublic}
                     >
                       <ExternalLink className="w-4 h-4 mr-2" />
-                      Open Shared
+                      {form.isPublic ? 'Open Shared' : 'Not Public'}
                     </Button>
                     <Button
                       size="sm"
