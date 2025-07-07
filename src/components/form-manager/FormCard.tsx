@@ -13,7 +13,7 @@ interface FormCardProps {
   onDuplicateForm: (form: SavedForm) => void;
   onShareForm: (form: SavedForm) => void;
   onShowAnalytics: (form: SavedForm) => void;
-  onUpdateForm?: (formId: string, updates: Partial<SavedForm>) => void;
+  onUpdateForm?: (formId: string, updates: Partial<SavedForm>) => Promise<SavedForm | null>;
 }
 
 export const FormCard = ({ 
