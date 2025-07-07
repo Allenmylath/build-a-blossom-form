@@ -172,6 +172,7 @@ export const VirtualizedSubmissionList: React.FC<VirtualizedSubmissionListProps>
       <List
         ref={listRef}
         height={height}
+        width="100%"
         itemCount={submissions.length}
         itemSize={ITEM_HEIGHT}
         itemData={itemData}

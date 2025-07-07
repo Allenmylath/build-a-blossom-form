@@ -1,6 +1,6 @@
 
 import { StateCreator } from 'zustand';
-import { FormSubmissionData } from '@/types/form';
+import { FormSubmissionData, FormSubmission } from '@/types/form';
 import { supabase } from '@/integrations/supabase/client';
 import { AppStore } from '../index';
 
@@ -37,6 +37,15 @@ export interface SubmissionsSlice {
   updateVirtualizedSubmissions: (startIndex: number, endIndex: number) => void;
   clearSubmissions: () => void;
 }
+
+// Helper function to safely parse submission data
+const parseSubmissionData = (data: any): FormSubmission => {
+  if (typeof data === 'object' && data !== null && !Array.isArray(data)) {
+    return data as FormSubmission;
+  }
+  // Fallback for invalid data
+  return {};
+};
 
 export const createSubmissionsSlice: StateCreator<
   AppStore,
@@ -84,7 +93,7 @@ export const createSubmissionsSlice: StateCreator<
       const mappedSubmissions: FormSubmissionData[] = (submissions || []).map(sub => ({
         id: sub.id,
         formId: sub.form_id,
-        data: sub.data || {},
+        data: parseSubmissionData(sub.data),
         submittedAt: new Date(sub.submitted_at),
         ipAddress: sub.ip_address as string,
       }));
