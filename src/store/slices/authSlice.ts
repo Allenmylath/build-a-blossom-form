@@ -36,6 +36,7 @@ export const createAuthSlice: StateCreator<
 
   // Actions
   signIn: async (email: string, password: string) => {
+    console.log('SignIn called with email:', email);
     set({ authLoading: true, authError: null });
     
     try {
@@ -44,32 +45,42 @@ export const createAuthSlice: StateCreator<
         password,
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Sign in error:', error);
+        throw error;
+      }
 
+      console.log('Sign in successful:', !!data.user);
       set({
         user: data.user,
         session: data.session,
         authLoading: false,
+        isStable: true,
       });
 
       // Fetch user subscription after successful sign in
       const state = get() as any;
       if (state.fetchUserSubscription) {
-        await state.fetchUserSubscription();
+        setTimeout(() => {
+          state.fetchUserSubscription();
+        }, 100);
       }
 
       return { error: null };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Sign in failed';
+      console.error('Sign in failed:', errorMessage);
       set({
         authError: errorMessage,
         authLoading: false,
+        isStable: true,
       });
       return { error: errorMessage };
     }
   },
 
   signOut: async () => {
+    console.log('SignOut called');
     set({ authLoading: true });
     
     try {
@@ -81,6 +92,7 @@ export const createAuthSlice: StateCreator<
         session: null,
         authLoading: false,
         authError: null,
+        isStable: true,
       });
 
       // Reset plan state on sign out
@@ -90,15 +102,18 @@ export const createAuthSlice: StateCreator<
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Sign out failed';
+      console.error('Sign out error:', errorMessage);
       set({
         authError: errorMessage,
         authLoading: false,
+        isStable: true,
       });
       throw error;
     }
   },
 
   updateAuthState: (user: User | null, session: Session | null) => {
+    console.log('UpdateAuthState called:', { user: !!user, session: !!session });
     const currentState = get() as any;
     const currentUserId = currentState.user?.id;
     const newUserId = user?.id;
@@ -111,7 +126,7 @@ export const createAuthSlice: StateCreator<
         user: user,
         session: session,
         authLoading: false,
-        isStable: false,
+        isStable: true,
         lastAuthEvent: `${Date.now()}-${newUserId || 'null'}`,
       });
 
@@ -129,30 +144,27 @@ export const createAuthSlice: StateCreator<
         }
       }
 
-      // Set user as stable after a delay
-      setTimeout(() => {
-        set({
-          isStable: true,
-        });
-        
-        // Trigger forms fetch when user becomes stable
-        if (user) {
-          const state = get() as any;
-          if (state.fetchForms) {
+      // Trigger forms fetch when user becomes stable
+      if (user) {
+        const state = get() as any;
+        if (state.fetchForms) {
+          setTimeout(() => {
             state.fetchForms();
-          }
+          }, 100);
         }
-      }, 500);
+      }
     } else {
       // Just update loading state if user didn't change
       set({
         authLoading: false,
+        isStable: true,
       });
     }
   },
 
   initializeAuth: async () => {
-    set({ authLoading: true });
+    console.log('InitializeAuth called');
+    set({ authLoading: true, isStable: false });
     
     try {
       const { data: { session }, error } = await supabase.auth.getSession();
@@ -162,21 +174,26 @@ export const createAuthSlice: StateCreator<
         set({
           authError: error.message,
           authLoading: false,
+          isStable: true,
         });
         return;
       }
 
+      console.log('Initial session:', !!session?.user);
       set({
         user: session?.user || null,
         session: session || null,
         authLoading: false,
+        isStable: true,
       });
 
       // Fetch user subscription if user is authenticated
       if (session?.user) {
         const state = get() as any;
         if (state.fetchUserSubscription) {
-          await state.fetchUserSubscription();
+          setTimeout(() => {
+            state.fetchUserSubscription();
+          }, 100);
         }
       }
 
@@ -184,18 +201,16 @@ export const createAuthSlice: StateCreator<
       supabase.auth.onAuthStateChange(async (event, session) => {
         console.log('Auth state changed:', event, !!session?.user);
         
-        set({
-          user: session?.user || null,
-          session: session || null,
-        });
+        const state = get() as any;
+        state.updateAuthState(session?.user || null, session || null);
 
         if (event === 'SIGNED_IN' && session?.user) {
-          const state = get() as any;
           if (state.fetchUserSubscription) {
-            await state.fetchUserSubscription();
+            setTimeout(() => {
+              state.fetchUserSubscription();
+            }, 100);
           }
         } else if (event === 'SIGNED_OUT') {
-          const state = get() as any;
           if (state.resetPlanState) {
             state.resetPlanState();
           }
@@ -206,11 +221,13 @@ export const createAuthSlice: StateCreator<
       set({
         authError: error instanceof Error ? error.message : 'Auth initialization failed',
         authLoading: false,
+        isStable: true,
       });
     }
   },
 
   setAuthLoading: (loading: boolean) => {
+    console.log('SetAuthLoading called:', loading);
     set({
       authLoading: loading,
     });

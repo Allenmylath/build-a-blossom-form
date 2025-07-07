@@ -8,25 +8,21 @@ import { Plus } from 'lucide-react';
 import { useAppStore } from '@/store';
 
 export const FormBuilderWithAuth = () => {
-  const { user, authLoading } = useAppStore();
-  const [isReady, setIsReady] = useState(false);
+  const { user, authLoading, isStable } = useAppStore();
 
-  useEffect(() => {
-    console.log('FormBuilderWithAuth state:', { user: !!user, authLoading });
-    // Add a small delay to ensure store is fully initialized
-    const timer = setTimeout(() => {
-      setIsReady(true);
-    }, 500);
-    
-    return () => clearTimeout(timer);
-  }, [user, authLoading]);
+  console.log('FormBuilderWithAuth render:', { 
+    user: !!user, 
+    authLoading, 
+    isStable 
+  });
 
   const handleAuthChange = (newUser: User | null) => {
-    console.log('Auth change handled:', !!newUser);
+    console.log('Auth change handled in FormBuilderWithAuth:', !!newUser);
     // This will be handled by the store's auth management
   };
 
-  if (authLoading || !isReady) {
+  if (authLoading || !isStable) {
+    console.log('FormBuilderWithAuth showing loading state');
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 flex items-center justify-center">
         <div className="text-lg">Loading...</div>
@@ -35,6 +31,7 @@ export const FormBuilderWithAuth = () => {
   }
 
   if (!user) {
+    console.log('FormBuilderWithAuth showing auth page');
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 py-12 px-4">
         <div className="max-w-6xl mx-auto">
@@ -76,5 +73,6 @@ export const FormBuilderWithAuth = () => {
     );
   }
 
+  console.log('FormBuilderWithAuth rendering FormBuilder');
   return <FormBuilder user={user} />;
 };
