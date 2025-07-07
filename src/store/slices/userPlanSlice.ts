@@ -81,7 +81,7 @@ const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
 };
 
 export const createUserPlanSlice: StateCreator<
-  UserPlanSlice,
+  any,
   [],
   [],
   UserPlanSlice
