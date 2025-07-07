@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { User } from '@supabase/supabase-js';
 import { FormBuilderTabs } from './form-builder/FormBuilderTabs';
@@ -198,10 +197,14 @@ export const FormBuilder = ({ user }: FormBuilderProps) => {
       </div>
 
       <FormSaveDialog
-        open={showSaveDialog}
-        onOpenChange={setShowSaveDialog}
+        isOpen={showSaveDialog}
+        onClose={() => setShowSaveDialog(false)}
         onSave={handleSaveForm}
-        currentForm={currentForm}
+        initialData={currentForm ? {
+          name: currentForm.name,
+          description: currentForm.description || '',
+          isPublic: currentForm.isPublic
+        } : undefined}
       />
     </div>
   );
