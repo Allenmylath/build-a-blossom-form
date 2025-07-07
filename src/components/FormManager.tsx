@@ -5,8 +5,9 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Save, FolderOpen, Copy, Trash2, Share, BarChart3, Search, Calendar, TrendingUp, ExternalLink, Lock } from 'lucide-react';
+import { Save, FolderOpen, Copy, Trash2, Share, BarChart3, Search, Calendar, TrendingUp, ExternalLink, Lock, Globe } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { FormAnalytics } from './FormAnalytics';
 
@@ -16,6 +17,7 @@ interface FormManagerProps {
   onDeleteForm: (formId: string) => void;
   onDuplicateForm: (form: SavedForm) => void;
   onShareForm: (form: SavedForm) => void;
+  onUpdateForm?: (formId: string, updates: Partial<SavedForm>) => void;
 }
 
 export const FormManager = ({ 
@@ -23,7 +25,8 @@ export const FormManager = ({
   onLoadForm, 
   onDeleteForm, 
   onDuplicateForm,
-  onShareForm 
+  onShareForm,
+  onUpdateForm 
 }: FormManagerProps) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedForm, setSelectedForm] = useState<SavedForm | null>(null);
@@ -69,11 +72,40 @@ export const FormManager = ({
     }
   };
 
+  const handleTogglePublic = async (form: SavedForm) => {
+    if (!onUpdateForm) {
+      toast({
+        title: "Feature Not Available",
+        description: "Form update functionality is not available.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const newPublicStatus = !form.isPublic;
+    
+    try {
+      await onUpdateForm(form.id, { isPublic: newPublicStatus });
+      toast({
+        title: newPublicStatus ? "Form Made Public" : "Form Made Private",
+        description: newPublicStatus 
+          ? "Your form is now publicly accessible via the share link." 
+          : "Your form is now private and no longer publicly accessible.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update form visibility. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleOpenInNewWindow = (form: SavedForm) => {
     if (!form.isPublic) {
       toast({
         title: "Form Not Public",
-        description: "This form is not public yet. Please make it public first by editing the form and enabling the 'Make Public' option.",
+        description: "This form is not public yet. Please make it public first by using the toggle switch below.",
         variant: "destructive",
       });
       return;
@@ -161,6 +193,28 @@ export const FormManager = ({
                   <div className="flex items-center gap-3">
                     <span className="font-medium">{form.fields.length} fields</span>
                     <span className="font-medium">{form.submissions.length} responses</span>
+                  </div>
+                </div>
+
+                {/* Public/Private Toggle */}
+                <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg mb-4">
+                  <div className="flex items-center gap-2">
+                    {form.isPublic ? (
+                      <Globe className="w-4 h-4 text-green-600" />
+                    ) : (
+                      <Lock className="w-4 h-4 text-gray-600" />
+                    )}
+                    <span className="text-sm font-medium text-gray-700">
+                      {form.isPublic ? 'Public Form' : 'Private Form'}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-500">Private</span>
+                    <Switch
+                      checked={form.isPublic}
+                      onCheckedChange={() => handleTogglePublic(form)}
+                    />
+                    <span className="text-xs text-gray-500">Public</span>
                   </div>
                 </div>
 

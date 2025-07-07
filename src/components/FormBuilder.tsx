@@ -35,6 +35,7 @@ export const FormBuilder = ({ user }: FormBuilderProps) => {
     showSaveDialog,
     setShowSaveDialog,
     handleSaveForm,
+    handleUpdateForm,
     handleSaveClick,
     handleLoadForm,
     handleDeleteForm,
@@ -75,6 +76,7 @@ export const FormBuilder = ({ user }: FormBuilderProps) => {
         onDuplicateForm={handleDuplicateForm}
         onShareForm={handleShareForm}
         onSelectTemplate={handleSelectTemplate}
+        onUpdateForm={handleUpdateForm}
       />
 
       <FormSaveDialog

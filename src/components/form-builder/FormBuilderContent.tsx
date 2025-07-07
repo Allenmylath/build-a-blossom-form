@@ -1,3 +1,4 @@
+
 import { User } from '@supabase/supabase-js';
 import { FormBuilderTabs } from './FormBuilderTabs';
 import { FormBuilderHeader } from './FormBuilderHeader';
@@ -22,6 +23,7 @@ interface FormBuilderContentProps {
   onDuplicateForm: (form: SavedForm) => Promise<void>;
   onShareForm: (form: SavedForm) => void;
   onSelectTemplate: (template: FormTemplate) => void;
+  onUpdateForm?: (formId: string, updates: Partial<SavedForm>) => Promise<SavedForm | null>;
 }
 
 export const FormBuilderContent = ({
@@ -43,6 +45,7 @@ export const FormBuilderContent = ({
   onDuplicateForm,
   onShareForm,
   onSelectTemplate,
+  onUpdateForm,
 }: FormBuilderContentProps) => {
   return (
     <div className="max-w-7xl mx-auto p-6">
@@ -75,6 +78,7 @@ export const FormBuilderContent = ({
         onDuplicateForm={onDuplicateForm}
         onShareForm={onShareForm}
         onSelectTemplate={onSelectTemplate}
+        onUpdateForm={onUpdateForm}
       />
     </div>
   );

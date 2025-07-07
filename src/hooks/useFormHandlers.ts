@@ -61,6 +61,31 @@ export const useFormHandlers = ({
     }
   };
 
+  const handleUpdateForm = async (formId: string, updates: Partial<SavedForm>) => {
+    // Find the form to update
+    const formToUpdate = currentForm?.id === formId ? currentForm : null;
+    
+    if (!formToUpdate) {
+      throw new Error('Form not found');
+    }
+
+    // Create updated form data for saveForm function
+    const formData = {
+      name: updates.name || formToUpdate.name,
+      description: updates.description || formToUpdate.description || '',
+      isPublic: updates.isPublic !== undefined ? updates.isPublic : formToUpdate.isPublic,
+    };
+
+    // Use the existing saveForm function to update
+    const updatedForm = await saveForm(formData, formToUpdate.fields, formToUpdate);
+    
+    if (updatedForm && currentForm?.id === formId) {
+      setCurrentForm(updatedForm);
+    }
+
+    return updatedForm;
+  };
+
   const handleSaveClick = () => {
     console.log('Save button clicked, fields:', fields.length);
     
@@ -152,6 +177,7 @@ export const useFormHandlers = ({
     showSaveDialog,
     setShowSaveDialog,
     handleSaveForm,
+    handleUpdateForm,
     handleSaveClick,
     handleLoadForm,
     handleDeleteForm,
