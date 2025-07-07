@@ -1,3 +1,4 @@
+
 export type FormFieldType = 'text' | 'email' | 'number' | 'textarea' | 'select' | 'radio' | 'checkbox' | 'date' | 'file' | 'phone' | 'url' | 'chat' | 'page-break';
 
 export interface FormField {
@@ -43,6 +44,7 @@ export interface SavedForm {
   submissions: FormSubmissionData[];
   isPublic: boolean;
   shareUrl?: string;
+  knowledgeBaseId?: string;
 }
 
 export interface FormSubmissionData {

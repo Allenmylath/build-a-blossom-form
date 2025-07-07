@@ -2,7 +2,7 @@
 import { SavedForm } from '@/types/form';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, Lock } from 'lucide-react';
+import { Calendar, Lock, Database } from 'lucide-react';
 import { FormCardVisibilityToggle } from './FormCardVisibilityToggle';
 import { FormCardActions } from './FormCardActions';
 
@@ -45,6 +45,14 @@ export const FormCard = ({
             </div>
             {form.description && (
               <p className="text-sm text-gray-600 line-clamp-2 mb-3">{form.description}</p>
+            )}
+            {form.knowledgeBaseId && (
+              <div className="flex items-center gap-1 mb-3">
+                <Database className="w-4 h-4 text-purple-600" />
+                <Badge variant="outline" className="text-xs text-purple-700 border-purple-200">
+                  AI-Powered
+                </Badge>
+              </div>
             )}
           </div>
         </div>

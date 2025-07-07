@@ -86,7 +86,8 @@ export const FormBuilder = ({ user }: FormBuilderProps) => {
         initialData={currentForm ? {
           name: currentForm.name,
           description: currentForm.description || '',
-          isPublic: currentForm.isPublic
+          isPublic: currentForm.isPublic,
+          knowledgeBaseId: currentForm.knowledgeBaseId
         } : undefined}
       />
     </div>

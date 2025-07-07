@@ -1,100 +1,151 @@
 
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { Save } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
+import { useKnowledgeBases } from '@/hooks/useKnowledgeBases';
+import { Database } from 'lucide-react';
 
 interface FormSaveDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (formData: { name: string; description: string; isPublic: boolean }) => void;
+  onSave: (data: { 
+    name: string; 
+    description: string; 
+    isPublic: boolean; 
+    knowledgeBaseId?: string 
+  }) => void;
   initialData?: {
     name: string;
     description: string;
     isPublic: boolean;
+    knowledgeBaseId?: string;
   };
 }
 
 export const FormSaveDialog = ({ isOpen, onClose, onSave, initialData }: FormSaveDialogProps) => {
-  const [name, setName] = useState(initialData?.name || '');
-  const [description, setDescription] = useState(initialData?.description || '');
-  const [isPublic, setIsPublic] = useState(initialData?.isPublic || false);
+  const { user } = useSupabaseAuth();
+  const { knowledgeBases } = useKnowledgeBases(user);
+  const [formData, setFormData] = useState({
+    name: initialData?.name || '',
+    description: initialData?.description || '',
+    isPublic: initialData?.isPublic || false,
+    knowledgeBaseId: initialData?.knowledgeBaseId || '',
+  });
 
-  const handleSave = () => {
-    if (!name.trim()) return;
-    
-    onSave({
-      name: name.trim(),
-      description: description.trim(),
-      isPublic
-    });
-    
-    if (!initialData) {
-      setName('');
-      setDescription('');
-      setIsPublic(false);
+  useEffect(() => {
+    if (initialData) {
+      setFormData({
+        name: initialData.name,
+        description: initialData.description,
+        isPublic: initialData.isPublic,
+        knowledgeBaseId: initialData.knowledgeBaseId || '',
+      });
     }
-    
+  }, [initialData]);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSave({
+      name: formData.name,
+      description: formData.description,
+      isPublic: formData.isPublic,
+      knowledgeBaseId: formData.knowledgeBaseId || undefined,
+    });
+  };
+
+  const handleClose = () => {
+    setFormData({
+      name: '',
+      description: '',
+      isPublic: false,
+      knowledgeBaseId: '',
+    });
     onClose();
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent>
+    <Dialog open={isOpen} onOpenChange={handleClose}>
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="flex items-center">
-            <Save className="w-5 h-5 mr-2 text-purple-600" />
+          <DialogTitle>
             {initialData ? 'Update Form' : 'Save Form'}
           </DialogTitle>
         </DialogHeader>
-        
-        <div className="space-y-4">
-          <div>
-            <Label htmlFor="form-name">Form Name *</Label>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="name">Form Name</Label>
             <Input
-              id="form-name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
+              id="name"
+              value={formData.name}
+              onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
               placeholder="Enter form name"
-              className="mt-1"
+              required
             />
           </div>
           
-          <div>
-            <Label htmlFor="form-description">Description</Label>
+          <div className="space-y-2">
+            <Label htmlFor="description">Description</Label>
             <Textarea
-              id="form-description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Brief description of this form"
-              className="mt-1"
+              id="description"
+              value={formData.description}
+              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+              placeholder="Enter form description (optional)"
               rows={3}
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="knowledgeBase">Link to Knowledge Base (Optional)</Label>
+            <Select
+              value={formData.knowledgeBaseId}
+              onValueChange={(value) => setFormData(prev => ({ ...prev, knowledgeBaseId: value }))}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select a knowledge base" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">No knowledge base</SelectItem>
+                {knowledgeBases.map((kb) => (
+                  <SelectItem key={kb.id} value={kb.id}>
+                    <div className="flex items-center gap-2">
+                      <Database className="w-4 h-4" />
+                      {kb.name}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-gray-500">
+              Link this form to a knowledge base for AI-powered responses
+            </p>
           </div>
           
           <div className="flex items-center space-x-2">
             <Switch
-              id="public-form"
-              checked={isPublic}
-              onCheckedChange={setIsPublic}
+              id="public"
+              checked={formData.isPublic}
+              onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isPublic: checked }))}
             />
-            <Label htmlFor="public-form">Make this form publicly accessible</Label>
+            <Label htmlFor="public" className="text-sm">
+              Make this form publicly accessible
+            </Label>
           </div>
           
           <div className="flex justify-end space-x-2 pt-4">
-            <Button variant="outline" onClick={onClose}>
+            <Button type="button" variant="outline" onClick={handleClose}>
               Cancel
             </Button>
-            <Button onClick={handleSave} disabled={!name.trim()}>
-              <Save className="w-4 h-4 mr-2" />
+            <Button type="submit">
               {initialData ? 'Update' : 'Save'} Form
             </Button>
           </div>
-        </div>
+        </form>
       </DialogContent>
     </Dialog>
   );

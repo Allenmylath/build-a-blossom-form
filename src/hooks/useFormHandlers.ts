@@ -5,7 +5,7 @@ import { toast } from '@/hooks/use-toast';
 
 interface UseFormHandlersProps {
   maxFormsReached: boolean;
-  saveForm: (formData: { name: string; description: string; isPublic: boolean }, fields: any[], existingForm?: SavedForm) => Promise<SavedForm | null>;
+  saveForm: (formData: { name: string; description: string; isPublic: boolean; knowledgeBaseId?: string }, fields: any[], existingForm?: SavedForm) => Promise<SavedForm | null>;
   deleteForm: (formId: string) => Promise<void>;
   fields: any[];
   currentForm: SavedForm | null;
@@ -26,7 +26,7 @@ export const useFormHandlers = ({
 }: UseFormHandlersProps) => {
   const [showSaveDialog, setShowSaveDialog] = useState(false);
 
-  const handleSaveForm = async (formData: { name: string; description: string; isPublic: boolean }) => {
+  const handleSaveForm = async (formData: { name: string; description: string; isPublic: boolean; knowledgeBaseId?: string }) => {
     console.log('Handling save form:', formData);
     
     // Check if creating new form and limit reached
@@ -74,6 +74,7 @@ export const useFormHandlers = ({
       name: updates.name || formToUpdate.name,
       description: updates.description || formToUpdate.description || '',
       isPublic: updates.isPublic !== undefined ? updates.isPublic : formToUpdate.isPublic,
+      knowledgeBaseId: updates.knowledgeBaseId !== undefined ? updates.knowledgeBaseId : formToUpdate.knowledgeBaseId,
     };
 
     // Use the existing saveForm function to update
@@ -123,7 +124,8 @@ export const useFormHandlers = ({
       {
         name: `${form.name} (Copy)`,
         description: form.description || '',
-        isPublic: form.isPublic
+        isPublic: form.isPublic,
+        knowledgeBaseId: form.knowledgeBaseId
       },
       form.fields
     );
