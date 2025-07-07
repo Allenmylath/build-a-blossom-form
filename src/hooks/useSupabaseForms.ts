@@ -251,7 +251,7 @@ export const useSupabaseForms = (user: User | null) => {
         id: data.id,
         name: data.name,
         description: data.description,
-        fields: Array.isArray(data.fields) ? data.fields as FormField[] : [],
+        fields: Array.isArray(data.fields) ? (data.fields as unknown as FormField[]) : [],
         createdAt: new Date(data.created_at),
         updatedAt: new Date(data.updated_at),
         isPublic: data.is_public,
