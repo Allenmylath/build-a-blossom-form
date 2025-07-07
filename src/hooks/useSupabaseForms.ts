@@ -246,12 +246,12 @@ export const useSupabaseForms = (user: User | null) => {
         throw new Error('No data returned from update');
       }
 
-      // Convert back to frontend format
+      // Convert back to frontend format with proper type casting
       const updatedForm: SavedForm = {
         id: data.id,
         name: data.name,
         description: data.description,
-        fields: data.fields || [],
+        fields: Array.isArray(data.fields) ? data.fields as FormField[] : [],
         createdAt: new Date(data.created_at),
         updatedAt: new Date(data.updated_at),
         isPublic: data.is_public,
