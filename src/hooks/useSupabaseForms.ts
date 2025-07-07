@@ -4,51 +4,43 @@ import { FormField, SavedForm } from '@/types/form';
 import { User } from '@supabase/supabase-js';
 import { useFormOperations } from './supabase-forms/useFormOperations';
 import { useFormFetcher } from './supabase-forms/useFormFetcher';
+import { useUserState } from './useUserState';
 import { HOBBY_PLAN_FORM_LIMIT } from './supabase-forms/constants';
 
 export const useSupabaseForms = (user: User | null) => {
   const [savedForms, setSavedForms] = useState<SavedForm[]>([]);
   const [loading, setLoading] = useState(false);
-  const [lastUserId, setLastUserId] = useState<string | null>(null);
-  const fetchInProgressRef = useRef(false);
-
-  const { fetchForms, refreshSingleForm, activeOperationsRef: fetcherOperationsRef } = useFormFetcher(user);
-  const { saveForm: saveFormOperation, deleteForm: deleteFormOperation, activeOperationsRef: operationsRef } = useFormOperations(user);
+  
+  // Use the user state manager to prevent frequent auth changes
+  const { user: stableUser, loading: userLoading, isStable: userIsStable, updateUser } = useUserState(user);
+  
+  const { fetchForms, refreshSingleForm, activeOperationsRef: fetcherOperationsRef } = useFormFetcher(stableUser);
+  const { saveForm: saveFormOperation, deleteForm: deleteFormOperation, activeOperationsRef: operationsRef } = useFormOperations(stableUser);
 
   // Calculate plan limitations
   const isHobbyPlan = true; // For now, assume all users are on hobby plan
   const maxFormsReached = savedForms.length >= HOBBY_PLAN_FORM_LIMIT;
 
+  // Update user state when the prop changes
+  useEffect(() => {
+    updateUser(user, false);
+  }, [user?.id, updateUser]);
+
   // Wrapper for fetchForms that updates state with deduplication
   const refreshForms = useCallback(async (): Promise<SavedForm[]> => {
-    if (!user) {
-      console.log('No user provided, clearing forms');
-      setSavedForms([]);
-      setLastUserId(null);
-      return [];
+    if (!stableUser || !userIsStable) {
+      console.log('User not stable yet, skipping form fetch');
+      return savedForms;
     }
     
-    // Prevent multiple simultaneous fetch operations
-    if (fetchInProgressRef.current) {
-      console.log('Fetch already in progress, skipping');
-      return savedForms;
-    }
-
-    // Skip if we already have data for this user and it's recent
-    if (lastUserId === user.id && savedForms.length > 0) {
-      console.log('Forms already loaded for current user, skipping');
-      return savedForms;
-    }
-
-    fetchInProgressRef.current = true;
     setLoading(true);
     
     try {
-      console.log('Fetching forms for user:', user.id);
+      console.log('Fetching forms for stable user:', stableUser.id);
       const forms = await fetchForms();
       
-      // Only update state if this operation is still active and user hasn't changed
-      if (fetcherOperationsRef.current.size > 0 && user.id === lastUserId) {
+      // Only update state if this operation is still active
+      if (fetcherOperationsRef.current.size > 0) {
         setSavedForms(forms);
         console.log('Forms updated successfully:', forms.length, 'forms');
       }
@@ -58,10 +50,9 @@ export const useSupabaseForms = (user: User | null) => {
       console.error('Error in refreshForms:', error);
       return [];
     } finally {
-      fetchInProgressRef.current = false;
       setLoading(false);
     }
-  }, [user, fetchForms, fetcherOperationsRef, lastUserId, savedForms]);
+  }, [stableUser, userIsStable, fetchForms, fetcherOperationsRef, savedForms]);
 
   // Wrapper for refreshSingleForm that updates state
   const refreshSingleFormWithState = async (formId: string): Promise<SavedForm | null> => {
@@ -109,48 +100,32 @@ export const useSupabaseForms = (user: User | null) => {
     }
   };
 
-  // Handle user changes with proper cleanup and deduplication
+  // Handle stable user changes - only fetch when user is stable
   useEffect(() => {
-    const currentUserId = user?.id || null;
-    
-    // If user hasn't changed, skip
-    if (currentUserId === lastUserId) {
-      return;
+    if (userIsStable) {
+      if (stableUser) {
+        console.log('User is stable, fetching forms for:', stableUser.id);
+        refreshForms();
+      } else {
+        console.log('No stable user, clearing forms');
+        setSavedForms([]);
+        fetcherOperationsRef.current.clear();
+        operationsRef.current.clear();
+      }
     }
-
-    console.log('User changed from', lastUserId, 'to', currentUserId);
-    
-    // Update last user id immediately to prevent race conditions
-    setLastUserId(currentUserId);
-
-    if (currentUserId) {
-      // Clear any ongoing operations for the previous user
-      fetcherOperationsRef.current.clear();
-      operationsRef.current.clear();
-      
-      // Only fetch if we don't have forms for this user already
-      refreshForms();
-    } else {
-      console.log('No user, clearing forms and operations');
-      setSavedForms([]);
-      fetcherOperationsRef.current.clear();
-      operationsRef.current.clear();
-      fetchInProgressRef.current = false;
-    }
-  }, [user?.id, lastUserId, refreshForms, fetcherOperationsRef, operationsRef]);
+  }, [stableUser?.id, userIsStable, refreshForms, fetcherOperationsRef, operationsRef]);
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
       fetcherOperationsRef.current.clear();
       operationsRef.current.clear();
-      fetchInProgressRef.current = false;
     };
   }, [fetcherOperationsRef, operationsRef]);
 
   return {
     savedForms,
-    loading,
+    loading: loading || userLoading,
     saveForm,
     deleteForm,
     refreshForms,
