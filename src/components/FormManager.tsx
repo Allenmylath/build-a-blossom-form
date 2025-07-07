@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { SavedForm } from '@/types/form';
 import { Card } from '@/components/ui/card';
@@ -75,8 +74,8 @@ export const FormManager = ({
   const handleTogglePublic = async (form: SavedForm) => {
     if (!onUpdateForm) {
       toast({
-        title: "Feature Not Available",
-        description: "Form update functionality is not available.",
+        title: "Edit Mode Required",
+        description: "To change form visibility, please click 'Edit' to open the form in edit mode first.",
         variant: "destructive",
       });
       return;
