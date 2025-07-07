@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,12 +30,10 @@ interface FormSaveDialogProps {
   fields?: FormField[];
 }
 
-export const FormSaveDialog = ({ isOpen, onClose, onSave, initialData, fields = [] }: FormSaveDialogProps) => {
+const FormSaveDialogComponent = ({ isOpen, onClose, onSave, initialData, fields = [] }: FormSaveDialogProps) => {
+  // Move ALL hooks to top before any conditionals
   const { user } = useAppStore();
-  
-  // Only call useKnowledgeBases when user exists and dialog is open
-  const shouldFetchKnowledgeBases = useMemo(() => Boolean(user && isOpen), [user, isOpen]);
-  const { knowledgeBases, loading } = useKnowledgeBases(shouldFetchKnowledgeBases ? user : null);
+  const { knowledgeBases, loading } = useKnowledgeBases(user);
   
   const [formData, setFormData] = useState({
     name: '',
@@ -44,30 +42,43 @@ export const FormSaveDialog = ({ isOpen, onClose, onSave, initialData, fields = 
     knowledgeBaseId: '',
   });
 
-  // Memoize the chat field check to prevent recalculation on every render
+  // Memoize the chat field check to prevent recalculation
   const hasChatField = useMemo(() => {
     return fields.some(field => field.type === 'chat');
   }, [fields]);
 
-  console.log('FormSaveDialog debug:', {
+  // Memoize initial data to prevent unnecessary effects
+  const memoizedInitialData = useMemo(() => initialData, [
+    initialData?.name,
+    initialData?.description,
+    initialData?.isPublic,
+    initialData?.knowledgeBaseId
+  ]);
+
+  // Early return if dialog is not open - this prevents infinite renders
+  if (!isOpen) {
+    return null;
+  }
+
+  console.log('FormSaveDialog render:', {
+    isOpen,
     hasChatField,
     knowledgeBases: knowledgeBases.length,
     selectedKnowledgeBaseId: formData.knowledgeBaseId,
-    loading,
-    isOpen
+    loading
   });
 
   // Only update form data when dialog opens and initialData is provided
   useEffect(() => {
-    if (isOpen && initialData) {
+    if (isOpen && memoizedInitialData) {
       setFormData({
-        name: initialData.name,
-        description: initialData.description,
-        isPublic: initialData.isPublic,
-        knowledgeBaseId: initialData.knowledgeBaseId || '',
+        name: memoizedInitialData.name,
+        description: memoizedInitialData.description,
+        isPublic: memoizedInitialData.isPublic,
+        knowledgeBaseId: memoizedInitialData.knowledgeBaseId || '',
       });
     }
-  }, [isOpen, initialData?.name, initialData?.description, initialData?.isPublic, initialData?.knowledgeBaseId]);
+  }, [isOpen, memoizedInitialData]);
 
   const handleSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
@@ -106,11 +117,6 @@ export const FormSaveDialog = ({ isOpen, onClose, onSave, initialData, fields = 
     console.log('Knowledge base selected:', value);
     setFormData(prev => ({ ...prev, knowledgeBaseId: value }));
   }, []);
-
-  // Early return if dialog is not open to prevent unnecessary rendering
-  if (!isOpen) {
-    return null;
-  }
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -178,7 +184,7 @@ export const FormSaveDialog = ({ isOpen, onClose, onSave, initialData, fields = 
               )}
               {!formData.knowledgeBaseId && (
                 <div className="flex items-center gap-1 text-sm text-red-600">
-                  <AlertCircle className="w-4 h-4" />
+                  <AlertCircle className="w-4 w-4" />
                   Knowledge base is required for forms with chat fields
                 </div>
               )}
@@ -215,3 +221,6 @@ export const FormSaveDialog = ({ isOpen, onClose, onSave, initialData, fields = 
     </Dialog>
   );
 };
+
+// Wrap with React.memo to prevent unnecessary re-renders
+export const FormSaveDialog = memo(FormSaveDialogComponent);

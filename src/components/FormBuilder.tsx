@@ -1,3 +1,4 @@
+
 import { User } from '@supabase/supabase-js';
 import { FormBuilderContent } from './form-builder/FormBuilderContent';
 import { NavigationHeader } from './NavigationHeader';
@@ -5,7 +6,7 @@ import { FormSaveDialog } from './FormSaveDialog';
 import { useFormBuilder } from '@/hooks/useFormBuilder';
 import { useAppStore, useUserPlanState, useUserPlanActions } from '@/store';
 import { useFormHandlers } from '@/hooks/useFormHandlers';
-import { useEffect } from 'react';
+import { useEffect, useCallback, useMemo } from 'react';
 
 interface FormBuilderProps {
   user: User;
@@ -73,6 +74,23 @@ export const FormBuilder = ({ user }: FormBuilderProps) => {
     onSelectTemplate: selectTemplate,
   });
 
+  // Stabilize the onClose callback
+  const handleCloseDialog = useCallback(() => {
+    setShowSaveDialog(false);
+  }, [setShowSaveDialog]);
+
+  // Stabilize the initialData object
+  const dialogInitialData = useMemo(() => {
+    if (!currentForm) return undefined;
+    
+    return {
+      name: currentForm.name,
+      description: currentForm.description || '',
+      isPublic: currentForm.isPublic,
+      knowledgeBaseId: currentForm.knowledgeBaseId
+    };
+  }, [currentForm?.name, currentForm?.description, currentForm?.isPublic, currentForm?.knowledgeBaseId]);
+
   return (
     <div className="min-h-screen bg-green-50">
       <NavigationHeader />
@@ -100,15 +118,10 @@ export const FormBuilder = ({ user }: FormBuilderProps) => {
 
       <FormSaveDialog
         isOpen={showSaveDialog}
-        onClose={() => setShowSaveDialog(false)}
+        onClose={handleCloseDialog}
         onSave={handleSaveForm}
         fields={fields}
-        initialData={currentForm ? {
-          name: currentForm.name,
-          description: currentForm.description || '',
-          isPublic: currentForm.isPublic,
-          knowledgeBaseId: currentForm.knowledgeBaseId
-        } : undefined}
+        initialData={dialogInitialData}
       />
     </div>
   );
