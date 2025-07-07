@@ -1,4 +1,3 @@
-
 import { StateCreator } from 'zustand';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -21,8 +20,8 @@ export interface AuthSlice {
 }
 
 export const createAuthSlice: StateCreator<
-  AppStore,
-  [["zustand/immer", never]],
+  AuthSlice & { fetchUserSubscription?: () => Promise<void> },
+  [],
   [],
   AuthSlice
 > = (set, get) => ({
@@ -35,62 +34,65 @@ export const createAuthSlice: StateCreator<
 
   // Actions
   signIn: async (email: string, password: string) => {
-    set((state) => {
-      state.authLoading = true;
-    });
-
+    set({ authLoading: true, authError: null });
+    
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      if (error) {
-        set((state) => {
-          state.authLoading = false;
-        });
-        return { error };
+      if (error) throw error;
+
+      set({
+        user: data.user,
+        session: data.session,
+        authLoading: false,
+      });
+
+      // Fetch user subscription after successful sign in
+      const fetchUserSubscription = (get as any).fetchUserSubscription;
+      if (fetchUserSubscription) {
+        await fetchUserSubscription();
       }
 
-      // Auth state will be updated via onAuthStateChange
-      return { error: null };
+      return { user: data.user, session: data.session };
     } catch (error) {
-      set((state) => {
-        state.authLoading = false;
+      const errorMessage = error instanceof Error ? error.message : 'Sign in failed';
+      set({
+        authError: errorMessage,
+        authLoading: false,
       });
-      return { error };
+      throw error;
     }
   },
 
   signOut: async () => {
-    set((state) => {
-      state.authLoading = true;
-    });
-
+    set({ authLoading: true });
+    
     try {
       const { error } = await supabase.auth.signOut();
+      if (error) throw error;
       
-      if (error) {
-        console.error('Error signing out:', error);
-      }
+      set({
+        user: null,
+        session: null,
+        authLoading: false,
+        authError: null,
+      });
 
-      // Clear all app state on signout
-      set((state) => {
-        state.user = null;
-        state.session = null;
-        state.authLoading = false;
-        state.isStable = false;
-        state.savedForms = [];
-        state.currentForm = null;
-        state.fields = [];
-        state.submissions = [];
-        state.submissionsPagination = { page: 1, limit: 50, total: 0, hasMore: false };
-      });
+      // Reset plan state on sign out
+      const resetPlanState = (get as any).resetPlanState;
+      if (resetPlanState) {
+        resetPlanState();
+      }
     } catch (error) {
-      console.error('Sign out error:', error);
-      set((state) => {
-        state.authLoading = false;
+      const errorMessage = error instanceof Error ? error.message : 'Sign out failed';
+      set({
+        authError: errorMessage,
+        authLoading: false,
       });
+      throw error;
     }
   },
 
@@ -140,25 +142,63 @@ export const createAuthSlice: StateCreator<
     }
   },
 
-  initializeAuth: () => {
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        console.log('Auth state change:', event, 'User:', session?.user?.id);
-        get().updateAuthState(session?.user ?? null, session);
-      }
-    );
-
-    // Check for existing session
-    supabase.auth.getSession().then(({ data: { session }, error }) => {
+  initializeAuth: async () => {
+    set({ authLoading: true });
+    
+    try {
+      const { data: { session }, error } = await supabase.auth.getSession();
+      
       if (error) {
-        console.error('Error getting session:', error);
+        console.error('Auth initialization error:', error);
+        set({
+          authError: error.message,
+          authLoading: false,
+        });
+        return;
       }
-      get().updateAuthState(session?.user ?? null, session);
-    });
 
-    // Store subscription for cleanup
-    (get() as any).authSubscription = subscription;
+      set({
+        user: session?.user || null,
+        session: session || null,
+        authLoading: false,
+      });
+
+      // Fetch user subscription if user is authenticated
+      if (session?.user) {
+        const fetchUserSubscription = (get as any).fetchUserSubscription;
+        if (fetchUserSubscription) {
+          await fetchUserSubscription();
+        }
+      }
+
+      // Set up auth state change listener
+      supabase.auth.onAuthStateChange(async (event, session) => {
+        console.log('Auth state changed:', event, !!session?.user);
+        
+        set({
+          user: session?.user || null,
+          session: session || null,
+        });
+
+        if (event === 'SIGNED_IN' && session?.user) {
+          const fetchUserSubscription = (get as any).fetchUserSubscription;
+          if (fetchUserSubscription) {
+            await fetchUserSubscription();
+          }
+        } else if (event === 'SIGNED_OUT') {
+          const resetPlanState = (get as any).resetPlanState;
+          if (resetPlanState) {
+            resetPlanState();
+          }
+        }
+      });
+    } catch (error) {
+      console.error('Auth initialization failed:', error);
+      set({
+        authError: error instanceof Error ? error.message : 'Auth initialization failed',
+        authLoading: false,
+      });
+    }
   },
 
   setAuthLoading: (loading: boolean) => {

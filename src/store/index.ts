@@ -1,4 +1,3 @@
-
 import { create } from 'zustand';
 import { devtools, subscribeWithSelector } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
@@ -8,6 +7,7 @@ import { createSubmissionsSlice, SubmissionsSlice } from './slices/submissionsSl
 import { createUISlice, UISlice } from './slices/uiSlice';
 import { createCacheSlice, CacheSlice } from './slices/cacheSlice';
 import { createOfflineSlice, OfflineSlice } from './slices/offlineSlice';
+import { createUserPlanSlice, UserPlanSlice } from './slices/userPlanSlice';
 
 export interface AppStore extends 
   AuthSlice,
@@ -15,7 +15,8 @@ export interface AppStore extends
   SubmissionsSlice,
   UISlice,
   CacheSlice,
-  OfflineSlice {}
+  OfflineSlice,
+  UserPlanSlice {}
 
 export const useAppStore = create<AppStore>()(
   devtools(
@@ -27,6 +28,7 @@ export const useAppStore = create<AppStore>()(
         ...createUISlice(...a),
         ...createCacheSlice(...a),
         ...createOfflineSlice(...a),
+        ...createUserPlanSlice(...a),
       }))
     ),
     { name: 'form-builder-store' }
@@ -62,7 +64,14 @@ export const useUIState = () => useAppStore((state) => ({
   selectedItems: state.selectedItems,
 }));
 
-// Actions selectors
+// New selectors for user plan
+export const useUserPlanState = () => useAppStore((state) => ({
+  userSubscription: state.userSubscription,
+  planLimits: state.planLimits,
+  planLoading: state.planLoading,
+  planError: state.planError,
+}));
+
 export const useAuthActions = () => useAppStore((state) => ({
   signIn: state.signIn,
   signOut: state.signOut,
@@ -108,4 +117,17 @@ export const useOfflineActions = () => useAppStore((state) => ({
   queueOperation: state.queueOperation,
   syncOfflineOperations: state.syncOfflineOperations,
   clearOfflineQueue: state.clearOfflineQueue,
+}));
+
+export const useUserPlanActions = () => useAppStore((state) => ({
+  fetchUserSubscription: state.fetchUserSubscription,
+  updateUserPlan: state.updateUserPlan,
+  checkFeatureAccess: state.checkFeatureAccess,
+  checkFormLimit: state.checkFormLimit,
+  checkSubmissionLimit: state.checkSubmissionLimit,
+  checkKnowledgeBaseLimit: state.checkKnowledgeBaseLimit,
+  getPlanDisplayName: state.getPlanDisplayName,
+  getPlanColor: state.getPlanColor,
+  isFeatureRestricted: state.isFeatureRestricted,
+  resetPlanState: state.resetPlanState,
 }));

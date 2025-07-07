@@ -1,14 +1,15 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { User, CreditCard, FileText, LogOut, Database } from 'lucide-react';
+import { User, CreditCard, FileText, LogOut, Database, Crown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { PlanUpgrade } from '@/components/PlanUpgrade';
+import { useUserPlanState } from '@/store';
 
 interface SettingsProps {
   user: any;
@@ -18,6 +19,7 @@ interface SettingsProps {
 const Settings = ({ user, onSignOut }: SettingsProps) => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const { userSubscription } = useUserPlanState();
   const [paymentDetails, setPaymentDetails] = useState({
     cardNumber: '',
     expiryDate: '',
@@ -78,10 +80,14 @@ const Settings = ({ user, onSignOut }: SettingsProps) => {
         </div>
 
         <Tabs defaultValue="account" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="account" className="flex items-center">
               <User className="w-4 h-4 mr-2" />
               Account
+            </TabsTrigger>
+            <TabsTrigger value="plan" className="flex items-center">
+              <Crown className="w-4 h-4 mr-2" />
+              Plan
             </TabsTrigger>
             <TabsTrigger value="billing" className="flex items-center">
               <CreditCard className="w-4 h-4 mr-2" />
@@ -119,16 +125,32 @@ const Settings = ({ user, onSignOut }: SettingsProps) => {
                   <Label htmlFor="plan">Current Plan</Label>
                   <Input 
                     id="plan" 
-                    value="Hobby Plan" 
+                    value={userSubscription?.plan_type ? 
+                      `${userSubscription.plan_type.charAt(0).toUpperCase() + userSubscription.plan_type.slice(1)} Plan` : 
+                      'Loading...'
+                    } 
                     disabled 
                     className="bg-gray-50"
                   />
                 </div>
-                <Button onClick={() => navigate('/pricing')}>
-                  Upgrade Plan
-                </Button>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="plan">
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Subscription Plans</CardTitle>
+                  <CardDescription>
+                    Choose the plan that best fits your needs
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <PlanUpgrade />
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
 
           <TabsContent value="billing">

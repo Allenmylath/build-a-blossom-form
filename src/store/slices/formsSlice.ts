@@ -1,4 +1,3 @@
-
 import { StateCreator } from 'zustand';
 import { SavedForm, FormField, FormFieldType } from '@/types/form';
 import { supabase } from '@/integrations/supabase/client';
@@ -34,8 +33,8 @@ export interface FormsSlice {
 const HOBBY_PLAN_FORM_LIMIT = 5;
 
 export const createFormsSlice: StateCreator<
-  AppStore,
-  [["zustand/immer", never]],
+  FormsSlice & { checkFormLimit?: (currentCount: number) => boolean },
+  [],
   [],
   FormsSlice
 > = (set, get) => ({
@@ -129,31 +128,25 @@ export const createFormsSlice: StateCreator<
   },
 
   saveForm: async (formData, fields, existingForm) => {
-    const { user, maxFormsReached } = get();
+    set({ formsLoading: true, formsError: null });
     
-    if (!user) {
-      toast({
-        title: "Authentication required",
-        description: "Please sign in to save forms.",
-        variant: "destructive",
-      });
-      return null;
-    }
-
-    if (!existingForm && maxFormsReached) {
-      toast({
-        title: "Form Limit Reached",
-        description: "Hobby plan allows maximum 5 forms. Please upgrade to create more forms.",
-        variant: "destructive",
-      });
-      return null;
-    }
-
-    set((state) => {
-      state.formsLoading = true;
-    });
-
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+
+      // Check form limit for new forms
+      if (!existingForm) {
+        const { savedForms } = get();
+        const checkFormLimit = (get as any).checkFormLimit;
+        
+        if (checkFormLimit && !checkFormLimit(savedForms.length)) {
+          throw new Error('Form limit reached for your current plan. Please upgrade to create more forms.');
+        }
+      }
+
       const shareUrl = `${window.location.origin}/form/`;
       
       if (existingForm) {

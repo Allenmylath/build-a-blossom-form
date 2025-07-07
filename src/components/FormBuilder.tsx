@@ -1,11 +1,11 @@
-
 import { User } from '@supabase/supabase-js';
 import { FormBuilderContent } from './form-builder/FormBuilderContent';
 import { NavigationHeader } from './NavigationHeader';
 import { FormSaveDialog } from './FormSaveDialog';
 import { useFormBuilder } from '@/hooks/useFormBuilder';
-import { useAppStore } from '@/store';
+import { useAppStore, useUserPlanState, useUserPlanActions } from '@/store';
 import { useFormHandlers } from '@/hooks/useFormHandlers';
+import { useEffect } from 'react';
 
 interface FormBuilderProps {
   user: User;
@@ -15,12 +15,24 @@ export const FormBuilder = ({ user }: FormBuilderProps) => {
   const { 
     savedForms, 
     formsLoading, 
-    maxFormsReached, 
-    isHobbyPlan,
     saveForm,
     deleteForm
   } = useAppStore();
   
+  const { userSubscription, planLimits } = useUserPlanState();
+  const { fetchUserSubscription } = useUserPlanActions();
+  
+  // Calculate plan-based restrictions
+  const maxFormsReached = planLimits.maxForms !== -1 && savedForms.length >= planLimits.maxForms;
+  const isHobbyPlan = userSubscription?.plan_type === 'hobby';
+  
+  useEffect(() => {
+    // Ensure user subscription is loaded
+    if (!userSubscription && user) {
+      fetchUserSubscription();
+    }
+  }, [user, userSubscription, fetchUserSubscription]);
+
   const {
     fields,
     currentForm,
