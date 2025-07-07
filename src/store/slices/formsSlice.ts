@@ -32,6 +32,10 @@ export interface FormsSlice {
 
 const HOBBY_PLAN_FORM_LIMIT = 5;
 
+let fetchFormsTimeout: NodeJS.Timeout | null = null;
+let isCurrentlyFetching = false;
+let lastFetchTime = 0;
+
 export const createFormsSlice: StateCreator<
   any,
   [],
@@ -53,78 +57,113 @@ export const createFormsSlice: StateCreator<
     const state = get() as any;
     const { user, isStable } = state;
     
+    // Prevent fetching if conditions aren't met
     if (!user || !isStable) {
       console.log('User not ready for forms fetch');
       return [];
     }
 
-    set({ formsLoading: true });
-
-    try {
-      console.log('Fetching forms for user:', user.id);
-      
-      const { data: forms, error } = await supabase
-        .from('forms')
-        .select(`
-          *,
-          form_submissions (
-            id,
-            data,
-            submitted_at,
-            ip_address
-          )
-        `)
-        .eq('user_id', user.id)
-        .order('updated_at', { ascending: false });
-
-      if (error) {
-        console.error('Error fetching forms:', error);
-        toast({
-          title: "Error loading forms",
-          description: error.message,
-          variant: "destructive",
-        });
-        return [];
-      }
-
-      if (!forms) {
-        return [];
-      }
-
-      const mappedForms: SavedForm[] = forms.map(form => ({
-        id: form.id,
-        name: form.name,
-        description: form.description,
-        fields: Array.isArray(form.fields) ? (form.fields as unknown as FormField[]) : [],
-        createdAt: new Date(form.created_at),
-        updatedAt: new Date(form.updated_at),
-        isPublic: form.is_public,
-        shareUrl: form.share_url,
-        knowledgeBaseId: form.knowledge_base_id,
-        submissions: (form.form_submissions || []).map((sub: any) => ({
-          id: sub.id,
-          formId: form.id,
-          data: sub.data || {},
-          submittedAt: new Date(sub.submitted_at),
-          ipAddress: sub.ip_address,
-        })),
-      }));
-
-      set({
-        savedForms: mappedForms,
-        maxFormsReached: mappedForms.length >= HOBBY_PLAN_FORM_LIMIT,
-        formsLoading: false,
-      });
-
-      console.log('Forms fetched successfully:', mappedForms.length);
-      return mappedForms;
-    } catch (error) {
-      console.error('Error fetching forms:', error);
-      set({
-        formsLoading: false,
-      });
-      return [];
+    // Prevent multiple simultaneous fetches
+    if (isCurrentlyFetching) {
+      console.log('Forms fetch already in progress');
+      return state.savedForms || [];
     }
+
+    // Debounce rapid fetch attempts
+    const now = Date.now();
+    if (now - lastFetchTime < 1000) {
+      console.log('Debouncing forms fetch');
+      return state.savedForms || [];
+    }
+
+    // Clear any pending timeout
+    if (fetchFormsTimeout) {
+      clearTimeout(fetchFormsTimeout);
+    }
+
+    // Debounce the actual fetch
+    return new Promise((resolve) => {
+      fetchFormsTimeout = setTimeout(async () => {
+        if (isCurrentlyFetching) {
+          resolve(state.savedForms || []);
+          return;
+        }
+
+        isCurrentlyFetching = true;
+        lastFetchTime = Date.now();
+        set({ formsLoading: true });
+
+        try {
+          console.log('Fetching forms for user:', user.id);
+          
+          const { data: forms, error } = await supabase
+            .from('forms')
+            .select(`
+              *,
+              form_submissions (
+                id,
+                data,
+                submitted_at,
+                ip_address
+              )
+            `)
+            .eq('user_id', user.id)
+            .order('updated_at', { ascending: false });
+
+          if (error) {
+            console.error('Error fetching forms:', error);
+            toast({
+              title: "Error loading forms",
+              description: error.message,
+              variant: "destructive",
+            });
+            resolve([]);
+            return;
+          }
+
+          if (!forms) {
+            resolve([]);
+            return;
+          }
+
+          const mappedForms: SavedForm[] = forms.map(form => ({
+            id: form.id,
+            name: form.name,
+            description: form.description,
+            fields: Array.isArray(form.fields) ? (form.fields as unknown as FormField[]) : [],
+            createdAt: new Date(form.created_at),
+            updatedAt: new Date(form.updated_at),
+            isPublic: form.is_public,
+            shareUrl: form.share_url,
+            knowledgeBaseId: form.knowledge_base_id,
+            submissions: (form.form_submissions || []).map((sub: any) => ({
+              id: sub.id,
+              formId: form.id,
+              data: sub.data || {},
+              submittedAt: new Date(sub.submitted_at),
+              ipAddress: sub.ip_address,
+            })),
+          }));
+
+          set({
+            savedForms: mappedForms,
+            maxFormsReached: mappedForms.length >= HOBBY_PLAN_FORM_LIMIT,
+            formsLoading: false,
+          });
+
+          console.log('Forms fetched successfully:', mappedForms.length);
+          resolve(mappedForms);
+        } catch (error) {
+          console.error('Error fetching forms:', error);
+          set({
+            formsLoading: false,
+          });
+          resolve([]);
+        } finally {
+          isCurrentlyFetching = false;
+        }
+      }, 100);
+    });
   },
 
   saveForm: async (formData, fields, existingForm) => {

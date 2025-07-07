@@ -20,6 +20,8 @@ export interface AuthSlice {
   setAuthLoading: (loading: boolean) => void;
 }
 
+let updateAuthStateTimeout: NodeJS.Timeout | null = null;
+
 export const createAuthSlice: StateCreator<
   any,
   [],
@@ -58,7 +60,7 @@ export const createAuthSlice: StateCreator<
         isStable: true,
       });
 
-      // Fetch user subscription after successful sign in
+      // Defer subscription fetch to prevent blocking
       const state = get() as any;
       if (state.fetchUserSubscription) {
         setTimeout(() => {
@@ -113,53 +115,72 @@ export const createAuthSlice: StateCreator<
   },
 
   updateAuthState: (user: User | null, session: Session | null) => {
-    console.log('UpdateAuthState called:', { user: !!user, session: !!session });
-    const currentState = get() as any;
-    const currentUserId = currentState.user?.id;
-    const newUserId = user?.id;
-    
-    // Only update if user actually changed
-    if (currentUserId !== newUserId) {
-      console.log('Auth state changing from', currentUserId, 'to', newUserId);
-      
-      set({
-        user: user,
-        session: session,
-        authLoading: false,
-        isStable: true,
-        lastAuthEvent: `${Date.now()}-${newUserId || 'null'}`,
-      });
-
-      // Clear forms data when user changes
-      if (currentUserId !== newUserId) {
-        const state = get() as any;
-        if (state.savedForms !== undefined) {
-          set({
-            savedForms: [],
-            currentForm: null,
-            fields: [],
-            submissions: [],
-            submissionsPagination: { page: 1, limit: 50, total: 0, hasMore: false },
-          });
-        }
-      }
-
-      // Trigger forms fetch when user becomes stable
-      if (user) {
-        const state = get() as any;
-        if (state.fetchForms) {
-          setTimeout(() => {
-            state.fetchForms();
-          }, 100);
-        }
-      }
-    } else {
-      // Just update loading state if user didn't change
-      set({
-        authLoading: false,
-        isStable: true,
-      });
+    // Debounce auth state updates to prevent infinite loops
+    if (updateAuthStateTimeout) {
+      clearTimeout(updateAuthStateTimeout);
     }
+    
+    updateAuthStateTimeout = setTimeout(() => {
+      console.log('UpdateAuthState called:', { user: !!user, session: !!session });
+      const currentState = get() as any;
+      const currentUserId = currentState.user?.id;
+      const newUserId = user?.id;
+      const eventId = `${Date.now()}-${newUserId || 'null'}`;
+      
+      // Prevent duplicate updates
+      if (currentState.lastAuthEvent === eventId) {
+        console.log('Skipping duplicate auth state update');
+        return;
+      }
+      
+      // Only update if user actually changed
+      if (currentUserId !== newUserId) {
+        console.log('Auth state changing from', currentUserId, 'to', newUserId);
+        
+        set({
+          user: user,
+          session: session,
+          authLoading: false,
+          isStable: true,
+          lastAuthEvent: eventId,
+        });
+
+        // Clear forms data when user changes
+        if (currentUserId !== newUserId) {
+          const state = get() as any;
+          if (state.savedForms !== undefined) {
+            set({
+              savedForms: [],
+              currentForm: null,
+              fields: [],
+              submissions: [],
+              submissionsPagination: { page: 1, limit: 50, total: 0, hasMore: false },
+            });
+          }
+        }
+
+        // Defer forms fetch to prevent infinite loops
+        if (user) {
+          const state = get() as any;
+          if (state.fetchForms) {
+            setTimeout(() => {
+              // Double-check user is still valid before fetching
+              const latestState = get() as any;
+              if (latestState.user && latestState.isStable) {
+                state.fetchForms();
+              }
+            }, 200);
+          }
+        }
+      } else {
+        // Just update loading state if user didn't change
+        set({
+          authLoading: false,
+          isStable: true,
+          lastAuthEvent: eventId,
+        });
+      }
+    }, 50); // 50ms debounce
   },
 
   initializeAuth: async () => {
@@ -187,7 +208,7 @@ export const createAuthSlice: StateCreator<
         isStable: true,
       });
 
-      // Fetch user subscription if user is authenticated
+      // Defer subscription fetch to prevent blocking
       if (session?.user) {
         const state = get() as any;
         if (state.fetchUserSubscription) {

@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useAppStore } from '@/store';
@@ -27,8 +27,18 @@ interface FormSaveDialogProps {
   fields?: FormField[];
 }
 
-const FormSaveDialogComponent = ({ isOpen, onClose, onSave, initialData, fields = [] }: FormSaveDialogProps) => {
-  // Move ALL hooks to top before any conditionals
+const FormSaveDialogComponent = React.memo<FormSaveDialogProps>(({ 
+  isOpen, 
+  onClose, 
+  onSave, 
+  initialData, 
+  fields = [] 
+}) => {
+  // Early return if dialog is not open to prevent unnecessary renders
+  if (!isOpen) {
+    return null;
+  }
+
   const { user } = useAppStore();
   const { knowledgeBases, loading } = useKnowledgeBases(user);
   
@@ -45,7 +55,16 @@ const FormSaveDialogComponent = ({ isOpen, onClose, onSave, initialData, fields 
   }, [fields]);
 
   // Memoize initial data to prevent unnecessary effects
-  const memoizedInitialData = useMemo(() => initialData, [
+  const memoizedInitialData = useMemo(() => {
+    if (!initialData) return null;
+    
+    return {
+      name: initialData.name || '',
+      description: initialData.description || '',
+      isPublic: initialData.isPublic || false,
+      knowledgeBaseId: initialData.knowledgeBaseId || ''
+    };
+  }, [
     initialData?.name,
     initialData?.description,
     initialData?.isPublic,
@@ -58,11 +77,6 @@ const FormSaveDialogComponent = ({ isOpen, onClose, onSave, initialData, fields 
     onSave
   });
 
-  // Early return if dialog is not open - this prevents infinite renders
-  if (!isOpen) {
-    return null;
-  }
-
   console.log('FormSaveDialog render:', {
     isOpen,
     hasChatField,
@@ -74,11 +88,22 @@ const FormSaveDialogComponent = ({ isOpen, onClose, onSave, initialData, fields 
   // Only update form data when dialog opens and initialData is provided
   useEffect(() => {
     if (isOpen && memoizedInitialData) {
-      setFormData({
-        name: memoizedInitialData.name,
-        description: memoizedInitialData.description,
-        isPublic: memoizedInitialData.isPublic,
-        knowledgeBaseId: memoizedInitialData.knowledgeBaseId || '',
+      setFormData(prev => {
+        // Only update if values actually changed
+        if (
+          prev.name !== memoizedInitialData.name ||
+          prev.description !== memoizedInitialData.description ||
+          prev.isPublic !== memoizedInitialData.isPublic ||
+          prev.knowledgeBaseId !== memoizedInitialData.knowledgeBaseId
+        ) {
+          return {
+            name: memoizedInitialData.name,
+            description: memoizedInitialData.description,
+            isPublic: memoizedInitialData.isPublic,
+            knowledgeBaseId: memoizedInitialData.knowledgeBaseId,
+          };
+        }
+        return prev;
       });
     }
   }, [isOpen, memoizedInitialData]);
@@ -99,12 +124,24 @@ const FormSaveDialogComponent = ({ isOpen, onClose, onSave, initialData, fields 
   }, [onClose]);
 
   const handleInputChange = useCallback((field: string, value: string | boolean) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData(prev => {
+      // Only update if value actually changed
+      if (prev[field as keyof typeof prev] !== value) {
+        return { ...prev, [field]: value };
+      }
+      return prev;
+    });
   }, []);
 
   const handleKnowledgeBaseChange = useCallback((value: string) => {
     console.log('Knowledge base selected:', value);
-    setFormData(prev => ({ ...prev, knowledgeBaseId: value }));
+    setFormData(prev => {
+      // Only update if value actually changed
+      if (prev.knowledgeBaseId !== value) {
+        return { ...prev, knowledgeBaseId: value };
+      }
+      return prev;
+    });
   }, []);
 
   return (
@@ -145,7 +182,8 @@ const FormSaveDialogComponent = ({ isOpen, onClose, onSave, initialData, fields 
       </DialogContent>
     </Dialog>
   );
-};
+});
 
-// Wrap with React.memo to prevent unnecessary re-renders
-export const FormSaveDialog = memo(FormSaveDialogComponent);
+FormSaveDialogComponent.displayName = 'FormSaveDialog';
+
+export const FormSaveDialog = FormSaveDialogComponent;

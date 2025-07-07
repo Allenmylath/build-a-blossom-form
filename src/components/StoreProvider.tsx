@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useAppStore } from '@/store';
 
 interface StoreProviderProps {
@@ -8,10 +8,17 @@ interface StoreProviderProps {
 
 export const StoreProvider: React.FC<StoreProviderProps> = ({ children }) => {
   const [isInitialized, setIsInitialized] = useState(false);
-  const { initializeAuth } = useAppStore();
+  const initializingRef = useRef(false);
+  const { initializeAuth, isStable } = useAppStore();
   
   useEffect(() => {
+    // Prevent multiple simultaneous initializations
+    if (initializingRef.current || isInitialized) {
+      return;
+    }
+    
     console.log('StoreProvider initializing auth...');
+    initializingRef.current = true;
     
     const initAuth = async () => {
       try {
@@ -21,13 +28,15 @@ export const StoreProvider: React.FC<StoreProviderProps> = ({ children }) => {
       } catch (error) {
         console.error('Error initializing auth:', error);
         setIsInitialized(true); // Still set to true to avoid infinite loading
+      } finally {
+        initializingRef.current = false;
       }
     };
     
     initAuth();
-  }, [initializeAuth]);
+  }, []); // Empty dependency array - only run once
   
-  if (!isInitialized) {
+  if (!isInitialized || !isStable) {
     console.log('StoreProvider still initializing...');
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 flex items-center justify-center">

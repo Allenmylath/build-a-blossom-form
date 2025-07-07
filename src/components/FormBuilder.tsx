@@ -1,4 +1,5 @@
 
+import React, { useEffect, useCallback, useMemo } from 'react';
 import { User } from '@supabase/supabase-js';
 import { FormBuilderContent } from './form-builder/FormBuilderContent';
 import { NavigationHeader } from './NavigationHeader';
@@ -6,13 +7,12 @@ import { FormSaveDialog } from './FormSaveDialog';
 import { useFormBuilder } from '@/hooks/useFormBuilder';
 import { useAppStore, useUserPlanState, useUserPlanActions } from '@/store';
 import { useFormHandlers } from '@/hooks/useFormHandlers';
-import { useEffect, useCallback, useMemo } from 'react';
 
 interface FormBuilderProps {
   user: User;
 }
 
-export const FormBuilder = ({ user }: FormBuilderProps) => {
+const FormBuilderComponent = ({ user }: FormBuilderProps) => {
   const { 
     savedForms, 
     formsLoading, 
@@ -23,9 +23,11 @@ export const FormBuilder = ({ user }: FormBuilderProps) => {
   const { userSubscription, planLimits } = useUserPlanState();
   const { fetchUserSubscription } = useUserPlanActions();
   
-  // Calculate plan-based restrictions
-  const maxFormsReached = planLimits.maxForms !== -1 && savedForms.length >= planLimits.maxForms;
-  const isHobbyPlan = userSubscription?.plan_type === 'hobby';
+  // Memoize plan-based restrictions to prevent recalculation
+  const planRestrictions = useMemo(() => ({
+    maxFormsReached: planLimits.maxForms !== -1 && savedForms.length >= planLimits.maxForms,
+    isHobbyPlan: userSubscription?.plan_type === 'hobby'
+  }), [planLimits.maxForms, savedForms.length, userSubscription?.plan_type]);
   
   useEffect(() => {
     // Ensure user subscription is loaded
@@ -64,7 +66,7 @@ export const FormBuilder = ({ user }: FormBuilderProps) => {
     handleSelectTemplate,
     handleExportImport,
   } = useFormHandlers({
-    maxFormsReached,
+    maxFormsReached: planRestrictions.maxFormsReached,
     saveForm,
     deleteForm,
     fields,
@@ -74,12 +76,12 @@ export const FormBuilder = ({ user }: FormBuilderProps) => {
     onSelectTemplate: selectTemplate,
   });
 
-  // Stabilize the onClose callback
+  // Memoize the onClose callback to prevent recreation
   const handleCloseDialog = useCallback(() => {
     setShowSaveDialog(false);
   }, [setShowSaveDialog]);
 
-  // Stabilize the initialData object
+  // Memoize the initialData object to prevent recreation
   const dialogInitialData = useMemo(() => {
     if (!currentForm) return undefined;
     
@@ -100,7 +102,7 @@ export const FormBuilder = ({ user }: FormBuilderProps) => {
         selectedFieldId={selectedFieldId}
         currentForm={currentForm}
         savedForms={savedForms}
-        isHobbyPlan={isHobbyPlan}
+        isHobbyPlan={planRestrictions.isHobbyPlan}
         onAddField={addField}
         onMoveField={moveField}
         onUpdateField={updateField}
@@ -126,3 +128,5 @@ export const FormBuilder = ({ user }: FormBuilderProps) => {
     </div>
   );
 };
+
+export const FormBuilder = React.memo(FormBuilderComponent);
