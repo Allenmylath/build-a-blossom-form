@@ -2,7 +2,7 @@
 import { SavedForm } from '@/types/form';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, Lock, Database } from 'lucide-react';
+import { Calendar, Lock, Database, MessageCircle } from 'lucide-react';
 import { FormCardVisibilityToggle } from './FormCardVisibilityToggle';
 import { FormCardActions } from './FormCardActions';
 
@@ -25,6 +25,9 @@ export const FormCard = ({
   onShowAnalytics,
   onUpdateForm 
 }: FormCardProps) => {
+  // Check if form has chat field
+  const hasChatField = form.fields.some(field => field.type === 'chat');
+
   return (
     <Card className="group hover:shadow-lg transition-all duration-200 border-gray-200 hover:border-purple-200">
       <div className="p-6">
@@ -46,14 +49,20 @@ export const FormCard = ({
             {form.description && (
               <p className="text-sm text-gray-600 line-clamp-2 mb-3">{form.description}</p>
             )}
-            {form.knowledgeBaseId && (
-              <div className="flex items-center gap-1 mb-3">
-                <Database className="w-4 h-4 text-purple-600" />
-                <Badge variant="outline" className="text-xs text-purple-700 border-purple-200">
+            <div className="flex items-center gap-2 mb-3">
+              {hasChatField && (
+                <Badge variant="outline" className="text-xs text-purple-700 border-purple-200 flex items-center gap-1">
+                  <MessageCircle className="w-3 h-3" />
+                  Chat Enabled
+                </Badge>
+              )}
+              {form.knowledgeBaseId && (
+                <Badge variant="outline" className="text-xs text-purple-700 border-purple-200 flex items-center gap-1">
+                  <Database className="w-3 h-3" />
                   AI-Powered
                 </Badge>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
 

@@ -9,7 +9,8 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { useKnowledgeBases } from '@/hooks/useKnowledgeBases';
-import { Database } from 'lucide-react';
+import { Database, MessageCircle, AlertCircle } from 'lucide-react';
+import { FormField } from '@/types/form';
 
 interface FormSaveDialogProps {
   isOpen: boolean;
@@ -26,9 +27,10 @@ interface FormSaveDialogProps {
     isPublic: boolean;
     knowledgeBaseId?: string;
   };
+  fields?: FormField[];
 }
 
-export const FormSaveDialog = ({ isOpen, onClose, onSave, initialData }: FormSaveDialogProps) => {
+export const FormSaveDialog = ({ isOpen, onClose, onSave, initialData, fields = [] }: FormSaveDialogProps) => {
   const { user } = useSupabaseAuth();
   const { knowledgeBases } = useKnowledgeBases(user);
   const [formData, setFormData] = useState({
@@ -37,6 +39,9 @@ export const FormSaveDialog = ({ isOpen, onClose, onSave, initialData }: FormSav
     isPublic: initialData?.isPublic || false,
     knowledgeBaseId: initialData?.knowledgeBaseId || '',
   });
+
+  // Check if form contains a chat field
+  const hasChatField = fields.some(field => field.type === 'chat');
 
   useEffect(() => {
     if (initialData) {
@@ -51,6 +56,12 @@ export const FormSaveDialog = ({ isOpen, onClose, onSave, initialData }: FormSav
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate that knowledge base is selected if form has chat field
+    if (hasChatField && !formData.knowledgeBaseId) {
+      return; // Form validation will show the error
+    }
+    
     onSave({
       name: formData.name,
       description: formData.description,
@@ -100,31 +111,42 @@ export const FormSaveDialog = ({ isOpen, onClose, onSave, initialData }: FormSav
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="knowledgeBase">Link to Knowledge Base (Optional)</Label>
-            <Select
-              value={formData.knowledgeBaseId}
-              onValueChange={(value) => setFormData(prev => ({ ...prev, knowledgeBaseId: value }))}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select a knowledge base" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">No knowledge base</SelectItem>
-                {knowledgeBases.map((kb) => (
-                  <SelectItem key={kb.id} value={kb.id}>
-                    <div className="flex items-center gap-2">
-                      <Database className="w-4 h-4" />
-                      {kb.name}
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-gray-500">
-              Link this form to a knowledge base for AI-powered responses
-            </p>
-          </div>
+          {hasChatField && (
+            <div className="space-y-2">
+              <Label htmlFor="knowledgeBase" className="flex items-center gap-2">
+                <MessageCircle className="w-4 h-4 text-purple-600" />
+                Knowledge Base (Required for Chat Forms)
+              </Label>
+              <Select
+                value={formData.knowledgeBaseId}
+                onValueChange={(value) => setFormData(prev => ({ ...prev, knowledgeBaseId: value }))}
+                required
+              >
+                <SelectTrigger className={!formData.knowledgeBaseId ? 'border-red-500' : ''}>
+                  <SelectValue placeholder="Select a knowledge base" />
+                </SelectTrigger>
+                <SelectContent>
+                  {knowledgeBases.map((kb) => (
+                    <SelectItem key={kb.id} value={kb.id}>
+                      <div className="flex items-center gap-2">
+                        <Database className="w-4 h-4" />
+                        {kb.name}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {!formData.knowledgeBaseId && (
+                <div className="flex items-center gap-1 text-sm text-red-600">
+                  <AlertCircle className="w-4 h-4" />
+                  Knowledge base is required for forms with chat fields
+                </div>
+              )}
+              <p className="text-xs text-gray-500">
+                Chat forms require a knowledge base for AI-powered responses
+              </p>
+            </div>
+          )}
           
           <div className="flex items-center space-x-2">
             <Switch
@@ -141,7 +163,10 @@ export const FormSaveDialog = ({ isOpen, onClose, onSave, initialData }: FormSav
             <Button type="button" variant="outline" onClick={handleClose}>
               Cancel
             </Button>
-            <Button type="submit">
+            <Button 
+              type="submit"
+              disabled={hasChatField && !formData.knowledgeBaseId}
+            >
               {initialData ? 'Update' : 'Save'} Form
             </Button>
           </div>

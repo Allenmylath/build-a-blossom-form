@@ -83,6 +83,7 @@ export const FormBuilder = ({ user }: FormBuilderProps) => {
         isOpen={showSaveDialog}
         onClose={() => setShowSaveDialog(false)}
         onSave={handleSaveForm}
+        fields={fields}
         initialData={currentForm ? {
           name: currentForm.name,
           description: currentForm.description || '',

@@ -49,6 +49,17 @@ export const useFormHandlers = ({
       return;
     }
 
+    // Check if form has chat field and requires knowledge base
+    const hasChatField = fields.some(field => field.type === 'chat');
+    if (hasChatField && !formData.knowledgeBaseId) {
+      toast({
+        title: "Knowledge Base Required",
+        description: "Forms with chat fields must have a knowledge base selected.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const savedFormData = await saveForm(formData, fields, currentForm || undefined);
     
     if (savedFormData) {
@@ -76,6 +87,17 @@ export const useFormHandlers = ({
       isPublic: updates.isPublic !== undefined ? updates.isPublic : formToUpdate.isPublic,
       knowledgeBaseId: updates.knowledgeBaseId !== undefined ? updates.knowledgeBaseId : formToUpdate.knowledgeBaseId,
     };
+
+    // Check if form has chat field and requires knowledge base
+    const hasChatField = formToUpdate.fields.some(field => field.type === 'chat');
+    if (hasChatField && !formData.knowledgeBaseId) {
+      toast({
+        title: "Knowledge Base Required",
+        description: "Forms with chat fields must have a knowledge base selected.",
+        variant: "destructive",
+      });
+      throw new Error('Knowledge base required for chat forms');
+    }
 
     // Use the existing saveForm function to update
     const updatedForm = await saveForm(formData, formToUpdate.fields, formToUpdate);
