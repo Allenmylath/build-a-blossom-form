@@ -2,7 +2,8 @@
 import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Toaster } from '@/components/ui/toaster';
-import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
+import { StoreProvider } from '@/components/StoreProvider';
+import { useSupabaseAuth } from '@/hooks/useStore';
 import { FormBuilderWithAuth } from '@/components/FormBuilderWithAuth';
 import { SharedForm } from '@/components/SharedForm';
 import Settings from '@/pages/Settings';
@@ -11,7 +12,7 @@ import Pricing from '@/pages/Pricing';
 import NotFound from '@/pages/NotFound';
 import './App.css';
 
-function App() {
+function AppContent() {
   const { user, loading, signOut } = useSupabaseAuth();
 
   return (
@@ -60,6 +61,14 @@ function App() {
         <Toaster />
       </div>
     </Router>
+  );
+}
+
+function App() {
+  return (
+    <StoreProvider>
+      <AppContent />
+    </StoreProvider>
   );
 }
 
