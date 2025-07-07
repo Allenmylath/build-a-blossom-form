@@ -10,11 +10,7 @@ export const FormBuilderWithAuth = () => {
     user: state.user,
     authLoading: state.authLoading,
     isStable: state.isStable,
-  }), (a, b) => 
-    a.user?.id === b.user?.id && 
-    a.authLoading === b.authLoading && 
-    a.isStable === b.isStable
-  );
+  }));
 
   console.log('FormBuilderWithAuth render:', { 
     user: !!user, 

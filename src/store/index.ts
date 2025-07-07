@@ -42,23 +42,14 @@ export const useAuthState = () => useAppStore((state) => ({
   session: state.session,
   loading: state.authLoading,
   isAuthenticated: !!state.user,
-}), (a, b) => 
-  a.user?.id === b.user?.id && 
-  a.loading === b.loading && 
-  a.isAuthenticated === b.isAuthenticated
-);
+}));
 
 export const useFormsState = () => useAppStore((state) => ({
   savedForms: state.savedForms,
   currentForm: state.currentForm,
   fields: state.fields,
   isLoading: state.formsLoading,
-}), (a, b) => 
-  a.savedForms.length === b.savedForms.length &&
-  a.currentForm?.id === b.currentForm?.id &&
-  a.fields.length === b.fields.length &&
-  a.isLoading === b.isLoading
-);
+}));
 
 export const useSubmissionsState = () => useAppStore((state) => ({
   submissions: state.submissions,
@@ -79,11 +70,7 @@ export const useUserPlanState = () => useAppStore((state) => ({
   planLimits: state.planLimits,
   planLoading: state.planLoading,
   planError: state.planError,
-}), (a, b) => 
-  a.userSubscription?.plan_type === b.userSubscription?.plan_type &&
-  a.planLimits.maxForms === b.planLimits.maxForms &&
-  a.planLoading === b.planLoading
-);
+}));
 
 export const useAuthActions = () => useAppStore((state) => ({
   signIn: state.signIn,
