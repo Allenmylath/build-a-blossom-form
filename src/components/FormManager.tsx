@@ -12,7 +12,7 @@ interface FormManagerProps {
   onDeleteForm: (formId: string) => void;
   onDuplicateForm: (form: SavedForm) => void;
   onShareForm: (form: SavedForm) => void;
-  onUpdateForm?: (formId: string, updates: Partial<SavedForm>) => void;
+  onUpdateForm?: (formId: string, updates: Partial<SavedForm>) => Promise<SavedForm | null>;
 }
 
 export const FormManager = ({ 
