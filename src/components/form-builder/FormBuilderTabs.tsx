@@ -29,6 +29,7 @@ interface FormBuilderTabsProps {
   onDuplicateForm: (form: SavedForm) => void;
   onShareForm: (form: SavedForm) => void;
   onSelectTemplate: (template: FormTemplate) => void;
+  onUpdateForm?: (formId: string, updates: Partial<SavedForm>) => Promise<SavedForm | null>;
 }
 
 export const FormBuilderTabs = ({
@@ -50,6 +51,7 @@ export const FormBuilderTabs = ({
   onDuplicateForm,
   onShareForm,
   onSelectTemplate,
+  onUpdateForm,
 }: FormBuilderTabsProps) => {
   const selectedField = fields.find(f => f.id === selectedFieldId);
 
@@ -127,6 +129,7 @@ export const FormBuilderTabs = ({
           onDeleteForm={onDeleteForm}
           onDuplicateForm={onDuplicateForm}
           onShareForm={onShareForm}
+          onUpdateForm={onUpdateForm}
         />
       </TabsContent>
 
