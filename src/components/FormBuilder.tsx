@@ -8,6 +8,8 @@ import { useFormBuilder } from '@/hooks/useFormBuilder';
 import { useSupabaseForms } from '@/hooks/useSupabaseForms';
 import { NavigationHeader } from './NavigationHeader';
 import { FormTemplate } from '@/types/form';
+import { FormSaveDialog } from './FormSaveDialog';
+import { toast } from '@/hooks/use-toast';
 
 interface FormBuilderProps {
   user: User;
@@ -15,6 +17,7 @@ interface FormBuilderProps {
 
 export const FormBuilder = ({ user }: FormBuilderProps) => {
   const [activeTab, setActiveTab] = useState('builder');
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
   const { savedForms, saveForm, deleteForm, maxFormsReached, isHobbyPlan } = useSupabaseForms(user);
   
   const {
@@ -28,6 +31,7 @@ export const FormBuilder = ({ user }: FormBuilderProps) => {
     loadForm,
     selectTemplate,
     startNewForm,
+    setCurrentForm,
   } = useFormBuilder({
     initialFields: [],
     initialCurrentForm: null,
@@ -36,10 +40,53 @@ export const FormBuilder = ({ user }: FormBuilderProps) => {
   const selectedField = fields.find(f => f.id === selectedFieldId);
 
   const handleSaveForm = async (formData: { name: string; description: string; isPublic: boolean }) => {
-    const savedFormData = await saveForm(formData, fields, currentForm || undefined);
-    if (savedFormData) {
-      loadForm(savedFormData);
+    console.log('Handling save form:', formData);
+    
+    // Check if creating new form and limit reached
+    if (maxFormsReached && !currentForm) {
+      toast({
+        title: "Form Limit Reached",
+        description: "Hobby plan allows maximum 5 forms. Please upgrade to create more forms.",
+        variant: "destructive",
+      });
+      return;
     }
+
+    // Check if there are fields to save
+    if (fields.length === 0) {
+      toast({
+        title: "No Fields Added",
+        description: "Please add at least one field to your form before saving.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const savedFormData = await saveForm(formData, fields, currentForm || undefined);
+    
+    if (savedFormData) {
+      setCurrentForm(savedFormData);
+      toast({
+        title: currentForm ? "Form Updated" : "Form Saved",
+        description: `"${formData.name}" has been ${currentForm ? 'updated' : 'saved'} successfully.`,
+      });
+      setShowSaveDialog(false);
+    }
+  };
+
+  const handleSaveClick = () => {
+    console.log('Save button clicked, fields:', fields.length);
+    
+    if (fields.length === 0) {
+      toast({
+        title: "No Fields Added",
+        description: "Please add at least one field to your form before saving.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setShowSaveDialog(true);
   };
 
   const handleLoadForm = (form: any) => {
@@ -51,8 +98,16 @@ export const FormBuilder = ({ user }: FormBuilderProps) => {
   };
 
   const handleDuplicateForm = async (form: any) => {
-    if (maxFormsReached) return;
-    await saveForm(
+    if (maxFormsReached) {
+      toast({
+        title: "Form Limit Reached",
+        description: "Hobby plan allows maximum 5 forms. Please upgrade to create more forms.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    const duplicatedFormData = await saveForm(
       {
         name: `${form.name} (Copy)`,
         description: form.description || '',
@@ -60,11 +115,22 @@ export const FormBuilder = ({ user }: FormBuilderProps) => {
       },
       form.fields
     );
+
+    if (duplicatedFormData) {
+      toast({
+        title: "Form Duplicated",
+        description: `"${form.name}" has been duplicated successfully.`,
+      });
+    }
   };
 
   const handleShareForm = (form: any) => {
     if (form.shareUrl) {
       navigator.clipboard.writeText(form.shareUrl);
+      toast({
+        title: "Share Link Copied",
+        description: "Form share link has been copied to clipboard.",
+      });
     }
   };
 
@@ -73,7 +139,26 @@ export const FormBuilder = ({ user }: FormBuilderProps) => {
   };
 
   const handleExportImport = (action: 'export' | 'import') => {
-    // Handle export/import logic
+    if (action === 'export') {
+      if (fields.length === 0) {
+        toast({
+          title: "No Fields to Export",
+          description: "Please add fields to your form before exporting.",
+          variant: "destructive",
+        });
+        return;
+      }
+      // Export functionality would be implemented here
+      toast({
+        title: "Export Feature",
+        description: "Export functionality coming soon!",
+      });
+    } else {
+      toast({
+        title: "Import Feature",
+        description: "Import functionality coming soon!",
+      });
+    }
   };
 
   return (
@@ -101,9 +186,7 @@ export const FormBuilder = ({ user }: FormBuilderProps) => {
           onMoveField={moveField}
           onUpdateField={updateField}
           onDeleteField={deleteField}
-          onSave={() => {
-            // This should trigger save dialog
-          }}
+          onSave={handleSaveClick}
           onNew={startNewForm}
           onExportImport={handleExportImport}
           onLoadForm={handleLoadForm}
@@ -113,6 +196,13 @@ export const FormBuilder = ({ user }: FormBuilderProps) => {
           onSelectTemplate={handleSelectTemplate}
         />
       </div>
+
+      <FormSaveDialog
+        open={showSaveDialog}
+        onOpenChange={setShowSaveDialog}
+        onSave={handleSaveForm}
+        currentForm={currentForm}
+      />
     </div>
   );
 };

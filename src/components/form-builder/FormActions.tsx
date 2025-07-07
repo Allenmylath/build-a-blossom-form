@@ -12,7 +12,10 @@ interface FormActionsProps {
 export const FormActions = ({ onSave, onNew, onExportImport, hasFields }: FormActionsProps) => {
   return (
     <div className="flex space-x-2 mb-4">
-      <Button onClick={onSave} disabled={!hasFields} className="flex items-center">
+      <Button 
+        onClick={onSave} 
+        className="flex items-center bg-green-600 hover:bg-green-700 text-white"
+      >
         <Save className="w-4 h-4 mr-2" />
         Save Form
       </Button>
