@@ -6,7 +6,7 @@ import { toast } from '@/hooks/use-toast';
 
 interface FormCardVisibilityToggleProps {
   form: SavedForm;
-  onUpdateForm?: (formId: string, updates: Partial<SavedForm>) => void;
+  onUpdateForm?: (formId: string, updates: Partial<SavedForm>) => Promise<SavedForm | null>;
 }
 
 export const FormCardVisibilityToggle = ({ form, onUpdateForm }: FormCardVisibilityToggleProps) => {
@@ -23,17 +23,25 @@ export const FormCardVisibilityToggle = ({ form, onUpdateForm }: FormCardVisibil
     const newPublicStatus = !form.isPublic;
     
     try {
-      await onUpdateForm(form.id, { isPublic: newPublicStatus });
-      toast({
-        title: newPublicStatus ? "Form Made Public" : "Form Made Private",
-        description: newPublicStatus 
-          ? "Your form is now publicly accessible via the share link." 
-          : "Your form is now private and no longer publicly accessible.",
-      });
+      console.log('Updating form visibility:', { formId: form.id, newStatus: newPublicStatus });
+      
+      const updatedForm = await onUpdateForm(form.id, { isPublic: newPublicStatus });
+      
+      if (updatedForm) {
+        toast({
+          title: newPublicStatus ? "Form Made Public" : "Form Made Private",
+          description: newPublicStatus 
+            ? "Your form is now publicly accessible via the share link." 
+            : "Your form is now private and no longer publicly accessible.",
+        });
+      } else {
+        throw new Error('Failed to update form');
+      }
     } catch (error) {
+      console.error('Error updating form visibility:', error);
       toast({
-        title: "Error",
-        description: "Failed to update form visibility. Please try again.",
+        title: "Failed to Update Form Visibility",
+        description: "Please try again. If the problem persists, try editing the form first.",
         variant: "destructive",
       });
     }
@@ -56,6 +64,7 @@ export const FormCardVisibilityToggle = ({ form, onUpdateForm }: FormCardVisibil
         <Switch
           checked={form.isPublic}
           onCheckedChange={handleTogglePublic}
+          disabled={!onUpdateForm}
         />
         <span className="text-xs text-gray-500">Public</span>
       </div>

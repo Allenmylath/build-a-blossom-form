@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { SavedForm, FormTemplate } from '@/types/form';
 import { toast } from '@/hooks/use-toast';
@@ -72,21 +71,26 @@ export const useFormHandlers = ({
     }
   };
 
-  const handleUpdateForm = async (formId: string, updates: Partial<SavedForm>) => {
-    // Find the form to update
+  const handleUpdateForm = async (formId: string, updates: Partial<SavedForm>): Promise<SavedForm | null> => {
+    console.log('handleUpdateForm called with:', { formId, updates });
+    
+    // Find the form to update from currentForm if it matches, otherwise we can't update it
     const formToUpdate = currentForm?.id === formId ? currentForm : null;
     
     if (!formToUpdate) {
-      throw new Error('Form not found');
+      console.error('Form not found for update:', formId);
+      throw new Error('Form not found. Please load the form first by clicking Edit.');
     }
 
     // Create updated form data for saveForm function
     const formData = {
-      name: updates.name || formToUpdate.name,
-      description: updates.description || formToUpdate.description || '',
+      name: updates.name !== undefined ? updates.name : formToUpdate.name,
+      description: updates.description !== undefined ? updates.description : (formToUpdate.description || ''),
       isPublic: updates.isPublic !== undefined ? updates.isPublic : formToUpdate.isPublic,
       knowledgeBaseId: updates.knowledgeBaseId !== undefined ? updates.knowledgeBaseId : formToUpdate.knowledgeBaseId,
     };
+
+    console.log('Prepared form data for update:', formData);
 
     // Check if form has chat field and requires knowledge base
     const hasChatField = formToUpdate.fields.some(field => field.type === 'chat');
@@ -99,14 +103,20 @@ export const useFormHandlers = ({
       throw new Error('Knowledge base required for chat forms');
     }
 
-    // Use the existing saveForm function to update
-    const updatedForm = await saveForm(formData, formToUpdate.fields, formToUpdate);
-    
-    if (updatedForm && currentForm?.id === formId) {
-      setCurrentForm(updatedForm);
-    }
+    try {
+      // Use the existing saveForm function to update
+      const updatedForm = await saveForm(formData, formToUpdate.fields, formToUpdate);
+      
+      if (updatedForm && currentForm?.id === formId) {
+        setCurrentForm(updatedForm);
+      }
 
-    return updatedForm;
+      console.log('Form updated successfully:', updatedForm);
+      return updatedForm;
+    } catch (error) {
+      console.error('Error in handleUpdateForm:', error);
+      throw error;
+    }
   };
 
   const handleSaveClick = () => {
