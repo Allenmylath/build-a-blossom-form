@@ -109,10 +109,10 @@ export const FormManager = ({
       ) : (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredForms.map(form => (
-            <Card key={form.id} className="p-4 hover:shadow-lg transition-all">
-              <div className="space-y-3">
+            <Card key={form.id} className="p-6 hover:shadow-lg transition-all">
+              <div className="space-y-4">
                 <div className="flex justify-between items-start">
-                  <div>
+                  <div className="flex-1 pr-2">
                     <h3 className="font-semibold text-gray-900 line-clamp-1">{form.name}</h3>
                     {form.description && (
                       <p className="text-sm text-gray-600 mt-1 line-clamp-2">{form.description}</p>
@@ -130,40 +130,52 @@ export const FormManager = ({
                   <span>{form.submissions.length} submissions</span>
                 </div>
 
-                <div className="flex space-x-2 pt-2">
+                <div className="grid grid-cols-3 gap-2">
                   <Button
                     size="sm"
                     onClick={() => onLoadForm(form)}
-                    className="flex-1"
+                    className="col-span-3 mb-2"
                   >
                     <FolderOpen className="w-4 h-4 mr-1" />
                     Open
                   </Button>
+                  
                   <Button
                     size="sm"
                     variant="outline"
                     onClick={() => handleDuplicate(form)}
+                    title="Duplicate"
                   >
                     <Copy className="w-4 h-4" />
                   </Button>
+                  
                   <Button
                     size="sm"
                     variant="outline"
                     onClick={() => handleShare(form)}
+                    title="Share"
                   >
                     <Share className="w-4 h-4" />
                   </Button>
+                  
                   <Button
                     size="sm"
                     variant="outline"
                     onClick={() => setShowAnalytics(form)}
                     className="bg-purple-50 hover:bg-purple-100 text-purple-700 border-purple-200"
+                    title="Analytics"
                   >
                     <TrendingUp className="w-4 h-4" />
                   </Button>
+                  
                   <Dialog>
                     <DialogTrigger asChild>
-                      <Button size="sm" variant="outline" onClick={() => setSelectedForm(form)}>
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        onClick={() => setSelectedForm(form)}
+                        title="Quick Stats"
+                      >
                         <BarChart3 className="w-4 h-4" />
                       </Button>
                     </DialogTrigger>
@@ -203,12 +215,16 @@ export const FormManager = ({
                       </div>
                     </DialogContent>
                   </Dialog>
+                  
                   <Button
                     size="sm"
                     variant="destructive"
                     onClick={() => handleDelete(form.id)}
+                    className="col-span-2"
+                    title="Delete"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Trash2 className="w-4 h-4 mr-1" />
+                    Delete
                   </Button>
                 </div>
               </div>
