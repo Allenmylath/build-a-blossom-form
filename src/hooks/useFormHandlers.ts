@@ -4,6 +4,7 @@ import { toast } from '@/hooks/use-toast';
 import { useUserPlanState, useUserPlanActions } from '@/store';
 
 interface UseFormHandlersProps {
+  maxFormsReached: boolean;
   saveForm: (formData: { name: string; description: string; isPublic: boolean; knowledgeBaseId?: string }, fields: any[], existingForm?: SavedForm) => Promise<SavedForm | null>;
   deleteForm: (formId: string) => Promise<void>;
   fields: any[];
@@ -14,6 +15,7 @@ interface UseFormHandlersProps {
 }
 
 export const useFormHandlers = ({
+  maxFormsReached,
   saveForm,
   deleteForm,
   fields,
@@ -31,8 +33,6 @@ export const useFormHandlers = ({
     
     // Check if creating new form and limit reached
     if (!currentForm && userSubscription) {
-      const maxFormsReached = planLimits.maxForms !== -1 && !checkFormLimit(0); // Check against current count
-      
       if (maxFormsReached) {
         toast({
           title: "Form Limit Reached",
@@ -149,8 +149,6 @@ export const useFormHandlers = ({
 
   const handleDuplicateForm = async (form: SavedForm) => {
     if (userSubscription) {
-      const maxFormsReached = planLimits.maxForms !== -1 && !checkFormLimit(0);
-      
       if (maxFormsReached) {
         toast({
           title: "Form Limit Reached",
@@ -203,7 +201,6 @@ export const useFormHandlers = ({
         });
         return;
       }
-      // Export functionality would be implemented here
       toast({
         title: "Export Feature",
         description: "Export functionality coming soon!",

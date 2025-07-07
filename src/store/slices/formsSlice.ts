@@ -2,7 +2,6 @@ import { StateCreator } from 'zustand';
 import { SavedForm, FormField, FormFieldType } from '@/types/form';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
-import { AppStore } from '../index';
 
 export interface FormsSlice {
   // State
@@ -11,6 +10,7 @@ export interface FormsSlice {
   fields: FormField[];
   selectedFieldId: string | null;
   formsLoading: boolean;
+  formsError: string | null;
   maxFormsReached: boolean;
   isHobbyPlan: boolean;
   
@@ -33,7 +33,7 @@ export interface FormsSlice {
 const HOBBY_PLAN_FORM_LIMIT = 5;
 
 export const createFormsSlice: StateCreator<
-  FormsSlice & { checkFormLimit?: (currentCount: number) => boolean },
+  any,
   [],
   [],
   FormsSlice
@@ -44,21 +44,21 @@ export const createFormsSlice: StateCreator<
   fields: [],
   selectedFieldId: null,
   formsLoading: false,
+  formsError: null,
   maxFormsReached: false,
   isHobbyPlan: true,
 
   // Actions
   fetchForms: async () => {
-    const { user, isStable } = get();
+    const state = get() as any;
+    const { user, isStable } = state;
     
     if (!user || !isStable) {
       console.log('User not ready for forms fetch');
       return [];
     }
 
-    set((state) => {
-      state.formsLoading = true;
-    });
+    set({ formsLoading: true });
 
     try {
       console.log('Fetching forms for user:', user.id);
@@ -110,18 +110,18 @@ export const createFormsSlice: StateCreator<
         })),
       }));
 
-      set((state) => {
-        state.savedForms = mappedForms;
-        state.maxFormsReached = mappedForms.length >= HOBBY_PLAN_FORM_LIMIT;
-        state.formsLoading = false;
+      set({
+        savedForms: mappedForms,
+        maxFormsReached: mappedForms.length >= HOBBY_PLAN_FORM_LIMIT,
+        formsLoading: false,
       });
 
       console.log('Forms fetched successfully:', mappedForms.length);
       return mappedForms;
     } catch (error) {
       console.error('Error fetching forms:', error);
-      set((state) => {
-        state.formsLoading = false;
+      set({
+        formsLoading: false,
       });
       return [];
     }
@@ -139,8 +139,8 @@ export const createFormsSlice: StateCreator<
 
       // Check form limit for new forms
       if (!existingForm) {
-        const { savedForms } = get();
-        const checkFormLimit = (get as any).checkFormLimit;
+        const state = get() as any;
+        const { savedForms, checkFormLimit } = state;
         
         if (checkFormLimit && !checkFormLimit(savedForms.length)) {
           throw new Error('Form limit reached for your current plan. Please upgrade to create more forms.');
@@ -190,8 +190,8 @@ export const createFormsSlice: StateCreator<
         };
 
         // Update forms in state with optimistic update
-        set((state) => {
-          const index = state.savedForms.findIndex(f => f.id === updatedForm.id);
+        set((state: any) => {
+          const index = state.savedForms.findIndex((f: SavedForm) => f.id === updatedForm.id);
           if (index !== -1) {
             state.savedForms[index] = updatedForm;
           }
@@ -247,7 +247,7 @@ export const createFormsSlice: StateCreator<
         };
 
         // Add to forms with optimistic update
-        set((state) => {
+        set((state: any) => {
           state.savedForms.unshift(newForm);
           state.currentForm = newForm;
           state.maxFormsReached = state.savedForms.length >= HOBBY_PLAN_FORM_LIMIT;
@@ -258,21 +258,22 @@ export const createFormsSlice: StateCreator<
       }
     } catch (error) {
       console.error('Error saving form:', error);
-      set((state) => {
-        state.formsLoading = false;
+      set({
+        formsLoading: false,
       });
       return null;
     }
   },
 
   deleteForm: async (formId: string) => {
-    const { user } = get();
+    const state = get() as any;
+    const { user } = state;
     
     if (!user) return;
 
     // Optimistic update
-    set((state) => {
-      state.savedForms = state.savedForms.filter(f => f.id !== formId);
+    set((state: any) => {
+      state.savedForms = state.savedForms.filter((f: SavedForm) => f.id !== formId);
       if (state.currentForm?.id === formId) {
         state.currentForm = null;
         state.fields = [];
@@ -290,7 +291,8 @@ export const createFormsSlice: StateCreator<
       if (error) {
         console.error('Error deleting form:', error);
         // Revert optimistic update
-        get().fetchForms();
+        const state = get() as any;
+        state.fetchForms();
         toast({
           title: "Error deleting form",
           description: error.message,
@@ -299,20 +301,21 @@ export const createFormsSlice: StateCreator<
       }
     } catch (error) {
       console.error('Error deleting form:', error);
-      get().fetchForms();
+      const state = get() as any;
+      state.fetchForms();
     }
   },
 
   loadForm: (form: SavedForm) => {
-    set((state) => {
-      state.currentForm = form;
-      state.fields = [...form.fields];
-      state.selectedFieldId = null;
+    set({
+      currentForm: form,
+      fields: [...form.fields],
+      selectedFieldId: null,
     });
   },
 
   updateCurrentForm: (updates: Partial<SavedForm>) => {
-    set((state) => {
+    set((state: any) => {
       if (state.currentForm) {
         state.currentForm = { ...state.currentForm, ...updates };
       }
@@ -329,15 +332,15 @@ export const createFormsSlice: StateCreator<
       options: type === 'select' || type === 'radio' || type === 'checkbox' ? ['Option 1', 'Option 2'] : undefined,
     };
 
-    set((state) => {
+    set((state: any) => {
       state.fields.push(newField);
       state.selectedFieldId = newField.id;
     });
   },
 
   updateField: (fieldId: string, updates: Partial<FormField>) => {
-    set((state) => {
-      const index = state.fields.findIndex(f => f.id === fieldId);
+    set((state: any) => {
+      const index = state.fields.findIndex((f: FormField) => f.id === fieldId);
       if (index !== -1) {
         state.fields[index] = { ...state.fields[index], ...updates };
       }
@@ -345,8 +348,8 @@ export const createFormsSlice: StateCreator<
   },
 
   deleteField: (fieldId: string) => {
-    set((state) => {
-      state.fields = state.fields.filter(f => f.id !== fieldId);
+    set((state: any) => {
+      state.fields = state.fields.filter((f: FormField) => f.id !== fieldId);
       if (state.selectedFieldId === fieldId) {
         state.selectedFieldId = null;
       }
@@ -354,8 +357,8 @@ export const createFormsSlice: StateCreator<
   },
 
   moveField: (fieldId: string, direction: 'up' | 'down') => {
-    set((state) => {
-      const index = state.fields.findIndex(f => f.id === fieldId);
+    set((state: any) => {
+      const index = state.fields.findIndex((f: FormField) => f.id === fieldId);
       if (index === -1) return;
 
       const newIndex = direction === 'up' ? index - 1 : index + 1;
@@ -367,21 +370,22 @@ export const createFormsSlice: StateCreator<
   },
 
   selectField: (fieldId: string | null) => {
-    set((state) => {
-      state.selectedFieldId = fieldId;
+    set({
+      selectedFieldId: fieldId,
     });
   },
 
   startNewForm: () => {
-    set((state) => {
-      state.currentForm = null;
-      state.fields = [];
-      state.selectedFieldId = null;
+    set({
+      currentForm: null,
+      fields: [],
+      selectedFieldId: null,
     });
   },
 
   duplicateForm: async (form: SavedForm) => {
-    const { maxFormsReached, saveForm } = get();
+    const state = get() as any;
+    const { maxFormsReached, saveForm } = state;
     
     if (maxFormsReached) {
       toast({
@@ -404,7 +408,8 @@ export const createFormsSlice: StateCreator<
   },
 
   refreshSingleForm: async (formId: string) => {
-    const { user } = get();
+    const state = get() as any;
+    const { user } = state;
     
     if (!user) return null;
 
@@ -448,8 +453,8 @@ export const createFormsSlice: StateCreator<
       };
 
       // Update in state
-      set((state) => {
-        const index = state.savedForms.findIndex(f => f.id === updatedForm.id);
+      set((state: any) => {
+        const index = state.savedForms.findIndex((f: SavedForm) => f.id === updatedForm.id);
         if (index !== -1) {
           state.savedForms[index] = updatedForm;
         }

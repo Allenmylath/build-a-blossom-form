@@ -1,3 +1,4 @@
+
 import { create } from 'zustand';
 import { devtools, subscribeWithSelector } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
@@ -64,7 +65,6 @@ export const useUIState = () => useAppStore((state) => ({
   selectedItems: state.selectedItems,
 }));
 
-// New selectors for user plan
 export const useUserPlanState = () => useAppStore((state) => ({
   userSubscription: state.userSubscription,
   planLimits: state.planLimits,

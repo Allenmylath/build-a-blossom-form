@@ -1,13 +1,14 @@
+
 import { StateCreator } from 'zustand';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import { AppStore } from '../index';
 
 export interface AuthSlice {
   // State
   user: User | null;
   session: Session | null;
   authLoading: boolean;
+  authError: string | null;
   isStable: boolean;
   lastAuthEvent: string | null;
   
@@ -20,7 +21,7 @@ export interface AuthSlice {
 }
 
 export const createAuthSlice: StateCreator<
-  AuthSlice & { fetchUserSubscription?: () => Promise<void> },
+  any,
   [],
   [],
   AuthSlice
@@ -29,6 +30,7 @@ export const createAuthSlice: StateCreator<
   user: null,
   session: null,
   authLoading: true,
+  authError: null,
   isStable: false,
   lastAuthEvent: null,
 
@@ -51,19 +53,19 @@ export const createAuthSlice: StateCreator<
       });
 
       // Fetch user subscription after successful sign in
-      const fetchUserSubscription = (get as any).fetchUserSubscription;
-      if (fetchUserSubscription) {
-        await fetchUserSubscription();
+      const state = get() as any;
+      if (state.fetchUserSubscription) {
+        await state.fetchUserSubscription();
       }
 
-      return { user: data.user, session: data.session };
+      return { error: null };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Sign in failed';
       set({
         authError: errorMessage,
         authLoading: false,
       });
-      throw error;
+      return { error: errorMessage };
     }
   },
 
@@ -82,9 +84,9 @@ export const createAuthSlice: StateCreator<
       });
 
       // Reset plan state on sign out
-      const resetPlanState = (get as any).resetPlanState;
-      if (resetPlanState) {
-        resetPlanState();
+      const state = get() as any;
+      if (state.resetPlanState) {
+        state.resetPlanState();
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Sign out failed';
@@ -97,47 +99,54 @@ export const createAuthSlice: StateCreator<
   },
 
   updateAuthState: (user: User | null, session: Session | null) => {
-    const currentUserId = get().user?.id;
+    const currentState = get() as any;
+    const currentUserId = currentState.user?.id;
     const newUserId = user?.id;
     
     // Only update if user actually changed
     if (currentUserId !== newUserId) {
       console.log('Auth state changing from', currentUserId, 'to', newUserId);
       
-      set((state) => {
-        state.user = user;
-        state.session = session;
-        state.authLoading = false;
-        state.isStable = false;
-        state.lastAuthEvent = `${Date.now()}-${newUserId || 'null'}`;
+      set({
+        user: user,
+        session: session,
+        authLoading: false,
+        isStable: false,
+        lastAuthEvent: `${Date.now()}-${newUserId || 'null'}`,
       });
 
       // Clear forms data when user changes
       if (currentUserId !== newUserId) {
-        set((state) => {
-          state.savedForms = [];
-          state.currentForm = null;
-          state.fields = [];
-          state.submissions = [];
-          state.submissionsPagination = { page: 1, limit: 50, total: 0, hasMore: false };
-        });
+        const state = get() as any;
+        if (state.savedForms !== undefined) {
+          set({
+            savedForms: [],
+            currentForm: null,
+            fields: [],
+            submissions: [],
+            submissionsPagination: { page: 1, limit: 50, total: 0, hasMore: false },
+          });
+        }
       }
 
       // Set user as stable after a delay
       setTimeout(() => {
-        set((state) => {
-          state.isStable = true;
+        set({
+          isStable: true,
         });
         
         // Trigger forms fetch when user becomes stable
         if (user) {
-          get().fetchForms();
+          const state = get() as any;
+          if (state.fetchForms) {
+            state.fetchForms();
+          }
         }
       }, 500);
     } else {
       // Just update loading state if user didn't change
-      set((state) => {
-        state.authLoading = false;
+      set({
+        authLoading: false,
       });
     }
   },
@@ -165,9 +174,9 @@ export const createAuthSlice: StateCreator<
 
       // Fetch user subscription if user is authenticated
       if (session?.user) {
-        const fetchUserSubscription = (get as any).fetchUserSubscription;
-        if (fetchUserSubscription) {
-          await fetchUserSubscription();
+        const state = get() as any;
+        if (state.fetchUserSubscription) {
+          await state.fetchUserSubscription();
         }
       }
 
@@ -181,14 +190,14 @@ export const createAuthSlice: StateCreator<
         });
 
         if (event === 'SIGNED_IN' && session?.user) {
-          const fetchUserSubscription = (get as any).fetchUserSubscription;
-          if (fetchUserSubscription) {
-            await fetchUserSubscription();
+          const state = get() as any;
+          if (state.fetchUserSubscription) {
+            await state.fetchUserSubscription();
           }
         } else if (event === 'SIGNED_OUT') {
-          const resetPlanState = (get as any).resetPlanState;
-          if (resetPlanState) {
-            resetPlanState();
+          const state = get() as any;
+          if (state.resetPlanState) {
+            state.resetPlanState();
           }
         }
       });
@@ -202,8 +211,8 @@ export const createAuthSlice: StateCreator<
   },
 
   setAuthLoading: (loading: boolean) => {
-    set((state) => {
-      state.authLoading = loading;
+    set({
+      authLoading: loading,
     });
   },
 });
