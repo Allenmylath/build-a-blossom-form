@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -32,26 +32,34 @@ interface FormSaveDialogProps {
 
 export const FormSaveDialog = ({ isOpen, onClose, onSave, initialData, fields = [] }: FormSaveDialogProps) => {
   const { user } = useAppStore();
-  const { knowledgeBases, loading } = useKnowledgeBases(user);
+  
+  // Only call useKnowledgeBases when user exists and dialog is open
+  const shouldFetchKnowledgeBases = useMemo(() => Boolean(user && isOpen), [user, isOpen]);
+  const { knowledgeBases, loading } = useKnowledgeBases(shouldFetchKnowledgeBases ? user : null);
+  
   const [formData, setFormData] = useState({
-    name: initialData?.name || '',
-    description: initialData?.description || '',
-    isPublic: initialData?.isPublic || false,
-    knowledgeBaseId: initialData?.knowledgeBaseId || '',
+    name: '',
+    description: '',
+    isPublic: false,
+    knowledgeBaseId: '',
   });
 
-  // Check if form contains a chat field
-  const hasChatField = fields.some(field => field.type === 'chat');
+  // Memoize the chat field check to prevent recalculation on every render
+  const hasChatField = useMemo(() => {
+    return fields.some(field => field.type === 'chat');
+  }, [fields]);
 
   console.log('FormSaveDialog debug:', {
     hasChatField,
     knowledgeBases: knowledgeBases.length,
     selectedKnowledgeBaseId: formData.knowledgeBaseId,
-    loading
+    loading,
+    isOpen
   });
 
+  // Only update form data when dialog opens and initialData is provided
   useEffect(() => {
-    if (initialData) {
+    if (isOpen && initialData) {
       setFormData({
         name: initialData.name,
         description: initialData.description,
@@ -59,9 +67,9 @@ export const FormSaveDialog = ({ isOpen, onClose, onSave, initialData, fields = 
         knowledgeBaseId: initialData.knowledgeBaseId || '',
       });
     }
-  }, [initialData]);
+  }, [isOpen, initialData?.name, initialData?.description, initialData?.isPublic, initialData?.knowledgeBaseId]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
     
     // Validate that knowledge base is selected if form has chat field
@@ -78,9 +86,9 @@ export const FormSaveDialog = ({ isOpen, onClose, onSave, initialData, fields = 
       isPublic: formData.isPublic,
       knowledgeBaseId: formData.knowledgeBaseId || undefined,
     });
-  };
+  }, [formData, hasChatField, onSave]);
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     setFormData({
       name: '',
       description: '',
@@ -88,7 +96,21 @@ export const FormSaveDialog = ({ isOpen, onClose, onSave, initialData, fields = 
       knowledgeBaseId: '',
     });
     onClose();
-  };
+  }, [onClose]);
+
+  const handleInputChange = useCallback((field: keyof typeof formData, value: string | boolean) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  }, []);
+
+  const handleKnowledgeBaseChange = useCallback((value: string) => {
+    console.log('Knowledge base selected:', value);
+    setFormData(prev => ({ ...prev, knowledgeBaseId: value }));
+  }, []);
+
+  // Early return if dialog is not open to prevent unnecessary rendering
+  if (!isOpen) {
+    return null;
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -104,7 +126,7 @@ export const FormSaveDialog = ({ isOpen, onClose, onSave, initialData, fields = 
             <Input
               id="name"
               value={formData.name}
-              onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+              onChange={(e) => handleInputChange('name', e.target.value)}
               placeholder="Enter form name"
               required
             />
@@ -115,7 +137,7 @@ export const FormSaveDialog = ({ isOpen, onClose, onSave, initialData, fields = 
             <Textarea
               id="description"
               value={formData.description}
-              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+              onChange={(e) => handleInputChange('description', e.target.value)}
               placeholder="Enter form description (optional)"
               rows={3}
             />
@@ -136,10 +158,7 @@ export const FormSaveDialog = ({ isOpen, onClose, onSave, initialData, fields = 
               ) : (
                 <Select
                   value={formData.knowledgeBaseId}
-                  onValueChange={(value) => {
-                    console.log('Knowledge base selected:', value);
-                    setFormData(prev => ({ ...prev, knowledgeBaseId: value }));
-                  }}
+                  onValueChange={handleKnowledgeBaseChange}
                   required
                 >
                   <SelectTrigger className={!formData.knowledgeBaseId ? 'border-red-500' : ''}>
@@ -173,7 +192,7 @@ export const FormSaveDialog = ({ isOpen, onClose, onSave, initialData, fields = 
             <Switch
               id="public"
               checked={formData.isPublic}
-              onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isPublic: checked }))}
+              onCheckedChange={(checked) => handleInputChange('isPublic', checked)}
             />
             <Label htmlFor="public" className="text-sm">
               Make this form publicly accessible
