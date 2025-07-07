@@ -90,8 +90,6 @@ export const FormSaveDialog = ({ isOpen, onClose, onSave, initialData, fields = 
     onClose();
   };
 
-  const selectedKnowledgeBase = knowledgeBases.find(kb => kb.id === formData.knowledgeBaseId);
-
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-md">
@@ -145,16 +143,7 @@ export const FormSaveDialog = ({ isOpen, onClose, onSave, initialData, fields = 
                   required
                 >
                   <SelectTrigger className={!formData.knowledgeBaseId ? 'border-red-500' : ''}>
-                    <SelectValue placeholder="Select a knowledge base">
-                      {selectedKnowledgeBase ? (
-                        <div className="flex items-center gap-2">
-                          <Database className="w-4 h-4" />
-                          {selectedKnowledgeBase.name}
-                        </div>
-                      ) : (
-                        "Select a knowledge base"
-                      )}
-                    </SelectValue>
+                    <SelectValue placeholder="Select a knowledge base" />
                   </SelectTrigger>
                   <SelectContent>
                     {knowledgeBases.map((kb) => (
