@@ -1,14 +1,14 @@
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { User, Session } from '@supabase/supabase-js';
+import { User } from '@supabase/supabase-js';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/hooks/use-toast';
-import { LogIn, UserPlus, Mail, Lock } from 'lucide-react';
+import { LogIn, UserPlus, Mail } from 'lucide-react';
 
 interface AuthProps {
   onAuthChange: (user: User | null) => void;
@@ -20,35 +20,6 @@ export const Auth = ({ onAuthChange }: AuthProps) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-
-  useEffect(() => {
-    console.log('Auth component useEffect running');
-    
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        console.log('Auth component - auth state change:', event, !!session?.user);
-        setSession(session);
-        setUser(session?.user ?? null);
-        onAuthChange(session?.user ?? null);
-      }
-    );
-
-    // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log('Auth component - initial session check:', !!session?.user);
-      setSession(session);
-      setUser(session?.user ?? null);
-      onAuthChange(session?.user ?? null);
-    });
-
-    return () => {
-      console.log('Auth component - cleaning up subscription');
-      subscription.unsubscribe();
-    };
-  }, [onAuthChange]);
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -154,28 +125,6 @@ export const Auth = ({ onAuthChange }: AuthProps) => {
       });
     }
   };
-
-  console.log('Auth component - current user state:', !!user);
-
-  if (user) {
-    console.log('Auth component - rendering signed in state');
-    return (
-      <Card className="p-6 max-w-md mx-auto">
-        <div className="text-center space-y-4">
-          <div className="flex items-center justify-center w-12 h-12 bg-green-100 rounded-full mx-auto">
-            <Mail className="w-6 h-6 text-green-600" />
-          </div>
-          <div>
-            <h2 className="text-xl font-semibold">Welcome!</h2>
-            <p className="text-gray-600">{user.email}</p>
-          </div>
-          <Button onClick={handleSignOut} variant="outline" className="w-full">
-            Sign Out
-          </Button>
-        </div>
-      </Card>
-    );
-  }
 
   console.log('Auth component - rendering sign in form');
   return (

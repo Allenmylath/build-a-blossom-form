@@ -1,11 +1,9 @@
 
-import { useState, useEffect } from 'react';
-import { User } from '@supabase/supabase-js';
+import { useAppStore } from '@/store';
 import { FormBuilder } from './FormBuilder';
 import { Auth } from './Auth';
 import { Card } from '@/components/ui/card';
 import { Plus } from 'lucide-react';
-import { useAppStore } from '@/store';
 
 export const FormBuilderWithAuth = () => {
   const { user, authLoading, isStable } = useAppStore();
@@ -16,9 +14,9 @@ export const FormBuilderWithAuth = () => {
     isStable 
   });
 
-  const handleAuthChange = (newUser: User | null) => {
-    console.log('Auth change handled in FormBuilderWithAuth:', !!newUser);
-    // This will be handled by the store's auth management
+  // Simple placeholder function - auth state is managed by the store
+  const handleAuthChange = () => {
+    console.log('Auth change placeholder called');
   };
 
   if (authLoading || !isStable) {
