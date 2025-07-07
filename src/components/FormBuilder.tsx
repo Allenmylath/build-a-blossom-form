@@ -5,36 +5,50 @@ import { FormBuilderContent } from './form-builder/FormBuilderContent';
 import { NavigationHeader } from './NavigationHeader';
 import { FormSaveDialog } from './FormSaveDialog';
 import { useFormBuilder } from '@/hooks/useFormBuilder';
-import { useAppStore, useUserPlanState, useUserPlanActions } from '@/store';
+import { useAppStore } from '@/store';
 import { useFormHandlers } from '@/hooks/useFormHandlers';
 
 interface FormBuilderProps {
   user: User;
 }
 
+// Stable selectors to prevent re-renders
+const useStableFormsState = () => useAppStore((state) => ({
+  savedForms: state.savedForms,
+  formsLoading: state.formsLoading,
+  saveForm: state.saveForm,
+  deleteForm: state.deleteForm,
+}));
+
+const useStablePlanState = () => useAppStore((state) => ({
+  userSubscription: state.userSubscription,
+  planLimits: state.planLimits,
+  fetchUserSubscription: state.fetchUserSubscription,
+}));
+
 const FormBuilderComponent = ({ user }: FormBuilderProps) => {
-  const { 
-    savedForms, 
-    formsLoading, 
-    saveForm,
-    deleteForm
-  } = useAppStore();
+  const formsState = useStableFormsState();
+  const planState = useStablePlanState();
   
-  const { userSubscription, planLimits } = useUserPlanState();
-  const { fetchUserSubscription } = useUserPlanActions();
+  // Memoize plan restrictions to prevent recalculation
+  const planRestrictions = useMemo(() => {
+    const maxFormsReached = planState.planLimits.maxForms !== -1 && 
+                            formsState.savedForms.length >= planState.planLimits.maxForms;
+    const isHobbyPlan = planState.userSubscription?.plan_type === 'hobby';
+    
+    return { maxFormsReached, isHobbyPlan };
+  }, [
+    planState.planLimits.maxForms,
+    formsState.savedForms.length,
+    planState.userSubscription?.plan_type
+  ]);
   
-  // Memoize plan-based restrictions to prevent recalculation
-  const planRestrictions = useMemo(() => ({
-    maxFormsReached: planLimits.maxForms !== -1 && savedForms.length >= planLimits.maxForms,
-    isHobbyPlan: userSubscription?.plan_type === 'hobby'
-  }), [planLimits.maxForms, savedForms.length, userSubscription?.plan_type]);
-  
+  // Stable effect for fetching user subscription
   useEffect(() => {
-    // Ensure user subscription is loaded
-    if (!userSubscription && user) {
-      fetchUserSubscription();
+    if (!planState.userSubscription && user?.id) {
+      planState.fetchUserSubscription();
     }
-  }, [user, userSubscription, fetchUserSubscription]);
+  }, [user?.id, planState.userSubscription, planState.fetchUserSubscription]);
 
   const {
     fields,
@@ -67,8 +81,8 @@ const FormBuilderComponent = ({ user }: FormBuilderProps) => {
     handleExportImport,
   } = useFormHandlers({
     maxFormsReached: planRestrictions.maxFormsReached,
-    saveForm,
-    deleteForm,
+    saveForm: formsState.saveForm,
+    deleteForm: formsState.deleteForm,
     fields,
     currentForm,
     setCurrentForm,
@@ -76,12 +90,12 @@ const FormBuilderComponent = ({ user }: FormBuilderProps) => {
     onSelectTemplate: selectTemplate,
   });
 
-  // Memoize the onClose callback to prevent recreation
+  // Stable close dialog callback
   const handleCloseDialog = useCallback(() => {
     setShowSaveDialog(false);
   }, [setShowSaveDialog]);
 
-  // Memoize the initialData object to prevent recreation
+  // Stable initial data for dialog
   const dialogInitialData = useMemo(() => {
     if (!currentForm) return undefined;
     
@@ -91,7 +105,13 @@ const FormBuilderComponent = ({ user }: FormBuilderProps) => {
       isPublic: currentForm.isPublic,
       knowledgeBaseId: currentForm.knowledgeBaseId
     };
-  }, [currentForm?.name, currentForm?.description, currentForm?.isPublic, currentForm?.knowledgeBaseId]);
+  }, [
+    currentForm?.id, // Use ID instead of the whole object
+    currentForm?.name,
+    currentForm?.description,
+    currentForm?.isPublic,
+    currentForm?.knowledgeBaseId
+  ]);
 
   return (
     <div className="min-h-screen bg-green-50">
@@ -101,7 +121,7 @@ const FormBuilderComponent = ({ user }: FormBuilderProps) => {
         fields={fields}
         selectedFieldId={selectedFieldId}
         currentForm={currentForm}
-        savedForms={savedForms}
+        savedForms={formsState.savedForms}
         isHobbyPlan={planRestrictions.isHobbyPlan}
         onAddField={addField}
         onMoveField={moveField}

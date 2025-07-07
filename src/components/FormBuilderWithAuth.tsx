@@ -6,7 +6,15 @@ import { Card } from '@/components/ui/card';
 import { Plus } from 'lucide-react';
 
 export const FormBuilderWithAuth = () => {
-  const { user, authLoading, isStable } = useAppStore();
+  const { user, authLoading, isStable } = useAppStore((state) => ({
+    user: state.user,
+    authLoading: state.authLoading,
+    isStable: state.isStable,
+  }), (a, b) => 
+    a.user?.id === b.user?.id && 
+    a.authLoading === b.authLoading && 
+    a.isStable === b.isStable
+  );
 
   console.log('FormBuilderWithAuth render:', { 
     user: !!user, 
