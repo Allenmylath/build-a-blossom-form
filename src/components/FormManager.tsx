@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Save, FolderOpen, Copy, Trash2, Share, BarChart3, Search, Calendar, TrendingUp } from 'lucide-react';
+import { Save, FolderOpen, Copy, Trash2, Share, BarChart3, Search, Calendar, TrendingUp, ExternalLink } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { FormAnalytics } from './FormAnalytics';
 
@@ -69,6 +69,18 @@ export const FormManager = ({
     }
   };
 
+  const handleOpenInNewWindow = (form: SavedForm) => {
+    if (form.shareUrl) {
+      window.open(form.shareUrl, '_blank', 'noopener,noreferrer');
+    } else {
+      toast({
+        title: "Cannot Open Form",
+        description: "This form doesn't have a share URL. Please make it public first.",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (showAnalytics) {
     return (
       <FormAnalytics 
@@ -109,122 +121,152 @@ export const FormManager = ({
       ) : (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredForms.map(form => (
-            <Card key={form.id} className="p-6 hover:shadow-lg transition-all">
-              <div className="space-y-4">
-                <div className="flex justify-between items-start">
-                  <div className="flex-1 pr-2">
-                    <h3 className="font-semibold text-gray-900 line-clamp-1">{form.name}</h3>
+            <Card key={form.id} className="group hover:shadow-lg transition-all duration-200 border-gray-200 hover:border-purple-200">
+              <div className="p-6">
+                <div className="flex justify-between items-start mb-4">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <h3 className="font-bold text-gray-900 text-lg truncate">{form.name}</h3>
+                      {form.isPublic && (
+                        <Badge variant="secondary" className="bg-green-100 text-green-700 text-xs">
+                          Public
+                        </Badge>
+                      )}
+                    </div>
                     {form.description && (
-                      <p className="text-sm text-gray-600 mt-1 line-clamp-2">{form.description}</p>
+                      <p className="text-sm text-gray-600 line-clamp-2 mb-3">{form.description}</p>
                     )}
                   </div>
-                  {form.isPublic && <Badge variant="secondary">Public</Badge>}
                 </div>
 
-                <div className="flex items-center text-sm text-gray-500 space-x-4">
-                  <span className="flex items-center">
-                    <Calendar className="w-4 h-4 mr-1" />
-                    {new Date(form.updatedAt).toLocaleDateString()}
-                  </span>
-                  <span>{form.fields.length} fields</span>
-                  <span>{form.submissions.length} submissions</span>
+                <div className="flex items-center justify-between text-xs text-gray-500 mb-4 bg-gray-50 rounded-lg p-3">
+                  <div className="flex items-center gap-1">
+                    <Calendar className="w-3 h-3" />
+                    <span>{new Date(form.updatedAt).toLocaleDateString()}</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="font-medium">{form.fields.length} fields</span>
+                    <span className="font-medium">{form.submissions.length} responses</span>
+                  </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-2">
-                  <Button
-                    size="sm"
-                    onClick={() => onLoadForm(form)}
-                    className="col-span-3 mb-2"
-                  >
-                    <FolderOpen className="w-4 h-4 mr-1" />
-                    Open
-                  </Button>
+                <div className="space-y-3">
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      onClick={() => handleOpenInNewWindow(form)}
+                      className="flex-1 bg-purple-600 hover:bg-purple-700"
+                    >
+                      <ExternalLink className="w-4 h-4 mr-2" />
+                      Open Shared
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => onLoadForm(form)}
+                      className="flex-1"
+                    >
+                      <FolderOpen className="w-4 h-4 mr-2" />
+                      Edit
+                    </Button>
+                  </div>
                   
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleDuplicate(form)}
-                    title="Duplicate"
-                  >
-                    <Copy className="w-4 h-4" />
-                  </Button>
-                  
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleShare(form)}
-                    title="Share"
-                  >
-                    <Share className="w-4 h-4" />
-                  </Button>
-                  
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setShowAnalytics(form)}
-                    className="bg-purple-50 hover:bg-purple-100 text-purple-700 border-purple-200"
-                    title="Analytics"
-                  >
-                    <TrendingUp className="w-4 h-4" />
-                  </Button>
-                  
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button 
-                        size="sm" 
-                        variant="outline" 
-                        onClick={() => setSelectedForm(form)}
-                        title="Quick Stats"
-                      >
-                        <BarChart3 className="w-4 h-4" />
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-2xl">
-                      <DialogHeader>
-                        <DialogTitle>Quick Stats for "{form.name}"</DialogTitle>
-                      </DialogHeader>
-                      <div className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
-                          <Card className="p-4">
-                            <div className="text-2xl font-bold text-purple-600">{form.submissions.length}</div>
-                            <div className="text-sm text-gray-600">Total Submissions</div>
-                          </Card>
-                          <Card className="p-4">
-                            <div className="text-2xl font-bold text-blue-600">{form.fields.length}</div>
-                            <div className="text-sm text-gray-600">Form Fields</div>
-                          </Card>
-                        </div>
-                        {form.submissions.length > 0 && (
-                          <div>
-                            <h4 className="font-semibold mb-2">Recent Submissions</h4>
-                            <div className="space-y-2 max-h-40 overflow-y-auto">
-                              {form.submissions.slice(0, 5).map(submission => (
-                                <div key={submission.id} className="text-sm text-gray-600 p-2 bg-gray-50 rounded">
-                                  {new Date(submission.submittedAt).toLocaleString()}
-                                </div>
-                              ))}
-                            </div>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleDuplicate(form)}
+                      className="flex-1 hover:bg-blue-50"
+                      title="Duplicate"
+                    >
+                      <Copy className="w-4 h-4 mr-1" />
+                      Copy
+                    </Button>
+                    
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleShare(form)}
+                      className="flex-1 hover:bg-green-50"
+                      title="Share"
+                    >
+                      <Share className="w-4 h-4 mr-1" />
+                      Share
+                    </Button>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setShowAnalytics(form)}
+                      className="flex-1 bg-purple-50 hover:bg-purple-100 text-purple-700 border-purple-200"
+                      title="Analytics"
+                    >
+                      <TrendingUp className="w-4 h-4 mr-1" />
+                      Analytics
+                    </Button>
+                    
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          onClick={() => setSelectedForm(form)}
+                          className="flex-1 hover:bg-blue-50"
+                          title="Quick Stats"
+                        >
+                          <BarChart3 className="w-4 h-4 mr-1" />
+                          Stats
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-2xl">
+                        <DialogHeader>
+                          <DialogTitle>Quick Stats for "{form.name}"</DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-4">
+                          <div className="grid grid-cols-2 gap-4">
+                            <Card className="p-4">
+                              <div className="text-2xl font-bold text-purple-600">{form.submissions.length}</div>
+                              <div className="text-sm text-gray-600">Total Submissions</div>
+                            </Card>
+                            <Card className="p-4">
+                              <div className="text-2xl font-bold text-blue-600">{form.fields.length}</div>
+                              <div className="text-sm text-gray-600">Form Fields</div>
+                            </Card>
                           </div>
-                        )}
-                        <div className="flex justify-end pt-4">
-                          <Button onClick={() => setShowAnalytics(form)}>
-                            <TrendingUp className="w-4 h-4 mr-2" />
-                            View Full Analytics
-                          </Button>
+                          {form.submissions.length > 0 && (
+                            <div>
+                              <h4 className="font-semibold mb-2">Recent Submissions</h4>
+                              <div className="space-y-2 max-h-40 overflow-y-auto">
+                                {form.submissions.slice(0, 5).map(submission => (
+                                  <div key={submission.id} className="text-sm text-gray-600 p-2 bg-gray-50 rounded">
+                                    {new Date(submission.submittedAt).toLocaleString()}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          <div className="flex justify-end pt-4">
+                            <Button onClick={() => setShowAnalytics(form)}>
+                              <TrendingUp className="w-4 h-4 mr-2" />
+                              View Full Analytics
+                            </Button>
+                          </div>
                         </div>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
-                  
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+
                   <Button
                     size="sm"
                     variant="destructive"
                     onClick={() => handleDelete(form.id)}
-                    className="col-span-2"
+                    className="w-full hover:bg-red-600"
                     title="Delete"
                   >
-                    <Trash2 className="w-4 h-4 mr-1" />
-                    Delete
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Delete Form
                   </Button>
                 </div>
               </div>
