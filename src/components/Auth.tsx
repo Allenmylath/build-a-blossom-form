@@ -15,6 +15,8 @@ interface AuthProps {
 }
 
 export const Auth = ({ onAuthChange }: AuthProps) => {
+  console.log('Auth component rendering');
+  
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -22,9 +24,12 @@ export const Auth = ({ onAuthChange }: AuthProps) => {
   const [session, setSession] = useState<Session | null>(null);
 
   useEffect(() => {
+    console.log('Auth component useEffect running');
+    
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
+        console.log('Auth component - auth state change:', event, !!session?.user);
         setSession(session);
         setUser(session?.user ?? null);
         onAuthChange(session?.user ?? null);
@@ -33,16 +38,21 @@ export const Auth = ({ onAuthChange }: AuthProps) => {
 
     // Check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('Auth component - initial session check:', !!session?.user);
       setSession(session);
       setUser(session?.user ?? null);
       onAuthChange(session?.user ?? null);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      console.log('Auth component - cleaning up subscription');
+      subscription.unsubscribe();
+    };
   }, [onAuthChange]);
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('Sign up attempt with email:', email);
     setLoading(true);
 
     try {
@@ -56,6 +66,7 @@ export const Auth = ({ onAuthChange }: AuthProps) => {
       });
 
       if (error) {
+        console.error('Sign up error:', error);
         if (error.message.includes('already registered')) {
           toast({
             title: "Account exists",
@@ -70,12 +81,14 @@ export const Auth = ({ onAuthChange }: AuthProps) => {
           });
         }
       } else {
+        console.log('Sign up successful');
         toast({
           title: "Check your email",
           description: "We've sent you a confirmation link to complete your registration.",
         });
       }
     } catch (error) {
+      console.error('Sign up exception:', error);
       toast({
         title: "Error",
         description: "An unexpected error occurred. Please try again.",
@@ -88,6 +101,7 @@ export const Auth = ({ onAuthChange }: AuthProps) => {
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('Sign in attempt with email:', email);
     setLoading(true);
 
     try {
@@ -97,18 +111,21 @@ export const Auth = ({ onAuthChange }: AuthProps) => {
       });
 
       if (error) {
+        console.error('Sign in error:', error);
         toast({
           title: "Sign in failed",
           description: error.message,
           variant: "destructive",
         });
       } else {
+        console.log('Sign in successful');
         toast({
           title: "Welcome back!",
           description: "You have been signed in successfully.",
         });
       }
     } catch (error) {
+      console.error('Sign in exception:', error);
       toast({
         title: "Error",
         description: "An unexpected error occurred. Please try again.",
@@ -120,14 +137,17 @@ export const Auth = ({ onAuthChange }: AuthProps) => {
   };
 
   const handleSignOut = async () => {
+    console.log('Sign out attempt');
     const { error } = await supabase.auth.signOut();
     if (error) {
+      console.error('Sign out error:', error);
       toast({
         title: "Error",
         description: error.message,
         variant: "destructive",
       });
     } else {
+      console.log('Sign out successful');
       toast({
         title: "Signed out",
         description: "You have been signed out successfully.",
@@ -135,7 +155,10 @@ export const Auth = ({ onAuthChange }: AuthProps) => {
     }
   };
 
+  console.log('Auth component - current user state:', !!user);
+
   if (user) {
+    console.log('Auth component - rendering signed in state');
     return (
       <Card className="p-6 max-w-md mx-auto">
         <div className="text-center space-y-4">
@@ -154,91 +177,94 @@ export const Auth = ({ onAuthChange }: AuthProps) => {
     );
   }
 
+  console.log('Auth component - rendering sign in form');
   return (
-    <Card className="p-6 max-w-md mx-auto">
-      <Tabs defaultValue="signin" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="signin">Sign In</TabsTrigger>
-          <TabsTrigger value="signup">Sign Up</TabsTrigger>
-        </TabsList>
+    <div className="w-full">
+      <Card className="p-6 max-w-md mx-auto">
+        <Tabs defaultValue="signin" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="signin">Sign In</TabsTrigger>
+            <TabsTrigger value="signup">Sign Up</TabsTrigger>
+          </TabsList>
 
-        <TabsContent value="signin">
-          <form onSubmit={handleSignIn} className="space-y-4">
-            <div className="text-center mb-6">
-              <LogIn className="w-12 h-12 mx-auto mb-4 text-blue-600" />
-              <h2 className="text-xl font-semibold">Sign In</h2>
-              <p className="text-gray-600">Welcome back to Form Builder</p>
-            </div>
+          <TabsContent value="signin">
+            <form onSubmit={handleSignIn} className="space-y-4">
+              <div className="text-center mb-6">
+                <LogIn className="w-12 h-12 mx-auto mb-4 text-blue-600" />
+                <h2 className="text-xl font-semibold">Sign In</h2>
+                <p className="text-gray-600">Welcome back to Form Builder</p>
+              </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="signin-email">Email</Label>
-              <Input
-                id="signin-email"
-                type="email"
-                placeholder="Enter your email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
+              <div className="space-y-2">
+                <Label htmlFor="signin-email">Email</Label>
+                <Input
+                  id="signin-email"
+                  type="email"
+                  placeholder="Enter your email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="signin-password">Password</Label>
-              <Input
-                id="signin-password"
-                type="password"
-                placeholder="Enter your password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </div>
+              <div className="space-y-2">
+                <Label htmlFor="signin-password">Password</Label>
+                <Input
+                  id="signin-password"
+                  type="password"
+                  placeholder="Enter your password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+              </div>
 
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Signing in..." : "Sign In"}
-            </Button>
-          </form>
-        </TabsContent>
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? "Signing in..." : "Sign In"}
+              </Button>
+            </form>
+          </TabsContent>
 
-        <TabsContent value="signup">
-          <form onSubmit={handleSignUp} className="space-y-4">
-            <div className="text-center mb-6">
-              <UserPlus className="w-12 h-12 mx-auto mb-4 text-purple-600" />
-              <h2 className="text-xl font-semibold">Sign Up</h2>
-              <p className="text-gray-600">Create your Form Builder account</p>
-            </div>
+          <TabsContent value="signup">
+            <form onSubmit={handleSignUp} className="space-y-4">
+              <div className="text-center mb-6">
+                <UserPlus className="w-12 h-12 mx-auto mb-4 text-purple-600" />
+                <h2 className="text-xl font-semibold">Sign Up</h2>
+                <p className="text-gray-600">Create your Form Builder account</p>
+              </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="signup-email">Email</Label>
-              <Input
-                id="signup-email"
-                type="email"
-                placeholder="Enter your email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
+              <div className="space-y-2">
+                <Label htmlFor="signup-email">Email</Label>
+                <Input
+                  id="signup-email"
+                  type="email"
+                  placeholder="Enter your email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="signup-password">Password</Label>
-              <Input
-                id="signup-password"
-                type="password"
-                placeholder="Create a password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                minLength={6}
-              />
-            </div>
+              <div className="space-y-2">
+                <Label htmlFor="signup-password">Password</Label>
+                <Input
+                  id="signup-password"
+                  type="password"
+                  placeholder="Create a password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  minLength={6}
+                />
+              </div>
 
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Creating account..." : "Sign Up"}
-            </Button>
-          </form>
-        </TabsContent>
-      </Tabs>
-    </Card>
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? "Creating account..." : "Sign Up"}
+              </Button>
+            </form>
+          </TabsContent>
+        </Tabs>
+      </Card>
+    </div>
   );
 };

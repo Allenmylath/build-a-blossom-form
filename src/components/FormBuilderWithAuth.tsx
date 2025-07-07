@@ -47,8 +47,10 @@ export const FormBuilderWithAuth = () => {
             </p>
           </div>
 
-          <div className="mb-8">
-            <Auth onAuthChange={handleAuthChange} />
+          <div className="mb-8 flex justify-center">
+            <div className="w-full max-w-md">
+              <Auth onAuthChange={handleAuthChange} />
+            </div>
           </div>
 
           <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
