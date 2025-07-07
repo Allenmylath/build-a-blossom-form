@@ -28,15 +28,15 @@ export const NavigationHeader = () => {
     <header className="bg-white border-b border-green-200 px-4 py-3 shadow-sm">
       <div className="max-w-6xl mx-auto flex items-center justify-between">
         <Link to="/" className="hover:opacity-80 transition-opacity">
-          <div className="modforms-text text-2xl font-bold">
-            <span className="letter">M</span>
-            <span className="letter">o</span>
-            <span className="letter">d</span>
-            <span className="letter">F</span>
-            <span className="letter">o</span>
-            <span className="letter">r</span>
-            <span className="letter">m</span>
-            <span className="letter">s</span>
+          <div className="modforms-text text-2xl font-bold" style={{ fontWeight: 700, letterSpacing: '0.1em', display: 'inline-block' }}>
+            <span className="letter" style={{ display: 'inline-block', color: '#ef4444', textShadow: '0 4px 8px rgba(0, 0, 0, 0.2)' }}>M</span>
+            <span className="letter" style={{ display: 'inline-block', color: '#fbbf24', textShadow: '0 4px 8px rgba(0, 0, 0, 0.2)' }}>o</span>
+            <span className="letter" style={{ display: 'inline-block', color: '#22c55e', textShadow: '0 4px 8px rgba(0, 0, 0, 0.2)' }}>d</span>
+            <span className="letter" style={{ display: 'inline-block', color: '#ef4444', textShadow: '0 4px 8px rgba(0, 0, 0, 0.2)' }}>F</span>
+            <span className="letter" style={{ display: 'inline-block', color: '#fbbf24', textShadow: '0 4px 8px rgba(0, 0, 0, 0.2)' }}>o</span>
+            <span className="letter" style={{ display: 'inline-block', color: '#22c55e', textShadow: '0 4px 8px rgba(0, 0, 0, 0.2)' }}>r</span>
+            <span className="letter" style={{ display: 'inline-block', color: '#ef4444', textShadow: '0 4px 8px rgba(0, 0, 0, 0.2)' }}>m</span>
+            <span className="letter" style={{ display: 'inline-block', color: '#fbbf24', textShadow: '0 4px 8px rgba(0, 0, 0, 0.2)' }}>s</span>
           </div>
         </Link>
         
