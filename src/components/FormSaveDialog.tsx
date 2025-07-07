@@ -32,7 +32,7 @@ interface FormSaveDialogProps {
 
 export const FormSaveDialog = ({ isOpen, onClose, onSave, initialData, fields = [] }: FormSaveDialogProps) => {
   const { user } = useAppStore();
-  const { knowledgeBases } = useKnowledgeBases(user);
+  const { knowledgeBases, loading } = useKnowledgeBases(user);
   const [formData, setFormData] = useState({
     name: initialData?.name || '',
     description: initialData?.description || '',
@@ -42,6 +42,13 @@ export const FormSaveDialog = ({ isOpen, onClose, onSave, initialData, fields = 
 
   // Check if form contains a chat field
   const hasChatField = fields.some(field => field.type === 'chat');
+
+  console.log('FormSaveDialog debug:', {
+    hasChatField,
+    knowledgeBases: knowledgeBases.length,
+    selectedKnowledgeBaseId: formData.knowledgeBaseId,
+    loading
+  });
 
   useEffect(() => {
     if (initialData) {
@@ -59,8 +66,11 @@ export const FormSaveDialog = ({ isOpen, onClose, onSave, initialData, fields = 
     
     // Validate that knowledge base is selected if form has chat field
     if (hasChatField && !formData.knowledgeBaseId) {
-      return; // Form validation will show the error
+      console.error('Knowledge base is required for chat forms');
+      return;
     }
+    
+    console.log('Submitting form data:', formData);
     
     onSave({
       name: formData.name,
@@ -79,6 +89,8 @@ export const FormSaveDialog = ({ isOpen, onClose, onSave, initialData, fields = 
     });
     onClose();
   };
+
+  const selectedKnowledgeBase = knowledgeBases.find(kb => kb.id === formData.knowledgeBaseId);
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -117,25 +129,45 @@ export const FormSaveDialog = ({ isOpen, onClose, onSave, initialData, fields = 
                 <MessageCircle className="w-4 h-4 text-purple-600" />
                 Knowledge Base (Required for Chat Forms)
               </Label>
-              <Select
-                value={formData.knowledgeBaseId}
-                onValueChange={(value) => setFormData(prev => ({ ...prev, knowledgeBaseId: value }))}
-                required
-              >
-                <SelectTrigger className={!formData.knowledgeBaseId ? 'border-red-500' : ''}>
-                  <SelectValue placeholder="Select a knowledge base" />
-                </SelectTrigger>
-                <SelectContent>
-                  {knowledgeBases.map((kb) => (
-                    <SelectItem key={kb.id} value={kb.id}>
-                      <div className="flex items-center gap-2">
-                        <Database className="w-4 h-4" />
-                        {kb.name}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {loading ? (
+                <div className="text-sm text-gray-500">Loading knowledge bases...</div>
+              ) : knowledgeBases.length === 0 ? (
+                <div className="text-sm text-red-600">
+                  No knowledge bases found. Please create one first.
+                </div>
+              ) : (
+                <Select
+                  value={formData.knowledgeBaseId}
+                  onValueChange={(value) => {
+                    console.log('Knowledge base selected:', value);
+                    setFormData(prev => ({ ...prev, knowledgeBaseId: value }));
+                  }}
+                  required
+                >
+                  <SelectTrigger className={!formData.knowledgeBaseId ? 'border-red-500' : ''}>
+                    <SelectValue placeholder="Select a knowledge base">
+                      {selectedKnowledgeBase ? (
+                        <div className="flex items-center gap-2">
+                          <Database className="w-4 h-4" />
+                          {selectedKnowledgeBase.name}
+                        </div>
+                      ) : (
+                        "Select a knowledge base"
+                      )}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {knowledgeBases.map((kb) => (
+                      <SelectItem key={kb.id} value={kb.id}>
+                        <div className="flex items-center gap-2">
+                          <Database className="w-4 h-4" />
+                          {kb.name}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
               {!formData.knowledgeBaseId && (
                 <div className="flex items-center gap-1 text-sm text-red-600">
                   <AlertCircle className="w-4 h-4" />
