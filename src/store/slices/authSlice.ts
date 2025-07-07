@@ -115,7 +115,7 @@ export const createAuthSlice: StateCreator<
   },
 
   updateAuthState: (user: User | null, session: Session | null) => {
-    // Debounce auth state updates to prevent infinite loops
+    // Clear any existing timeout
     if (updateAuthStateTimeout) {
       clearTimeout(updateAuthStateTimeout);
     }
@@ -123,8 +123,19 @@ export const createAuthSlice: StateCreator<
     updateAuthStateTimeout = setTimeout(() => {
       console.log('UpdateAuthState called:', { user: !!user, session: !!session });
       const currentState = get() as any;
+      
+      // More robust duplicate check
       const currentUserId = currentState.user?.id;
       const newUserId = user?.id;
+      const currentSessionToken = currentState.session?.access_token;
+      const newSessionToken = session?.access_token;
+      
+      // Skip if truly no change
+      if (currentUserId === newUserId && currentSessionToken === newSessionToken) {
+        console.log('Skipping duplicate auth state update');
+        return;
+      }
+      
       const eventId = `${Date.now()}-${newUserId || 'null'}`;
       
       // Prevent duplicate updates
@@ -180,7 +191,7 @@ export const createAuthSlice: StateCreator<
           lastAuthEvent: eventId,
         });
       }
-    }, 50); // 50ms debounce
+    }, 100); // Increased debounce time
   },
 
   initializeAuth: async () => {
