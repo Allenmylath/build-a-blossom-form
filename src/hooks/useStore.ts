@@ -1,24 +1,12 @@
 
 import { useEffect } from 'react';
-import { useAuthActions } from '@/store';
+import { useAppStore } from '@/store';
 
-// Custom hook to initialize the store
+// Simplified hook - the actual initialization is now handled in StoreProvider
 export const useStoreInitialization = () => {
-  const { initializeAuth } = useAuthActions();
+  const { user, authLoading } = useAppStore();
   
   useEffect(() => {
-    console.log('Initializing store...');
-    
-    // Initialize auth when the app starts
-    try {
-      initializeAuth();
-      console.log('Auth initialization completed');
-    } catch (error) {
-      console.error('Error initializing auth:', error);
-    }
-    
-    return () => {
-      console.log('Cleaning up store initialization');
-    };
-  }, [initializeAuth]);
+    console.log('useStoreInitialization - Auth state:', { user: !!user, authLoading });
+  }, [user, authLoading]);
 };

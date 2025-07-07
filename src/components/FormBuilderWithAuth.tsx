@@ -8,25 +8,25 @@ import { Plus } from 'lucide-react';
 import { useAppStore } from '@/store';
 
 export const FormBuilderWithAuth = () => {
-  const { user, authLoading: loading } = useAppStore();
+  const { user, authLoading } = useAppStore();
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
-    console.log('FormBuilderWithAuth state:', { user: !!user, loading });
+    console.log('FormBuilderWithAuth state:', { user: !!user, authLoading });
     // Add a small delay to ensure store is fully initialized
     const timer = setTimeout(() => {
       setIsReady(true);
-    }, 100);
+    }, 500);
     
     return () => clearTimeout(timer);
-  }, [user, loading]);
+  }, [user, authLoading]);
 
   const handleAuthChange = (newUser: User | null) => {
     console.log('Auth change handled:', !!newUser);
     // This will be handled by the store's auth management
   };
 
-  if (loading || !isReady) {
+  if (authLoading || !isReady) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 flex items-center justify-center">
         <div className="text-lg">Loading...</div>
