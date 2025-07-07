@@ -1,13 +1,16 @@
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { useAppStore } from '@/store';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { useKnowledgeBases } from '@/hooks/useKnowledgeBases';
+import { Database, MessageCircle, AlertCircle } from 'lucide-react';
 import { FormField } from '@/types/form';
-import { KnowledgeBaseSelector } from './form-save/KnowledgeBaseSelector';
-import { FormSaveFields } from './form-save/FormSaveFields';
-import { useFormSaveValidation } from './form-save/FormSaveValidation';
 
 interface FormSaveDialogProps {
   isOpen: boolean;
@@ -27,93 +30,47 @@ interface FormSaveDialogProps {
   fields?: FormField[];
 }
 
-const FormSaveDialogComponent = React.memo<FormSaveDialogProps>(({ 
-  isOpen, 
-  onClose, 
-  onSave, 
-  initialData, 
-  fields = [] 
-}) => {
-  // Early return if dialog is not open to prevent unnecessary renders
-  if (!isOpen) {
-    return null;
-  }
-
-  const { user } = useAppStore();
-  const { knowledgeBases, loading } = useKnowledgeBases(user);
-  
+export const FormSaveDialog = ({ isOpen, onClose, onSave, initialData, fields = [] }: FormSaveDialogProps) => {
+  const { user } = useSupabaseAuth();
+  const { knowledgeBases } = useKnowledgeBases(user);
   const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    isPublic: false,
-    knowledgeBaseId: '',
+    name: initialData?.name || '',
+    description: initialData?.description || '',
+    isPublic: initialData?.isPublic || false,
+    knowledgeBaseId: initialData?.knowledgeBaseId || '',
   });
 
-  // Memoize the chat field check to prevent recalculation
-  const hasChatField = useMemo(() => {
-    return fields.some(field => field.type === 'chat');
-  }, [fields]);
+  // Check if form contains a chat field
+  const hasChatField = fields.some(field => field.type === 'chat');
 
-  // Memoize initial data to prevent unnecessary effects
-  const memoizedInitialData = useMemo(() => {
-    if (!initialData) return null;
-    
-    return {
-      name: initialData.name || '',
-      description: initialData.description || '',
-      isPublic: initialData.isPublic || false,
-      knowledgeBaseId: initialData.knowledgeBaseId || ''
-    };
-  }, [
-    initialData?.name,
-    initialData?.description,
-    initialData?.isPublic,
-    initialData?.knowledgeBaseId
-  ]);
-
-  // Use validation hook
-  const { validateAndSubmit, shouldShowValidationError } = useFormSaveValidation({
-    hasChatField,
-    onSave
-  });
-
-  console.log('FormSaveDialog render:', {
-    isOpen,
-    hasChatField,
-    knowledgeBases: knowledgeBases.length,
-    selectedKnowledgeBaseId: formData.knowledgeBaseId,
-    loading
-  });
-
-  // Only update form data when dialog opens and initialData is provided
   useEffect(() => {
-    if (isOpen && memoizedInitialData) {
-      setFormData(prev => {
-        // Only update if values actually changed
-        if (
-          prev.name !== memoizedInitialData.name ||
-          prev.description !== memoizedInitialData.description ||
-          prev.isPublic !== memoizedInitialData.isPublic ||
-          prev.knowledgeBaseId !== memoizedInitialData.knowledgeBaseId
-        ) {
-          return {
-            name: memoizedInitialData.name,
-            description: memoizedInitialData.description,
-            isPublic: memoizedInitialData.isPublic,
-            knowledgeBaseId: memoizedInitialData.knowledgeBaseId,
-          };
-        }
-        return prev;
+    if (initialData) {
+      setFormData({
+        name: initialData.name,
+        description: initialData.description,
+        isPublic: initialData.isPublic,
+        knowledgeBaseId: initialData.knowledgeBaseId || '',
       });
     }
-  }, [isOpen, memoizedInitialData]);
+  }, [initialData]);
 
-  const handleSubmit = useCallback((e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    validateAndSubmit(formData);
-  }, [formData, validateAndSubmit]);
+    
+    // Validate that knowledge base is selected if form has chat field
+    if (hasChatField && !formData.knowledgeBaseId) {
+      return; // Form validation will show the error
+    }
+    
+    onSave({
+      name: formData.name,
+      description: formData.description,
+      isPublic: formData.isPublic,
+      knowledgeBaseId: formData.knowledgeBaseId || undefined,
+    });
+  };
 
-  const handleClose = useCallback(() => {
+  const handleClose = () => {
     setFormData({
       name: '',
       description: '',
@@ -121,28 +78,7 @@ const FormSaveDialogComponent = React.memo<FormSaveDialogProps>(({
       knowledgeBaseId: '',
     });
     onClose();
-  }, [onClose]);
-
-  const handleInputChange = useCallback((field: string, value: string | boolean) => {
-    setFormData(prev => {
-      // Only update if value actually changed
-      if (prev[field as keyof typeof prev] !== value) {
-        return { ...prev, [field]: value };
-      }
-      return prev;
-    });
-  }, []);
-
-  const handleKnowledgeBaseChange = useCallback((value: string) => {
-    console.log('Knowledge base selected:', value);
-    setFormData(prev => {
-      // Only update if value actually changed
-      if (prev.knowledgeBaseId !== value) {
-        return { ...prev, knowledgeBaseId: value };
-      }
-      return prev;
-    });
-  }, []);
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -153,19 +89,75 @@ const FormSaveDialogComponent = React.memo<FormSaveDialogProps>(({
           </DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <FormSaveFields
-            formData={formData}
-            onInputChange={handleInputChange}
-          />
+          <div className="space-y-2">
+            <Label htmlFor="name">Form Name</Label>
+            <Input
+              id="name"
+              value={formData.name}
+              onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+              placeholder="Enter form name"
+              required
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="description">Description</Label>
+            <Textarea
+              id="description"
+              value={formData.description}
+              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+              placeholder="Enter form description (optional)"
+              rows={3}
+            />
+          </div>
 
-          <KnowledgeBaseSelector
-            knowledgeBases={knowledgeBases}
-            loading={loading}
-            selectedKnowledgeBaseId={formData.knowledgeBaseId}
-            onKnowledgeBaseChange={handleKnowledgeBaseChange}
-            hasChatField={hasChatField}
-            showValidationError={shouldShowValidationError(formData)}
-          />
+          {hasChatField && (
+            <div className="space-y-2">
+              <Label htmlFor="knowledgeBase" className="flex items-center gap-2">
+                <MessageCircle className="w-4 h-4 text-purple-600" />
+                Knowledge Base (Required for Chat Forms)
+              </Label>
+              <Select
+                value={formData.knowledgeBaseId}
+                onValueChange={(value) => setFormData(prev => ({ ...prev, knowledgeBaseId: value }))}
+                required
+              >
+                <SelectTrigger className={!formData.knowledgeBaseId ? 'border-red-500' : ''}>
+                  <SelectValue placeholder="Select a knowledge base" />
+                </SelectTrigger>
+                <SelectContent>
+                  {knowledgeBases.map((kb) => (
+                    <SelectItem key={kb.id} value={kb.id}>
+                      <div className="flex items-center gap-2">
+                        <Database className="w-4 h-4" />
+                        {kb.name}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {!formData.knowledgeBaseId && (
+                <div className="flex items-center gap-1 text-sm text-red-600">
+                  <AlertCircle className="w-4 h-4" />
+                  Knowledge base is required for forms with chat fields
+                </div>
+              )}
+              <p className="text-xs text-gray-500">
+                Chat forms require a knowledge base for AI-powered responses
+              </p>
+            </div>
+          )}
+          
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="public"
+              checked={formData.isPublic}
+              onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isPublic: checked }))}
+            />
+            <Label htmlFor="public" className="text-sm">
+              Make this form publicly accessible
+            </Label>
+          </div>
           
           <div className="flex justify-end space-x-2 pt-4">
             <Button type="button" variant="outline" onClick={handleClose}>
@@ -182,8 +174,4 @@ const FormSaveDialogComponent = React.memo<FormSaveDialogProps>(({
       </DialogContent>
     </Dialog>
   );
-});
-
-FormSaveDialogComponent.displayName = 'FormSaveDialog';
-
-export const FormSaveDialog = FormSaveDialogComponent;
+};

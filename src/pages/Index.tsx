@@ -1,9 +1,9 @@
 
-import { useAppStore } from '@/store';
+import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { FormBuilderWithAuth } from '@/components/FormBuilderWithAuth';
 
 export default function Index() {
-  const { user, authLoading: loading } = useAppStore();
+  const { user, loading } = useSupabaseAuth();
 
   if (loading) {
     return (

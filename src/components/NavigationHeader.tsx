@@ -10,40 +10,15 @@ import {
   NavigationMenuList,
   NavigationMenuTrigger,
 } from '@/components/ui/navigation-menu';
-import { useAppStore } from '@/store';
-import { useCallback, useMemo } from 'react';
-import React from 'react';
+import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 
-const NavigationHeaderComponent = () => {
+export const NavigationHeader = () => {
   const location = useLocation();
-  
-  // Use stable selectors to prevent infinite re-renders
-  const user = useAppStore(state => state.user);
-  const signOut = useAppStore(state => state.signOut);
+  const { user, signOut } = useSupabaseAuth();
 
-  // Memoize the sign out handler to prevent recreating it on every render
-  const handleSignOut = useCallback(async () => {
+  const handleSignOut = async () => {
     await signOut();
-  }, [signOut]);
-
-  // Memoize the navigation menu items to prevent re-creation
-  const navigationItems = useMemo(() => [
-    {
-      href: '/settings',
-      icon: Settings,
-      label: 'Settings'
-    },
-    {
-      href: '/knowledge-base',
-      icon: Database,
-      label: 'Knowledge Base'
-    },
-    {
-      href: '/pricing',
-      icon: DollarSign,
-      label: 'Pricing'
-    }
-  ], []);
+  };
 
   if (!user) {
     return null;
@@ -65,17 +40,33 @@ const NavigationHeaderComponent = () => {
               </NavigationMenuTrigger>
               <NavigationMenuContent>
                 <div className="w-48 p-2 bg-white">
-                  {navigationItems.map((item) => (
-                    <NavigationMenuLink asChild key={item.href}>
-                      <Link 
-                        to={item.href}
-                        className="flex items-center px-3 py-2 text-sm text-black hover:bg-green-50 hover:text-green-700 rounded-md"
-                      >
-                        <item.icon className="w-4 h-4 mr-2" />
-                        {item.label}
-                      </Link>
-                    </NavigationMenuLink>
-                  ))}
+                  <NavigationMenuLink asChild>
+                    <Link 
+                      to="/settings" 
+                      className="flex items-center px-3 py-2 text-sm text-black hover:bg-green-50 hover:text-green-700 rounded-md"
+                    >
+                      <Settings className="w-4 h-4 mr-2" />
+                      Settings
+                    </Link>
+                  </NavigationMenuLink>
+                  <NavigationMenuLink asChild>
+                    <Link 
+                      to="/knowledge-base" 
+                      className="flex items-center px-3 py-2 text-sm text-black hover:bg-green-50 hover:text-green-700 rounded-md"
+                    >
+                      <Database className="w-4 h-4 mr-2" />
+                      Knowledge Base
+                    </Link>
+                  </NavigationMenuLink>
+                  <NavigationMenuLink asChild>
+                    <Link 
+                      to="/pricing" 
+                      className="flex items-center px-3 py-2 text-sm text-black hover:bg-green-50 hover:text-green-700 rounded-md"
+                    >
+                      <DollarSign className="w-4 h-4 mr-2" />
+                      Pricing
+                    </Link>
+                  </NavigationMenuLink>
                   <div className="border-t border-green-200 my-1"></div>
                   <button 
                     onClick={handleSignOut}
@@ -93,6 +84,3 @@ const NavigationHeaderComponent = () => {
     </header>
   );
 };
-
-// Memoize the entire component to prevent unnecessary re-renders
-export const NavigationHeader = React.memo(NavigationHeaderComponent);

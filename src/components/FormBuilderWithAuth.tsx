@@ -1,30 +1,20 @@
 
-import { useAppStore } from '@/store';
+import { useState } from 'react';
+import { User } from '@supabase/supabase-js';
 import { FormBuilder } from './FormBuilder';
 import { Auth } from './Auth';
 import { Card } from '@/components/ui/card';
 import { Plus } from 'lucide-react';
+import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 
 export const FormBuilderWithAuth = () => {
-  // Use completely stable selectors with primitive values only
-  const isAuthenticated = useAppStore(state => !!state.user);
-  const authLoading = useAppStore(state => state.authLoading);
-  const isStable = useAppStore(state => state.isStable);
-  const user = useAppStore(state => state.user);
+  const { user, loading } = useSupabaseAuth();
 
-  console.log('FormBuilderWithAuth render:', { 
-    isAuthenticated, 
-    authLoading, 
-    isStable 
-  });
-
-  // Simple placeholder function - auth state is managed by the store
-  const handleAuthChange = () => {
-    console.log('Auth change placeholder called');
+  const handleAuthChange = (newUser: User | null) => {
+    // This will be handled by the useSupabaseAuth hook
   };
 
-  if (authLoading || !isStable) {
-    console.log('FormBuilderWithAuth showing loading state');
+  if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 flex items-center justify-center">
         <div className="text-lg">Loading...</div>
@@ -32,8 +22,7 @@ export const FormBuilderWithAuth = () => {
     );
   }
 
-  if (!isAuthenticated) {
-    console.log('FormBuilderWithAuth showing auth page');
+  if (!user) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 py-12 px-4">
         <div className="max-w-6xl mx-auto">
@@ -49,10 +38,8 @@ export const FormBuilderWithAuth = () => {
             </p>
           </div>
 
-          <div className="mb-8 flex justify-center">
-            <div className="w-full max-w-md">
-              <Auth onAuthChange={handleAuthChange} />
-            </div>
+          <div className="mb-8">
+            <Auth onAuthChange={handleAuthChange} />
           </div>
 
           <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
@@ -77,6 +64,5 @@ export const FormBuilderWithAuth = () => {
     );
   }
 
-  console.log('FormBuilderWithAuth rendering FormBuilder');
   return <FormBuilder user={user} />;
 };

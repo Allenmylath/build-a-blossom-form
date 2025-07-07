@@ -1,8 +1,6 @@
-
 import { useState } from 'react';
 import { SavedForm, FormTemplate } from '@/types/form';
 import { toast } from '@/hooks/use-toast';
-import { useUserPlanState, useUserPlanActions } from '@/store';
 
 interface UseFormHandlersProps {
   maxFormsReached: boolean;
@@ -26,22 +24,18 @@ export const useFormHandlers = ({
   onSelectTemplate,
 }: UseFormHandlersProps) => {
   const [showSaveDialog, setShowSaveDialog] = useState(false);
-  const { userSubscription, planLimits } = useUserPlanState();
-  const { checkFormLimit } = useUserPlanActions();
 
   const handleSaveForm = async (formData: { name: string; description: string; isPublic: boolean; knowledgeBaseId?: string }) => {
     console.log('Handling save form:', formData);
     
     // Check if creating new form and limit reached
-    if (!currentForm && userSubscription) {
-      if (maxFormsReached) {
-        toast({
-          title: "Form Limit Reached",
-          description: `${userSubscription.plan_type === 'hobby' ? 'Hobby' : 'Current'} plan allows maximum ${planLimits.maxForms} forms. Please upgrade to create more forms.`,
-          variant: "destructive",
-        });
-        return;
-      }
+    if (maxFormsReached && !currentForm) {
+      toast({
+        title: "Form Limit Reached",
+        description: "Hobby plan allows maximum 5 forms. Please upgrade to create more forms.",
+        variant: "destructive",
+      });
+      return;
     }
 
     // Check if there are fields to save
@@ -149,15 +143,13 @@ export const useFormHandlers = ({
   };
 
   const handleDuplicateForm = async (form: SavedForm) => {
-    if (userSubscription) {
-      if (maxFormsReached) {
-        toast({
-          title: "Form Limit Reached",
-          description: `${userSubscription.plan_type === 'hobby' ? 'Hobby' : 'Current'} plan allows maximum ${planLimits.maxForms} forms. Please upgrade to create more forms.`,
-          variant: "destructive",
-        });
-        return;
-      }
+    if (maxFormsReached) {
+      toast({
+        title: "Form Limit Reached",
+        description: "Hobby plan allows maximum 5 forms. Please upgrade to create more forms.",
+        variant: "destructive",
+      });
+      return;
     }
     
     const duplicatedFormData = await saveForm(
@@ -202,6 +194,7 @@ export const useFormHandlers = ({
         });
         return;
       }
+      // Export functionality would be implemented here
       toast({
         title: "Export Feature",
         description: "Export functionality coming soon!",
