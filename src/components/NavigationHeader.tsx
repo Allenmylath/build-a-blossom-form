@@ -27,8 +27,17 @@ export const NavigationHeader = () => {
   return (
     <header className="bg-white border-b border-green-200 px-4 py-3 shadow-sm">
       <div className="max-w-6xl mx-auto flex items-center justify-between">
-        <Link to="/" className="text-xl font-bold text-green-700 hover:text-green-800">
-          Form Builder
+        <Link to="/" className="hover:opacity-80 transition-opacity">
+          <div className="modforms-text text-2xl font-bold">
+            <span className="letter">M</span>
+            <span className="letter">o</span>
+            <span className="letter">d</span>
+            <span className="letter">F</span>
+            <span className="letter">o</span>
+            <span className="letter">r</span>
+            <span className="letter">m</span>
+            <span className="letter">s</span>
+          </div>
         </Link>
         
         <NavigationMenu>
