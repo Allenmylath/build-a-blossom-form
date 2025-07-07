@@ -11,14 +11,19 @@ import {
   NavigationMenuTrigger,
 } from '@/components/ui/navigation-menu';
 import { useAppStore } from '@/store';
+import { useCallback } from 'react';
 
 export const NavigationHeader = () => {
   const location = useLocation();
-  const { user, signOut } = useAppStore();
+  
+  // Use stable selectors to prevent infinite re-renders
+  const user = useAppStore(state => state.user);
+  const signOut = useAppStore(state => state.signOut);
 
-  const handleSignOut = async () => {
+  // Memoize the sign out handler to prevent recreating it on every render
+  const handleSignOut = useCallback(async () => {
     await signOut();
-  };
+  }, [signOut]);
 
   if (!user) {
     return null;
