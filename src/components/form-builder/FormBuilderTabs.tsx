@@ -1,13 +1,12 @@
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Eye, FolderOpen, FileText, MessageCircle } from 'lucide-react';
+import { Plus, Eye, FolderOpen, FileText } from 'lucide-react';
 import { FormActions } from './FormActions';
 import { BuilderPanel } from './BuilderPanel';
 import { FormFieldEditor } from '../FormFieldEditor';
 import { FormPreview } from '../FormPreview';
 import { FormTemplates } from '../FormTemplates';
 import { FormManager } from '../FormManager';
-import { ConversationalForm } from '../ConversationalForm';
 import { FormField, SavedForm, FormTemplate } from '@/types/form';
 
 interface FormBuilderTabsProps {
@@ -15,7 +14,6 @@ interface FormBuilderTabsProps {
   selectedFieldId: string | null;
   currentForm: SavedForm | null;
   savedForms: SavedForm[];
-  isHobbyPlan: boolean;
   onAddField: (type: any) => void;
   onSelectField: (fieldId: string) => void;
   onMoveField: (fieldId: string, direction: 'up' | 'down') => void;
@@ -37,7 +35,6 @@ export const FormBuilderTabs = ({
   selectedFieldId,
   currentForm,
   savedForms,
-  isHobbyPlan,
   onAddField,
   onSelectField,
   onMoveField,
@@ -57,7 +54,7 @@ export const FormBuilderTabs = ({
 
   return (
     <Tabs defaultValue="builder" className="w-full">
-      <TabsList className={`grid w-full ${isHobbyPlan ? 'grid-cols-4' : 'grid-cols-5'}`}>
+      <TabsList className="grid w-full grid-cols-4">
         <TabsTrigger value="builder" className="flex items-center">
           <Plus className="w-4 h-4 mr-2" />
           Builder
@@ -74,12 +71,6 @@ export const FormBuilderTabs = ({
           <FolderOpen className="w-4 h-4 mr-2" />
           Manage
         </TabsTrigger>
-        {!isHobbyPlan && (
-          <TabsTrigger value="chat" className="flex items-center">
-            <MessageCircle className="w-4 h-4 mr-2" />
-            Chat Form
-          </TabsTrigger>
-        )}
       </TabsList>
 
       <TabsContent value="builder">
@@ -133,20 +124,6 @@ export const FormBuilderTabs = ({
         />
       </TabsContent>
 
-      {!isHobbyPlan && (
-        <TabsContent value="chat" className="space-y-6">
-          <div className="text-center mb-6">
-            <h2 className="text-2xl font-bold mb-2 flex items-center justify-center">
-              <MessageCircle className="w-6 h-6 mr-2 text-purple-600" />
-              Conversational Form
-            </h2>
-            <p className="text-gray-600">
-              Advanced form with voice and text chat capabilities powered by AI bot
-            </p>
-          </div>
-          <ConversationalForm />
-        </TabsContent>
-      )}
     </Tabs>
   );
 };

@@ -61,7 +61,6 @@ export const FormBuilderContent = ({
         selectedFieldId={selectedFieldId}
         currentForm={currentForm}
         savedForms={savedForms}
-        isHobbyPlan={isHobbyPlan}
         onAddField={onAddField}
         onSelectField={(fieldId) => {
           // This will be handled by selecting the field in the useFormBuilder hook

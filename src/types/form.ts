@@ -3,6 +3,19 @@ export type FormFieldType = 'text' | 'email' | 'number' | 'textarea' | 'select' 
 
 export type SubmissionType = 'traditional' | 'chat' | 'hybrid';
 
+export interface ChatMessage {
+  id: string;
+  type: 'user' | 'bot' | 'error';
+  content: string;
+  timestamp: Date;
+}
+
+export interface ConversationTranscript {
+  messages: ChatMessage[];
+  sessionId: string;
+  totalMessages: number;
+}
+
 export interface ChatFieldResponse {
   type: 'chat';
   sessionId: string;
