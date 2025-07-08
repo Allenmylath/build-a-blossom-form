@@ -1,7 +1,8 @@
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useSupabaseAuth } from './useSupabaseAuth';
+import { toast } from 'sonner';
 
 interface ChatMessage {
   id: string;
@@ -26,7 +27,9 @@ export const useChatSession = (formId: string, fieldId: string) => {
   const [session, setSession] = useState<ChatSessionData | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
   const sessionKeyRef = useRef<string>('');
+  const initializationRef = useRef<Promise<void> | null>(null);
 
   // Generate or retrieve session key for anonymous users
   useEffect(() => {
@@ -35,76 +38,93 @@ export const useChatSession = (formId: string, fieldId: string) => {
     }
   }, []);
 
-  // Initialize or retrieve existing session
-  useEffect(() => {
-    const initializeSession = async () => {
-      if (!formId || !fieldId) return;
+  // Initialize or retrieve existing session with proper error handling
+  const initializeSession = useCallback(async () => {
+    if (!formId || !fieldId || isInitialized) return;
 
-      try {
-        // First try to find existing session
-        let { data: existingSession, error } = await supabase
+    try {
+      console.log('Initializing chat session for form:', formId, 'field:', fieldId);
+
+      // First try to find existing active session
+      const { data: existingSession, error: fetchError } = await supabase
+        .from('chat_sessions')
+        .select('*')
+        .eq('form_id', formId)
+        .eq('form_field_id', fieldId)
+        .eq('is_active', true)
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (fetchError && fetchError.code !== 'PGRST116') {
+        console.error('Error fetching existing session:', fetchError);
+        toast.error('Failed to load chat session');
+        return;
+      }
+
+      let sessionData: any = existingSession?.[0];
+
+      // Create new session if none exists
+      if (!sessionData) {
+        console.log('Creating new chat session');
+        const { data: newSession, error: createError } = await supabase
           .from('chat_sessions')
-          .select('*')
-          .eq('form_id', formId)
-          .eq('form_field_id', fieldId)
-          .eq('is_active', true)
-          .order('created_at', { ascending: false })
-          .limit(1);
+          .insert({
+            form_id: formId,
+            form_field_id: fieldId,
+            user_id: user?.id || null,
+            session_key: sessionKeyRef.current,
+            conversation_context: [],
+            is_active: true,
+            total_messages: 0
+          })
+          .select()
+          .single();
 
-        if (error && error.code !== 'PGRST116') {
-          console.error('Error fetching existing session:', error);
+        if (createError) {
+          console.error('Error creating session:', createError);
+          toast.error('Failed to create chat session');
           return;
         }
 
-        let sessionData: any = existingSession?.[0];
-
-        // Create new session if none exists
-        if (!sessionData) {
-          const { data: newSession, error: createError } = await supabase
-            .from('chat_sessions')
-            .insert({
-              form_id: formId,
-              form_field_id: fieldId,
-              user_id: user?.id || null,
-              session_key: sessionKeyRef.current,
-              conversation_context: [],
-              is_active: true,
-              total_messages: 0
-            })
-            .select()
-            .single();
-
-          if (createError) {
-            console.error('Error creating session:', createError);
-            return;
-          }
-
-          sessionData = newSession;
-        }
-
-        setSession({
-          id: sessionData.id,
-          formId: sessionData.form_id,
-          formFieldId: sessionData.form_field_id,
-          sessionKey: sessionData.session_key,
-          conversationContext: sessionData.conversation_context || [],
-          isActive: sessionData.is_active,
-          totalMessages: sessionData.total_messages || 0
-        });
-
-        // Load existing messages for this session
-        await loadMessages(sessionData.id);
-
-      } catch (error) {
-        console.error('Error initializing session:', error);
+        sessionData = newSession;
+        console.log('Created new session:', sessionData.id);
+      } else {
+        console.log('Using existing session:', sessionData.id);
       }
-    };
 
-    initializeSession();
-  }, [formId, fieldId, user?.id]);
+      setSession({
+        id: sessionData.id,
+        formId: sessionData.form_id,
+        formFieldId: sessionData.form_field_id,
+        sessionKey: sessionData.session_key,
+        conversationContext: sessionData.conversation_context || [],
+        isActive: sessionData.is_active,
+        totalMessages: sessionData.total_messages || 0
+      });
+
+      // Load existing messages for this session
+      await loadMessages(sessionData.id);
+      setIsInitialized(true);
+
+    } catch (error) {
+      console.error('Error initializing session:', error);
+      toast.error('Failed to initialize chat session');
+    }
+  }, [formId, fieldId, user?.id, isInitialized]);
+
+  // Initialize session with race condition protection
+  useEffect(() => {
+    if (!initializationRef.current) {
+      initializationRef.current = initializeSession();
+    }
+    return () => {
+      initializationRef.current = null;
+    };
+  }, [initializeSession]);
 
   const loadMessages = async (sessionId: string) => {
     try {
+      console.log('Loading messages for session:', sessionId);
       const { data: chatMessages, error } = await supabase
         .from('chat_messages')
         .select('*')
@@ -125,23 +145,29 @@ export const useChatSession = (formId: string, fieldId: string) => {
       }));
 
       setMessages(formattedMessages);
+      console.log('Loaded', formattedMessages.length, 'messages');
     } catch (error) {
       console.error('Error loading messages:', error);
     }
   };
 
   const addMessage = async (type: 'user' | 'bot' | 'error', content: string) => {
-    if (!session) return null;
+    if (!session) {
+      console.error('No session available for adding message');
+      return null;
+    }
 
     try {
       const messageIndex = session.totalMessages;
       const role = type === 'user' ? 'user' : type === 'error' ? 'system' : 'assistant';
 
+      console.log('Adding message:', { type, role, messageIndex, sessionId: session.id });
+
       const { data: newMessage, error } = await supabase
         .from('chat_messages')
         .insert({
           session_id: session.id,
-          chat_id: null,
+          chat_id: crypto.randomUUID(), // Temporary value for non-null constraint
           role: role,
           content: content,
           message_type: type === 'error' ? 'error' : 'text',
@@ -153,6 +179,7 @@ export const useChatSession = (formId: string, fieldId: string) => {
 
       if (error) {
         console.error('Error adding message:', error);
+        toast.error('Failed to save message');
         return null;
       }
 
@@ -172,23 +199,33 @@ export const useChatSession = (formId: string, fieldId: string) => {
         totalMessages: prev.totalMessages + 1
       } : null);
 
+      console.log('Message added successfully:', formattedMessage.id);
       return formattedMessage;
     } catch (error) {
       console.error('Error adding message:', error);
+      toast.error('Failed to save message');
       return null;
     }
   };
 
   const sendMessage = async (content: string) => {
-    if (!session || isLoading) return;
+    if (!session || isLoading) {
+      console.log('Cannot send message: no session or already loading');
+      return;
+    }
 
     setIsLoading(true);
 
     try {
+      console.log('Sending message to chat API');
+      
       // Add user message first
-      await addMessage('user', content);
+      const userMessage = await addMessage('user', content);
+      if (!userMessage) {
+        throw new Error('Failed to save user message');
+      }
 
-      // Call the chat API
+      // Call the chat API with proper error handling
       const response = await fetch('/api/chat-gemini', {
         method: 'POST',
         headers: {
@@ -204,16 +241,26 @@ export const useChatSession = (formId: string, fieldId: string) => {
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        const errorText = await response.text();
+        console.error('Chat API error:', response.status, errorText);
+        throw new Error(`Chat API error: ${response.status}`);
       }
 
       const data = await response.json();
+      
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
       const botResponse = data.message || data.response || 'I received your message.';
       
       // Add bot response
-      await addMessage('bot', botResponse);
+      const botMessage = await addMessage('bot', botResponse);
+      if (!botMessage) {
+        throw new Error('Failed to save bot response');
+      }
 
-      // Update conversation context
+      // Update conversation context if provided
       if (data.conversationContext) {
         setSession(prev => prev ? {
           ...prev,
@@ -221,9 +268,13 @@ export const useChatSession = (formId: string, fieldId: string) => {
         } : null);
       }
 
+      console.log('Message exchange completed successfully');
+
     } catch (error) {
       console.error('Chat API Error:', error);
-      await addMessage('error', 'Sorry, I\'m having trouble connecting right now. Please try again.');
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      await addMessage('error', `Sorry, I encountered an error: ${errorMessage}. Please try again.`);
+      toast.error('Failed to send message');
     } finally {
       setIsLoading(false);
     }
@@ -233,6 +284,7 @@ export const useChatSession = (formId: string, fieldId: string) => {
     session,
     messages,
     isLoading,
+    isInitialized,
     sendMessage,
     addMessage
   };

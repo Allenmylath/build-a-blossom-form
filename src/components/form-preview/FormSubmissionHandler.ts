@@ -2,40 +2,73 @@
 import { supabase } from '@/integrations/supabase/client';
 import { FormSubmission } from '@/types/form';
 
-export const FormSubmissionHandler = {
-  submitForm: async (formId: string, formData: FormSubmission) => {
-    console.log('Saving submission to database for form:', formId);
-    
-    // Get user's IP address (simplified - in production you might want a more robust solution)
-    let ipAddress = null;
+export class FormSubmissionHandler {
+  static async submitForm(formId: string, formData: Record<string, any>): Promise<FormSubmission> {
     try {
-      const ipResponse = await fetch('https://api.ipify.org?format=json');
-      const ipData = await ipResponse.json();
-      ipAddress = ipData?.ip || null;
-      console.log('Retrieved IP address:', ipAddress);
-    } catch (ipError) {
-      console.log('Could not fetch IP address:', ipError);
-    }
-    
-    const submissionData = {
-      form_id: formId,
-      data: formData,
-      ip_address: ipAddress,
-    };
-    
-    console.log('Submitting data to Supabase:', submissionData);
-    
-    const { data, error } = await supabase
-      .from('form_submissions')
-      .insert(submissionData)
-      .select();
+      console.log('FormSubmissionHandler: Starting submission for form:', formId);
+      
+      // Clean the form data to remove any undefined values
+      const cleanedData = Object.fromEntries(
+        Object.entries(formData).filter(([_, value]) => value !== undefined)
+      );
 
-    if (error) {
-      console.error('Error saving form submission:', error);
-      throw new Error('Failed to save form submission');
-    }
+      console.log('FormSubmissionHandler: Cleaned form data:', cleanedData);
 
-    console.log('Form submission saved successfully:', data);
-    return data[0];
+      const { data, error } = await supabase
+        .from('form_submissions')
+        .insert({
+          form_id: formId,
+          data: cleanedData,
+          submitted_at: new Date().toISOString()
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('FormSubmissionHandler: Supabase error:', error);
+        throw new Error(`Submission failed: ${error.message}`);
+      }
+
+      if (!data) {
+        throw new Error('No data returned from submission');
+      }
+
+      console.log('FormSubmissionHandler: Submission successful:', data.id);
+
+      return {
+        id: data.id,
+        formId: data.form_id,
+        data: data.data,
+        submittedAt: new Date(data.submitted_at)
+      };
+    } catch (error) {
+      console.error('FormSubmissionHandler: Error in submitForm:', error);
+      throw error;
+    }
   }
-};
+
+  static async getFormSubmissions(formId: string): Promise<FormSubmission[]> {
+    try {
+      const { data, error } = await supabase
+        .from('form_submissions')
+        .select('*')
+        .eq('form_id', formId)
+        .order('submitted_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching form submissions:', error);
+        throw error;
+      }
+
+      return (data || []).map(submission => ({
+        id: submission.id,
+        formId: submission.form_id,
+        data: submission.data,
+        submittedAt: new Date(submission.submitted_at)
+      }));
+    } catch (error) {
+      console.error('FormSubmissionHandler: Error in getFormSubmissions:', error);
+      throw error;
+    }
+  }
+}
