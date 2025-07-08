@@ -67,7 +67,15 @@ export const useChatSession = (formId: string, fieldId: string) => {
       // Create new session if none exists
       if (!sessionData) {
         console.log('Creating new chat session');
-        const sessionInsert = {
+        const sessionInsert: {
+          form_id: string;
+          form_field_id: string;
+          session_key: string;
+          conversation_context: any[];
+          is_active: boolean;
+          total_messages: number;
+          user_id?: string;
+        } = {
           form_id: formId,
           form_field_id: fieldId,
           session_key: sessionKeyRef.current,
