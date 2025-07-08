@@ -1,6 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { FormSubmissionData } from '@/types/form';
+import { FormSubmissionData, FormSubmission } from '@/types/form';
 
 export class FormSubmissionHandler {
   static async submitForm(formId: string, formData: Record<string, any>): Promise<FormSubmissionData> {
@@ -38,7 +38,7 @@ export class FormSubmissionHandler {
       return {
         id: data.id,
         formId: data.form_id,
-        data: data.data,
+        data: data.data as FormSubmission,
         submittedAt: new Date(data.submitted_at)
       };
     } catch (error) {
@@ -63,7 +63,7 @@ export class FormSubmissionHandler {
       return (data || []).map(submission => ({
         id: submission.id,
         formId: submission.form_id,
-        data: submission.data,
+        data: submission.data as FormSubmission,
         submittedAt: new Date(submission.submitted_at)
       }));
     } catch (error) {
