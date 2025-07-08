@@ -14,10 +14,17 @@ export class FormSubmissionHandler {
 
       console.log('FormSubmissionHandler: Cleaned form data:', cleanedData);
 
+      // Get current user (null for anonymous users)
+      const { data: { user } } = await supabase.auth.getUser();
+      const userId = user?.id || null;
+
+      console.log('FormSubmissionHandler: User ID:', userId);
+
       const { data, error } = await supabase
         .from('form_submissions')
         .insert({
           form_id: formId,
+          user_id: userId,
           data: cleanedData,
           submitted_at: new Date().toISOString()
         })
