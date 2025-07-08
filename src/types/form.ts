@@ -69,3 +69,51 @@ export interface FormAnalytics {
     };
   };
 }
+// Add these new interfaces to src/types/form.ts
+
+export interface UnifiedSubmissionData {
+  id: string;
+  form_id: string;
+  submitted_at: string;
+  ip_address?: string;
+  user_id?: string;
+  
+  // Unified data structure
+  field_responses: {
+    // Traditional field responses
+    traditional_fields: Record<string, any>;
+    
+    // Chat field responses with context
+    chat_fields: Record<string, ChatFieldResponse>;
+  };
+  
+  // Metadata for analytics
+  submission_metadata: {
+    completion_time_seconds: number;
+    pages_visited: string[];
+    chat_sessions_count: number;
+    total_interactions: number;
+    form_type: 'traditional' | 'chat' | 'hybrid';
+  };
+}
+
+export interface ChatFieldResponse {
+  field_id: string;
+  session_id: string;
+  summary_response?: string; // AI-extracted key response
+  message_count: number;
+  conversation_duration_seconds: number;
+  key_messages: Array<{
+    role: 'user' | 'bot';
+    content: string;
+    timestamp: string;
+    importance_score?: number; // For analytics
+  }>;
+  full_transcript_reference: string; // Link to detailed chat_sessions record
+}
+
+// You might also want to update the existing FormSubmissionData interface
+// to extend or work with the new unified structure
+export interface EnhancedFormSubmissionData extends UnifiedSubmissionData {
+  // Add any additional properties specific to your form system
+}
