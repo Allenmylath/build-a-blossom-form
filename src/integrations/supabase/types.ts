@@ -70,7 +70,7 @@ export type Database = {
       chat_messages: {
         Row: {
           api_response_time: number | null
-          chat_id: string
+          chat_id: string | null
           content: string
           created_at: string
           id: string
@@ -84,7 +84,7 @@ export type Database = {
         }
         Insert: {
           api_response_time?: number | null
-          chat_id: string
+          chat_id?: string | null
           content: string
           created_at?: string
           id?: string
@@ -98,7 +98,7 @@ export type Database = {
         }
         Update: {
           api_response_time?: number | null
-          chat_id?: string
+          chat_id?: string | null
           content?: string
           created_at?: string
           id?: string
