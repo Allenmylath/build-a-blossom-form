@@ -51,6 +51,7 @@ export const useChatSession = (formId: string, fieldId: string) => {
         .select('*')
         .eq('form_id', formId)
         .eq('form_field_id', fieldId)
+        .eq('session_key', sessionKeyRef.current)
         .eq('is_active', true)
         .order('created_at', { ascending: false })
         .limit(1);
@@ -66,17 +67,23 @@ export const useChatSession = (formId: string, fieldId: string) => {
       // Create new session if none exists
       if (!sessionData) {
         console.log('Creating new chat session');
+        const sessionInsert = {
+          form_id: formId,
+          form_field_id: fieldId,
+          session_key: sessionKeyRef.current,
+          conversation_context: [],
+          is_active: true,
+          total_messages: 0
+        };
+
+        // Only add user_id if user is authenticated
+        if (user?.id) {
+          sessionInsert.user_id = user.id;
+        }
+
         const { data: newSession, error: createError } = await supabase
           .from('chat_sessions')
-          .insert({
-            form_id: formId,
-            form_field_id: fieldId,
-            user_id: user?.id || null,
-            session_key: sessionKeyRef.current,
-            conversation_context: [],
-            is_active: true,
-            total_messages: 0
-          })
+          .insert(sessionInsert)
           .select()
           .single();
 
@@ -167,7 +174,7 @@ export const useChatSession = (formId: string, fieldId: string) => {
         .from('chat_messages')
         .insert({
           session_id: session.id,
-          chat_id: crypto.randomUUID(), // Temporary value for non-null constraint
+          chat_id: session.id, // Use session_id as chat_id since we're using sessions now
           role: role,
           content: content,
           message_type: type === 'error' ? 'error' : 'text',
