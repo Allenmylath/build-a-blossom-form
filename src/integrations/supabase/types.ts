@@ -65,6 +65,13 @@ export type Database = {
             referencedRelation: "forms"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "chat_api_configs_form_id_fkey"
+            columns: ["form_id"]
+            isOneToOne: false
+            referencedRelation: "unified_form_analytics"
+            referencedColumns: ["form_id"]
+          },
         ]
       }
       chat_messages: {
@@ -138,6 +145,7 @@ export type Database = {
           is_active: boolean
           last_activity: string
           session_key: string
+          submission_id: string | null
           total_messages: number | null
           updated_at: string
           user_id: string | null
@@ -152,6 +160,7 @@ export type Database = {
           is_active?: boolean
           last_activity?: string
           session_key: string
+          submission_id?: string | null
           total_messages?: number | null
           updated_at?: string
           user_id?: string | null
@@ -166,6 +175,7 @@ export type Database = {
           is_active?: boolean
           last_activity?: string
           session_key?: string
+          submission_id?: string | null
           total_messages?: number | null
           updated_at?: string
           user_id?: string | null
@@ -176,6 +186,20 @@ export type Database = {
             columns: ["form_id"]
             isOneToOne: false
             referencedRelation: "forms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_sessions_form_id_fkey"
+            columns: ["form_id"]
+            isOneToOne: false
+            referencedRelation: "unified_form_analytics"
+            referencedColumns: ["form_id"]
+          },
+          {
+            foreignKeyName: "chat_sessions_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "form_submissions"
             referencedColumns: ["id"]
           },
         ]
@@ -254,29 +278,57 @@ export type Database = {
             referencedRelation: "forms"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "chats_form_id_fkey"
+            columns: ["form_id"]
+            isOneToOne: false
+            referencedRelation: "unified_form_analytics"
+            referencedColumns: ["form_id"]
+          },
         ]
       }
       form_submissions: {
         Row: {
+          chat_session_references: Json | null
+          completion_time_seconds: number | null
           data: Json
           form_id: string
           id: string
           ip_address: unknown | null
+          metadata: Json | null
+          pages_visited: Json | null
+          submission_type: string
           submitted_at: string
+          total_interactions: number | null
+          user_id: string | null
         }
         Insert: {
+          chat_session_references?: Json | null
+          completion_time_seconds?: number | null
           data?: Json
           form_id: string
           id?: string
           ip_address?: unknown | null
+          metadata?: Json | null
+          pages_visited?: Json | null
+          submission_type?: string
           submitted_at?: string
+          total_interactions?: number | null
+          user_id?: string | null
         }
         Update: {
+          chat_session_references?: Json | null
+          completion_time_seconds?: number | null
           data?: Json
           form_id?: string
           id?: string
           ip_address?: unknown | null
+          metadata?: Json | null
+          pages_visited?: Json | null
+          submission_type?: string
           submitted_at?: string
+          total_interactions?: number | null
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -285,6 +337,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "forms"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "form_submissions_form_id_fkey"
+            columns: ["form_id"]
+            isOneToOne: false
+            referencedRelation: "unified_form_analytics"
+            referencedColumns: ["form_id"]
           },
         ]
       }
@@ -415,12 +474,46 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      unified_form_analytics: {
+        Row: {
+          avg_completion_time: number | null
+          avg_interactions: number | null
+          chat_submissions: number | null
+          form_classification: string | null
+          form_id: string | null
+          form_name: string | null
+          hybrid_submissions: number | null
+          last_submission: string | null
+          submissions_month: number | null
+          submissions_today: number | null
+          submissions_week: number | null
+          total_chat_sessions: number | null
+          total_submissions: number | null
+          traditional_submissions: number | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       cleanup_inactive_chat_sessions: {
         Args: Record<PropertyKey, never>
         Returns: number
+      }
+      create_hybrid_submission: {
+        Args: {
+          p_form_id: string
+          p_user_id: string
+          p_traditional_data: Json
+          p_chat_sessions?: Json
+          p_completion_time?: number
+          p_pages_visited?: Json
+        }
+        Returns: string
+      }
+      create_unified_chat_submission: {
+        Args: { p_session_id: string; p_summary_data?: Json }
+        Returns: string
       }
       generate_and_update_chat_transcript: {
         Args: { p_session_id: string }
@@ -433,6 +526,10 @@ export type Database = {
       get_chat_transcript: {
         Args: { p_session_id: string; p_use_cache?: boolean }
         Returns: Json
+      }
+      migrate_existing_chat_sessions: {
+        Args: Record<PropertyKey, never>
+        Returns: number
       }
     }
     Enums: {
