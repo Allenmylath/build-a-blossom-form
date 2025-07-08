@@ -24,3 +24,13 @@ export const validateForm = (fields: FormField[], formData: FormSubmission): Rec
   
   return errors;
 };
+
+export const FormValidation = {
+  validateForm: (fields: FormField[], formData: FormSubmission) => {
+    const errors = validateForm(fields, formData);
+    return {
+      isValid: Object.keys(errors).length === 0,
+      errors
+    };
+  }
+};

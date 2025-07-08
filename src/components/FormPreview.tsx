@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { FormField, FormSubmission, SavedForm } from '@/types/form';
 import { Button } from '@/components/ui/button';
@@ -14,6 +15,7 @@ interface FormPreviewProps {
   title?: string;
   description?: string;
   savedForm?: SavedForm;
+  formId?: string;
 }
 
 export const FormPreview: React.FC<FormPreviewProps> = ({ 
@@ -21,7 +23,8 @@ export const FormPreview: React.FC<FormPreviewProps> = ({
   onSubmit, 
   title = "Form Preview", 
   description,
-  savedForm
+  savedForm,
+  formId
 }) => {
   const [formData, setFormData] = useState<FormSubmission>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -60,8 +63,9 @@ export const FormPreview: React.FC<FormPreviewProps> = ({
         await onSubmit(formData);
       }
       
-      if (savedForm) {
-        await FormSubmissionHandler.submitForm(savedForm.id, formData);
+      const targetFormId = savedForm?.id || formId;
+      if (targetFormId) {
+        await FormSubmissionHandler.submitForm(targetFormId, formData);
         toast.success('Form submitted successfully!');
         setFormData({});
       }
@@ -94,7 +98,7 @@ export const FormPreview: React.FC<FormPreviewProps> = ({
             value={formData[field.id]}
             onChange={(value) => handleFieldChange(field.id, value)}
             error={errors[field.id]}
-            formId={savedForm?.id}
+            formId={savedForm?.id || formId}
           />
         ))}
         
