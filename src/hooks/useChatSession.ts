@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useSupabaseAuth } from './useSupabaseAuth';
@@ -178,13 +177,12 @@ export const useChatSession = (formId: string, fieldId: string) => {
 
       console.log('Adding message:', { type, role, messageIndex, sessionId: session.id });
 
-      // Create a dummy chat_id to satisfy the foreign key constraint
-      // We'll use the session_id as the chat_id since they're both UUIDs
+      // ✅ Fixed: Remove chat_id since we're using session-based system
       const { data: newMessage, error } = await supabase
         .from('chat_messages')
         .insert({
           session_id: session.id,
-          chat_id: session.id, // Use session_id to satisfy foreign key constraint
+          // chat_id removed - this was causing the foreign key constraint error
           role: role,
           content: content,
           message_type: type === 'error' ? 'error' : 'text',
@@ -296,6 +294,27 @@ export const useChatSession = (formId: string, fieldId: string) => {
       setIsLoading(false);
     }
   };
+
+  // Cleanup function to mark session as inactive when component unmounts
+  useEffect(() => {
+    return () => {
+      if (session?.id) {
+        // Mark session as inactive when component unmounts
+        supabase
+          .from('chat_sessions')
+          .update({ 
+            is_active: false,
+            last_activity: new Date().toISOString()
+          })
+          .eq('id', session.id)
+          .then(({ error }) => {
+            if (error) {
+              console.error('Error marking session as inactive:', error);
+            }
+          });
+      }
+    };
+  }, [session?.id]);
 
   return {
     session,
