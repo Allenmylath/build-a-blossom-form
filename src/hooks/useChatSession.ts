@@ -238,28 +238,21 @@ export const useChatSession = (formId: string, fieldId: string) => {
         throw new Error('Failed to save user message');
       }
 
-      // Call the chat API with proper error handling
-      const response = await fetch('/api/chat-gemini', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+      // Call the Supabase edge function with proper error handling
+      const { data, error: functionError } = await supabase.functions.invoke('chat-gemini', {
+        body: {
           message: content,
           sessionId: session.id,
           formId: session.formId,
           fieldId: session.formFieldId,
           conversationContext: session.conversationContext
-        }),
+        }
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Chat API error:', response.status, errorText);
-        throw new Error(`Chat API error: ${response.status}`);
+      if (functionError) {
+        console.error('Chat API error:', functionError);
+        throw new Error(`Chat API error: ${functionError.message}`);
       }
-
-      const data = await response.json();
       
       if (data.error) {
         throw new Error(data.error);
