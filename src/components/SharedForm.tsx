@@ -48,7 +48,13 @@ export const SharedForm = () => {
               id,
               data,
               submitted_at,
-              ip_address
+              ip_address,
+              user_id,
+              submission_type,
+              completion_time_seconds,
+              total_interactions,
+              chat_session_references,
+              metadata
             )
           `)
           .eq('id', id)
@@ -83,6 +89,12 @@ export const SharedForm = () => {
           data: sub.data || {},
           submittedAt: sub.submitted_at,
           ipAddress: sub.ip_address,
+          userId: sub.user_id,
+          submissionType: sub.submission_type || 'traditional',
+          completionTimeSeconds: sub.completion_time_seconds,
+          totalInteractions: sub.total_interactions || 1,
+          chatSessionReferences: sub.chat_session_references || [],
+          metadata: sub.metadata || {}
         }));
 
         const mappedForm: SavedForm = {

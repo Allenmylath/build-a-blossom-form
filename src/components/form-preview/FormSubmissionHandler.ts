@@ -1,6 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { FormSubmissionData, FormSubmission } from '@/types/form';
+import { FormSubmissionData, FormSubmission, ChatFieldResponse } from '@/types/form';
 
 export class FormSubmissionHandler {
   static async submitForm(formId: string, formData: Record<string, any>): Promise<FormSubmissionData> {
@@ -39,7 +39,14 @@ export class FormSubmissionHandler {
         id: data.id,
         formId: data.form_id,
         data: data.data as FormSubmission,
-        submittedAt: new Date(data.submitted_at)
+        submittedAt: new Date(data.submitted_at),
+        ipAddress: data.ip_address as string,
+        userId: data.user_id,
+        submissionType: (data.submission_type as any) || 'traditional',
+        completionTimeSeconds: data.completion_time_seconds,
+        totalInteractions: data.total_interactions || 1,
+        chatSessionReferences: (data.chat_session_references as string[]) || [],
+        metadata: (data.metadata as any) || {}
       };
     } catch (error) {
       console.error('FormSubmissionHandler: Error in submitForm:', error);
@@ -64,7 +71,14 @@ export class FormSubmissionHandler {
         id: submission.id,
         formId: submission.form_id,
         data: submission.data as FormSubmission,
-        submittedAt: new Date(submission.submitted_at)
+        submittedAt: new Date(submission.submitted_at),
+        ipAddress: submission.ip_address as string,
+        userId: submission.user_id,
+        submissionType: (submission.submission_type as any) || 'traditional',
+        completionTimeSeconds: submission.completion_time_seconds,
+        totalInteractions: submission.total_interactions || 1,
+        chatSessionReferences: (submission.chat_session_references as string[]) || [],
+        metadata: (submission.metadata as any) || {}
       }));
     } catch (error) {
       console.error('FormSubmissionHandler: Error in getFormSubmissions:', error);
@@ -84,7 +98,7 @@ export class FormSubmissionHandler {
         p_form_id: formId,
         p_user_id: userId,
         p_traditional_data: traditionalData,
-        p_chat_sessions: chatSessions,
+        p_chat_sessions: chatSessions as any,
         p_completion_time: completionTime,
         p_pages_visited: pagesVisited
       });
@@ -96,6 +110,35 @@ export class FormSubmissionHandler {
     } catch (error) {
       console.error('Error creating hybrid submission:', error);
       throw error;
+    }
   }
-}
+
+  static async getSubmissionById(submissionId: string): Promise<FormSubmissionData> {
+    try {
+      const { data, error } = await supabase
+        .from('form_submissions')
+        .select('*')
+        .eq('id', submissionId)
+        .single();
+
+      if (error) throw error;
+
+      return {
+        id: data.id,
+        formId: data.form_id,
+        data: data.data as FormSubmission,
+        submittedAt: new Date(data.submitted_at),
+        ipAddress: data.ip_address as string,
+        userId: data.user_id,
+        submissionType: (data.submission_type as any) || 'traditional',
+        completionTimeSeconds: data.completion_time_seconds,
+        totalInteractions: data.total_interactions || 1,
+        chatSessionReferences: (data.chat_session_references as string[]) || [],
+        metadata: (data.metadata as any) || {}
+      };
+    } catch (error) {
+      console.error('Error fetching submission by ID:', error);
+      throw error;
+    }
+  }
 }

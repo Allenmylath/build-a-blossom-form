@@ -1,6 +1,33 @@
 
 export type FormFieldType = 'text' | 'email' | 'number' | 'textarea' | 'select' | 'radio' | 'checkbox' | 'date' | 'file' | 'phone' | 'url' | 'chat' | 'page-break';
 
+export type SubmissionType = 'traditional' | 'chat' | 'hybrid';
+
+export interface ChatFieldResponse {
+  type: 'chat';
+  sessionId: string;
+  messageCount: number;
+  conversationDuration: number;
+  summaryResponse: string;
+  keyMessages: Array<{
+    role: string;
+    content: string;
+    timestamp: string;
+    importance: string;
+  }>;
+  transcriptReference: string;
+}
+
+export interface UnifiedSubmissionMetadata {
+  chatSessionsCount?: number;
+  formType?: string;
+  totalInteractions?: number;
+  conversationDuration?: number;
+  fieldId?: string;
+  traditionalFieldsCount?: number;
+  chatFieldsCount?: number;
+}
+
 export interface FormField {
   id: string;
   type: FormFieldType;

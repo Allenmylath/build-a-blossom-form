@@ -28,7 +28,13 @@ export const useFormFetcher = (user: User | null) => {
             id,
             data,
             submitted_at,
-            ip_address
+            ip_address,
+            user_id,
+            submission_type,
+            completion_time_seconds,
+            total_interactions,
+            chat_session_references,
+            metadata
           )
         `)
         .eq('user_id', user.id)
@@ -59,6 +65,12 @@ export const useFormFetcher = (user: User | null) => {
             data: sub.data || {},
             submittedAt: new Date(sub.submitted_at),
             ipAddress: sub.ip_address,
+            userId: sub.user_id,
+            submissionType: sub.submission_type || 'traditional',
+            completionTimeSeconds: sub.completion_time_seconds,
+            totalInteractions: sub.total_interactions || 1,
+            chatSessionReferences: sub.chat_session_references || [],
+            metadata: sub.metadata || {}
           }));
 
           console.log(`Form "${form.name}" has ${submissions.length} submissions`);
@@ -125,7 +137,13 @@ export const useFormFetcher = (user: User | null) => {
             id,
             data,
             submitted_at,
-            ip_address
+            ip_address,
+            user_id,
+            submission_type,
+            completion_time_seconds,
+            total_interactions,
+            chat_session_references,
+            metadata
           )
         `)
         .eq('id', formId)
@@ -148,6 +166,12 @@ export const useFormFetcher = (user: User | null) => {
         data: sub.data || {},
         submittedAt: new Date(sub.submitted_at),
         ipAddress: sub.ip_address,
+        userId: sub.user_id,
+        submissionType: sub.submission_type || 'traditional',
+        completionTimeSeconds: sub.completion_time_seconds,
+        totalInteractions: sub.total_interactions || 1,
+        chatSessionReferences: sub.chat_session_references || [],
+        metadata: sub.metadata || {}
       }));
 
       const updatedForm: SavedForm = {
