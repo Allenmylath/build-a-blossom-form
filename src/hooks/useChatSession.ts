@@ -178,11 +178,13 @@ export const useChatSession = (formId: string, fieldId: string) => {
 
       console.log('Adding message:', { type, role, messageIndex, sessionId: session.id });
 
+      // Create a dummy chat_id to satisfy the foreign key constraint
+      // We'll use the session_id as the chat_id since they're both UUIDs
       const { data: newMessage, error } = await supabase
         .from('chat_messages')
         .insert({
           session_id: session.id,
-          chat_id: session.id, // Use session_id as chat_id for compatibility
+          chat_id: session.id, // Use session_id to satisfy foreign key constraint
           role: role,
           content: content,
           message_type: type === 'error' ? 'error' : 'text',
