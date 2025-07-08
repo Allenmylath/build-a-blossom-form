@@ -61,9 +61,8 @@ export const ChatFormField = ({ field, value, onChange, error, formId }: ChatFor
   }, [messages, sessionId, onChange]);
 
   const callGeminiAPI = async (messageHistory: ChatMessage[]): Promise<string> => {
-    // Using the GEMINI_API_KEY from Supabase secrets
-    // Note: In production, API keys should be handled server-side
-    const GEMINI_API_KEY = 'AIzaSyDjjjb2q_OsyHh9vUKVa_G_paBZ7eVlhCM';
+    // Use environment variable for API key
+    const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
     
     // Convert message history to Gemini format (limit to last 10 messages for context)
     const recentMessages = messageHistory.slice(-10);
