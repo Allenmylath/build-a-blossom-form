@@ -61,8 +61,9 @@ export const ChatFormField = ({ field, value, onChange, error, formId }: ChatFor
   }, [messages, sessionId, onChange]);
 
   const callGeminiAPI = async (messageHistory: ChatMessage[]): Promise<string> => {
-    // Use environment variable for API key
-    const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+    // Note: Using hardcoded API key for frontend-only solution
+    // In production, this should be moved to a secure backend/edge function
+    const GEMINI_API_KEY = 'AIzaSyDjjjb2q_OsyHh9vUKVa_G_paBZ7eVlhCM';
     
     // Convert message history to Gemini format (limit to last 10 messages for context)
     const recentMessages = messageHistory.slice(-10);
