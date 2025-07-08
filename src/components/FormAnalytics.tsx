@@ -83,7 +83,12 @@ export const FormAnalytics = ({ form, onClose }: FormAnalyticsProps) => {
         totalMessages: session.total_messages || 0,
         lastActivity: new Date(session.last_activity),
         createdAt: new Date(session.created_at),
-        fullTranscript: session.full_transcript || []
+        fullTranscript: Array.isArray(session.full_transcript) ? session.full_transcript as Array<{
+          role: string;
+          content: string;
+          timestamp: string;
+          messageIndex: number;
+        }> : []
       }));
 
       setChatSessions(formattedSessions);
