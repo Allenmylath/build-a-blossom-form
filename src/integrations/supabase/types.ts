@@ -422,6 +422,18 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: number
       }
+      generate_and_update_chat_transcript: {
+        Args: { p_session_id: string }
+        Returns: Json
+      }
+      generate_chat_transcript: {
+        Args: { p_session_id: string }
+        Returns: Json
+      }
+      get_chat_transcript: {
+        Args: { p_session_id: string; p_use_cache?: boolean }
+        Returns: Json
+      }
     }
     Enums: {
       plan_type: "hobby" | "startup" | "enterprise"
