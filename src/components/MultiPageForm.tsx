@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { ChevronLeft, ChevronRight, Send } from 'lucide-react';
 import { FormFieldRenderer } from './form-preview/FormFieldRenderer';
-import { useFormSubmission } from './form-preview/FormSubmissionHandler';
+import { useFormSubmission } from './form-preview/useFormSubmission';
 import { toast } from '@/hooks/use-toast';
 
 interface MultiPageFormProps {
