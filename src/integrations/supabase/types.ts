@@ -14,30 +14,101 @@ export type Database = {
   }
   public: {
     Tables: {
+      chat_api_configs: {
+        Row: {
+          api_key_encrypted: string | null
+          api_provider: string
+          created_at: string
+          form_id: string
+          id: string
+          is_active: boolean
+          max_tokens: number | null
+          model_name: string
+          system_prompt: string | null
+          temperature: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          api_key_encrypted?: string | null
+          api_provider?: string
+          created_at?: string
+          form_id: string
+          id?: string
+          is_active?: boolean
+          max_tokens?: number | null
+          model_name?: string
+          system_prompt?: string | null
+          temperature?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          api_key_encrypted?: string | null
+          api_provider?: string
+          created_at?: string
+          form_id?: string
+          id?: string
+          is_active?: boolean
+          max_tokens?: number | null
+          model_name?: string
+          system_prompt?: string | null
+          temperature?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_api_configs_form_id_fkey"
+            columns: ["form_id"]
+            isOneToOne: false
+            referencedRelation: "forms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       chat_messages: {
         Row: {
+          api_response_time: number | null
           chat_id: string
           content: string
           created_at: string
           id: string
+          is_streamed: boolean | null
+          message_index: number
+          message_type: string
           metadata: Json | null
           role: string
+          session_id: string | null
+          token_usage: Json | null
         }
         Insert: {
+          api_response_time?: number | null
           chat_id: string
           content: string
           created_at?: string
           id?: string
+          is_streamed?: boolean | null
+          message_index?: number
+          message_type?: string
           metadata?: Json | null
           role: string
+          session_id?: string | null
+          token_usage?: Json | null
         }
         Update: {
+          api_response_time?: number | null
           chat_id?: string
           content?: string
           created_at?: string
           id?: string
+          is_streamed?: boolean | null
+          message_index?: number
+          message_type?: string
           metadata?: Json | null
           role?: string
+          session_id?: string | null
+          token_usage?: Json | null
         }
         Relationships: [
           {
@@ -45,6 +116,107 @@ export type Database = {
             columns: ["chat_id"]
             isOneToOne: false
             referencedRelation: "chats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_messages_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "chat_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chat_sessions: {
+        Row: {
+          conversation_context: Json | null
+          created_at: string
+          form_field_id: string
+          form_id: string
+          full_transcript: Json | null
+          id: string
+          is_active: boolean
+          last_activity: string
+          session_key: string
+          total_messages: number | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          conversation_context?: Json | null
+          created_at?: string
+          form_field_id: string
+          form_id: string
+          full_transcript?: Json | null
+          id?: string
+          is_active?: boolean
+          last_activity?: string
+          session_key: string
+          total_messages?: number | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          conversation_context?: Json | null
+          created_at?: string
+          form_field_id?: string
+          form_id?: string
+          full_transcript?: Json | null
+          id?: string
+          is_active?: boolean
+          last_activity?: string
+          session_key?: string
+          total_messages?: number | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_sessions_form_id_fkey"
+            columns: ["form_id"]
+            isOneToOne: false
+            referencedRelation: "forms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chat_transcripts: {
+        Row: {
+          conversation_summary: string | null
+          created_at: string
+          export_format: string | null
+          id: string
+          message_count: number
+          session_id: string
+          transcript_data: Json
+          updated_at: string
+        }
+        Insert: {
+          conversation_summary?: string | null
+          created_at?: string
+          export_format?: string | null
+          id?: string
+          message_count?: number
+          session_id: string
+          transcript_data?: Json
+          updated_at?: string
+        }
+        Update: {
+          conversation_summary?: string | null
+          created_at?: string
+          export_format?: string | null
+          id?: string
+          message_count?: number
+          session_id?: string
+          transcript_data?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_transcripts_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "chat_sessions"
             referencedColumns: ["id"]
           },
         ]
@@ -246,7 +418,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      cleanup_inactive_chat_sessions: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
     }
     Enums: {
       plan_type: "hobby" | "startup" | "enterprise"

@@ -6,47 +6,34 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { MessageCircle, Send, Loader2 } from 'lucide-react';
 import { FormField } from '@/types/form';
-
-interface ChatMessage {
-  id: string;
-  type: 'user' | 'bot' | 'error';
-  content: string;
-  timestamp: Date;
-}
+import { useChatSession } from '@/hooks/useChatSession';
 
 interface ChatFormFieldProps {
   field: FormField;
   value?: string[];
   onChange: (messages: string[]) => void;
   error?: string;
+  formId?: string;
 }
 
-export const ChatFormField = ({ field, value = [], onChange, error }: ChatFormFieldProps) => {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+export const ChatFormField = ({ field, value = [], onChange, error, formId }: ChatFormFieldProps) => {
   const [inputMessage, setInputMessage] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const botName = field.chatConfig?.botName || 'Assistant';
   const welcomeMessage = field.chatConfig?.welcomeMessage || 'Hello! How can I help you?';
-  const apiUrl = field.chatConfig?.apiUrl || '/api/chat';
 
-  useEffect(() => {
-    // Add welcome message
-    const welcomeMsg: ChatMessage = {
-      id: `msg_${Date.now()}`,
-      type: 'bot',
-      content: welcomeMessage,
-      timestamp: new Date(),
-    };
-    setMessages([welcomeMsg]);
-    inputRef.current?.focus();
-  }, [welcomeMessage]);
+  // Use the new chat session hook
+  const { session, messages, isLoading, sendMessage } = useChatSession(formId || '', field.id);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
 
   useEffect(() => {
     // Update form data with chat messages
@@ -56,59 +43,15 @@ export const ChatFormField = ({ field, value = [], onChange, error }: ChatFormFi
     onChange(messageTexts);
   }, [messages, onChange]);
 
-  const addMessage = (type: 'user' | 'bot' | 'error', content: string) => {
-    const newMessage: ChatMessage = {
-      id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      type,
-      content,
-      timestamp: new Date(),
-    };
-    setMessages(prev => [...prev, newMessage]);
-  };
+  const handleSendMessage = async () => {
+    if (!inputMessage.trim() || isLoading) return;
 
-  const sendMessage = async (message: string) => {
-    if (!message.trim() || isLoading) return;
-
-    const userMessage = message.trim();
+    const userMessage = inputMessage.trim();
     setInputMessage('');
-    setIsLoading(true);
-
-    // Add user message immediately
-    addMessage('user', userMessage);
-
-    try {
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message: userMessage,
-          fieldId: field.id,
-          timestamp: new Date().toISOString(),
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      const botResponse = data.message || data.response || data.reply || 'I received your message.';
-      
-      addMessage('bot', botResponse);
-
-    } catch (error) {
-      console.error('Chat API Error:', error);
-      addMessage('error', 'Sorry, I\'m having trouble connecting right now. Please try again.');
-    } finally {
-      setIsLoading(false);
-      setTimeout(() => inputRef.current?.focus(), 100);
-    }
-  };
-
-  const handleSendMessage = () => {
-    sendMessage(inputMessage);
+    
+    await sendMessage(userMessage);
+    
+    setTimeout(() => inputRef.current?.focus(), 100);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -122,7 +65,7 @@ export const ChatFormField = ({ field, value = [], onChange, error }: ChatFormFi
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
-  const getMessageColor = (type: ChatMessage['type']) => {
+  const getMessageColor = (type: string) => {
     switch (type) {
       case 'user': return 'bg-blue-600 text-white';
       case 'bot': return 'bg-gray-100 text-gray-900';
@@ -130,6 +73,15 @@ export const ChatFormField = ({ field, value = [], onChange, error }: ChatFormFi
       default: return 'bg-gray-100 text-gray-900';
     }
   };
+
+  // Show welcome message if no messages exist
+  const displayMessages = messages.length === 0 ? [{
+    id: 'welcome',
+    type: 'bot' as const,
+    content: welcomeMessage,
+    timestamp: new Date(),
+    messageIndex: 0
+  }] : messages;
 
   return (
     <div className="space-y-2">
@@ -143,7 +95,7 @@ export const ChatFormField = ({ field, value = [], onChange, error }: ChatFormFi
         {/* Messages */}
         <ScrollArea className="flex-1 p-4">
           <div className="space-y-3">
-            {messages.map((message) => (
+            {displayMessages.map((message) => (
               <div
                 key={message.id}
                 className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
@@ -205,6 +157,13 @@ export const ChatFormField = ({ field, value = [], onChange, error }: ChatFormFi
       
       {error && (
         <p className="text-sm text-red-600">{error}</p>
+      )}
+      
+      {/* Session info for debugging (remove in production) */}
+      {session && (
+        <div className="text-xs text-gray-500 mt-2">
+          Session: {session.totalMessages} messages
+        </div>
       )}
     </div>
   );
