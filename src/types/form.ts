@@ -20,6 +20,33 @@ export interface FormField {
     apiUrl?: string;
   };
 }
+// Add these new interfaces
+export type SubmissionType = 'traditional' | 'chat' | 'hybrid';
+
+export interface ChatFieldResponse {
+  type: 'chat';
+  sessionId: string;
+  messageCount: number;
+  conversationDuration: number;
+  summaryResponse?: string;
+  keyMessages: Array<{
+    role: 'user' | 'bot';
+    content: string;
+    timestamp: string;
+    importance?: 'high' | 'medium' | 'low';
+  }>;
+  transcriptReference: string;
+}
+
+export interface UnifiedSubmissionMetadata {
+  chatSessionsCount: number;
+  formType: SubmissionType;
+  totalInteractions: number;
+  completionTimeSeconds?: number;
+  pagesVisited?: string[];
+  traditionalFieldsCount?: number;
+  chatFieldsCount?: number;
+}
 
 export interface FormSubmission {
   [fieldId: string]: string | string[] | boolean;
