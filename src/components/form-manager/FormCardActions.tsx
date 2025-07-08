@@ -1,4 +1,3 @@
-
 import { Button } from '@/components/ui/button';
 import { Copy, Share, TrendingUp, Trash2, ExternalLink, FolderOpen } from 'lucide-react';
 import { SavedForm } from '@/types/form';
@@ -40,21 +39,18 @@ export const FormCardActions = ({
 
   const handleShare = () => {
     console.log('Sharing form:', form);
-    console.log('Share URL:', form.shareUrl);
     
-    if (form.shareUrl) {
-      navigator.clipboard.writeText(form.shareUrl);
-      toast({
-        title: "Share Link Generated",
-        description: "Form share link has been copied to clipboard.",
-      });
-    } else {
-      toast({
-        title: "Error",
-        description: "No share URL available for this form.",
-        variant: "destructive",
-      });
-    }
+    // Generate URL based on current domain instead of stored shareUrl
+    const currentDomain = window.location.origin;
+    const shareUrl = `${currentDomain}/form/${form.id}`;
+    
+    console.log('Generated share URL:', shareUrl);
+    
+    navigator.clipboard.writeText(shareUrl);
+    toast({
+      title: "Share Link Generated",
+      description: "Form share link has been copied to clipboard.",
+    });
   };
 
   const handleOpenInNewWindow = () => {
@@ -67,15 +63,12 @@ export const FormCardActions = ({
       return;
     }
 
-    if (form.shareUrl) {
-      window.open(form.shareUrl, '_blank', 'noopener,noreferrer');
-    } else {
-      toast({
-        title: "Cannot Open Form",
-        description: "This form doesn't have a share URL. Please make it public first.",
-        variant: "destructive",
-      });
-    }
+    // Generate URL based on current domain instead of stored shareUrl
+    const currentDomain = window.location.origin;
+    const shareUrl = `${currentDomain}/form/${form.id}`;
+    
+    console.log('Opening form in new window:', shareUrl);
+    window.open(shareUrl, '_blank', 'noopener,noreferrer');
   };
 
   return (
