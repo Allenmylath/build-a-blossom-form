@@ -7,7 +7,23 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { Download, TrendingUp, Users, Calendar, FileText, Eye, AlertCircle, MessageCircle, Bot, Clock } from 'lucide-react';
+import { 
+  Download, 
+  TrendingUp, 
+  Users, 
+  Calendar, 
+  FileText, 
+  Eye, 
+  AlertCircle, 
+  MessageCircle, 
+  Bot, 
+  Clock,
+  Loader2,
+  RefreshCw,
+  UserCheck,
+  UserX,
+  Activity
+} from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -24,11 +40,13 @@ interface ChatSession {
   totalMessages: number;
   lastActivity: Date;
   createdAt: Date;
+  isActive: boolean;
   fullTranscript: Array<{
-    role: string;
+    id: string;
+    type: string;
     content: string;
     timestamp: string;
-    messageIndex: number;
+    messageIndex?: number;
   }>;
 }
 
@@ -39,10 +57,22 @@ export const FormAnalytics = ({ form, onClose }: FormAnalyticsProps) => {
   const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
   const [loadingChatSessions, setLoadingChatSessions] = useState(false);
   const [selectedChatSession, setSelectedChatSession] = useState<ChatSession | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   // Determine if this form has chat fields
   const hasChatFields = useMemo(() => {
     return form?.fields.some(field => field.type === 'chat') || false;
+  }, [form]);
+
+  // Determine form type for better analytics categorization
+  const formType = useMemo(() => {
+    if (!form) return 'unknown';
+    const chatFields = form.fields.filter(f => f.type === 'chat').length;
+    const traditionalFields = form.fields.filter(f => f.type !== 'chat' && f.type !== 'page-break').length;
+    
+    if (chatFields > 0 && traditionalFields > 0) return 'hybrid';
+    if (chatFields > 0 && traditionalFields === 0) return 'chat-only';
+    return 'traditional';
   }, [form]);
 
   // Load chat sessions for forms with chat fields
@@ -52,10 +82,15 @@ export const FormAnalytics = ({ form, onClose }: FormAnalyticsProps) => {
     }
   }, [form, hasChatFields]);
 
-  const loadChatSessions = async () => {
+  const loadChatSessions = async (showRefreshIndicator = false) => {
     if (!form) return;
     
-    setLoadingChatSessions(true);
+    if (showRefreshIndicator) {
+      setRefreshing(true);
+    } else {
+      setLoadingChatSessions(true);
+    }
+    
     try {
       console.log('Loading chat sessions for form:', form.id);
       
@@ -81,13 +116,15 @@ export const FormAnalytics = ({ form, onClose }: FormAnalyticsProps) => {
         sessionKey: session.session_key,
         userId: session.user_id,
         totalMessages: session.total_messages || 0,
-        lastActivity: new Date(session.last_activity),
+        lastActivity: new Date(session.last_activity || session.updated_at),
         createdAt: new Date(session.created_at),
+        isActive: session.is_active || false,
         fullTranscript: Array.isArray(session.full_transcript) ? session.full_transcript as Array<{
-          role: string;
+          id: string;
+          type: string;
           content: string;
           timestamp: string;
-          messageIndex: number;
+          messageIndex?: number;
         }> : []
       }));
 
@@ -96,8 +133,20 @@ export const FormAnalytics = ({ form, onClose }: FormAnalyticsProps) => {
 
     } catch (error) {
       console.error('Error loading chat sessions:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load chat sessions",
+        variant: "destructive",
+      });
     } finally {
       setLoadingChatSessions(false);
+      setRefreshing(false);
+    }
+  };
+
+  const refreshData = () => {
+    if (hasChatFields) {
+      loadChatSessions(true);
     }
   };
 
@@ -149,22 +198,24 @@ export const FormAnalytics = ({ form, onClose }: FormAnalyticsProps) => {
       .map(([date, count]) => ({ date, submissions: count }))
       .slice(-7); // Last 7 days
 
-    // Field completion rates
-    const fieldStats = form.fields
-      .filter(field => field.type !== 'chat') // Exclude chat fields from submission analytics
-      .map(field => {
-        const completedCount = submissions.reduce((count, sub) => {
-          const value = sub.data[field.id];
-          return count + (value && value !== '' ? 1 : 0);
-        }, 0);
-        
-        return {
-          fieldName: field.label,
-          completionRate: totalSubmissions > 0 ? Math.round((completedCount / totalSubmissions) * 100) : 0,
-          completed: completedCount,
-          total: totalSubmissions
-        };
-      });
+    // Field completion rates (exclude chat and page-break fields)
+    const traditionalFields = form.fields.filter(field => 
+      field.type !== 'chat' && field.type !== 'page-break'
+    );
+    
+    const fieldStats = traditionalFields.map(field => {
+      const completedCount = submissions.reduce((count, sub) => {
+        const value = sub.data[field.id];
+        return count + (value && value !== '' ? 1 : 0);
+      }, 0);
+      
+      return {
+        fieldName: field.label,
+        completionRate: totalSubmissions > 0 ? Math.round((completedCount / totalSubmissions) * 100) : 0,
+        completed: completedCount,
+        total: totalSubmissions
+      };
+    });
 
     // Most common values for select/radio fields
     const valueAnalytics = form.fields
@@ -206,6 +257,10 @@ export const FormAnalytics = ({ form, onClose }: FormAnalyticsProps) => {
       return hoursSinceActivity < 24; // Active in last 24 hours
     }).length;
 
+    const authenticatedSessions = chatSessions.filter(s => s.userId).length;
+    const anonymousSessions = chatSessions.filter(s => !s.userId).length;
+    const sessionsWithMessages = chatSessions.filter(s => s.totalMessages > 0).length;
+
     // Sessions by date
     const sessionsByDate = chatSessions.reduce((acc, session) => {
       const date = session.createdAt.toLocaleDateString();
@@ -217,13 +272,17 @@ export const FormAnalytics = ({ form, onClose }: FormAnalyticsProps) => {
       .map(([date, count]) => ({ date, sessions: count }))
       .slice(-7); // Last 7 days
 
-    // Average messages per session
-    const avgMessagesPerSession = totalSessions > 0 ? Math.round(totalMessages / totalSessions) : 0;
+    // Average messages per session (only for sessions with messages)
+    const avgMessagesPerSession = sessionsWithMessages > 0 ? 
+      Math.round(totalMessages / sessionsWithMessages) : 0;
 
     return {
       totalSessions,
       totalMessages,
       activeSessions,
+      authenticatedSessions,
+      anonymousSessions,
+      sessionsWithMessages,
       avgMessagesPerSession,
       sessionChartData,
       lastSession: chatSessions.length > 0 ? chatSessions[0].createdAt : null
@@ -235,7 +294,16 @@ export const FormAnalytics = ({ form, onClose }: FormAnalyticsProps) => {
 
     // For chat forms, export chat sessions
     if (hasChatFields && chatSessions.length > 0) {
-      const headers = ['Session ID', 'Created Date', 'Last Activity', 'Total Messages', 'User Type', 'Field ID'];
+      const headers = [
+        'Session ID', 
+        'Created Date', 
+        'Last Activity', 
+        'Total Messages', 
+        'User Type', 
+        'Field ID',
+        'Status',
+        'Session Key'
+      ];
       
       const rows = chatSessions.map(session => [
         session.id.slice(0, 8).toUpperCase(),
@@ -243,7 +311,9 @@ export const FormAnalytics = ({ form, onClose }: FormAnalyticsProps) => {
         session.lastActivity.toLocaleString(),
         session.totalMessages.toString(),
         session.userId ? 'Authenticated' : 'Anonymous',
-        session.formFieldId
+        session.formFieldId,
+        session.isActive ? 'Active' : 'Inactive',
+        session.sessionKey
       ]);
 
       const csvContent = [headers, ...rows]
@@ -275,14 +345,15 @@ export const FormAnalytics = ({ form, onClose }: FormAnalyticsProps) => {
 
     console.log('Exporting CSV for form:', form.name, 'with', form.submissions.length, 'submissions');
 
-    const headers = ['Submission Date', 'IP Address', 'Reference ID', ...form.fields.filter(f => f.type !== 'chat').map(field => field.label)];
+    const traditionalFields = form.fields.filter(f => f.type !== 'chat' && f.type !== 'page-break');
+    const headers = ['Submission Date', 'IP Address', 'Reference ID', ...traditionalFields.map(field => field.label)];
     
     const rows = form.submissions.map(submission => {
       const row = [
         new Date(submission.submittedAt).toLocaleString(),
         submission.ipAddress || 'N/A',
         submission.id.slice(0, 8).toUpperCase(),
-        ...form.fields.filter(f => f.type !== 'chat').map(field => {
+        ...traditionalFields.map(field => {
           const value = submission.data[field.id];
           if (Array.isArray(value)) {
             return value.join(', ');
@@ -313,16 +384,49 @@ export const FormAnalytics = ({ form, onClose }: FormAnalyticsProps) => {
     ? form.submissions.find(sub => sub.id === selectedEntry)
     : null;
 
+  const getFormTypeDisplay = () => {
+    switch (formType) {
+      case 'chat-only': return 'Chat Form';
+      case 'hybrid': return 'Hybrid Form (Traditional + Chat)';
+      case 'traditional': return 'Traditional Form';
+      default: return 'Form';
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Analytics for "{form.name}"</h2>
-          <p className="text-gray-600">
-            {hasChatFields ? 'Chat session insights and transcript export' : 'Comprehensive insights and data export'}
-          </p>
+          <div className="flex items-center gap-2">
+            <p className="text-gray-600">{getFormTypeDisplay()}</p>
+            <Badge variant="outline" className="text-xs">
+              {form.fields.length} fields
+            </Badge>
+            {hasChatFields && (
+              <Badge variant="secondary" className="text-xs bg-purple-100 text-purple-700">
+                <MessageCircle className="w-3 h-3 mr-1" />
+                Chat Enabled
+              </Badge>
+            )}
+          </div>
         </div>
         <div className="flex items-center gap-2">
+          {hasChatFields && (
+            <Button 
+              onClick={refreshData} 
+              disabled={refreshing}
+              variant="outline" 
+              size="sm"
+            >
+              {refreshing ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <RefreshCw className="w-4 h-4 mr-2" />
+              )}
+              Refresh
+            </Button>
+          )}
           <Button onClick={handleDownloadCSV} className="flex items-center">
             <Download className="w-4 h-4 mr-2" />
             Export CSV
@@ -339,13 +443,23 @@ export const FormAnalytics = ({ form, onClose }: FormAnalyticsProps) => {
           <TabsTrigger value="summary">Summary</TabsTrigger>
           {hasChatFields ? (
             <>
-              <TabsTrigger value="chat-sessions">Chat Sessions</TabsTrigger>
+              <TabsTrigger value="chat-sessions">
+                Chat Sessions
+                <Badge variant="secondary" className="ml-2 text-xs">
+                  {chatSessions.length}
+                </Badge>
+              </TabsTrigger>
               <TabsTrigger value="transcripts">Transcripts</TabsTrigger>
             </>
           ) : (
             <>
-              <TabsTrigger value="entries">Entries</TabsTrigger>
-              <TabsTrigger value="fields">Field Analysis</TabsTrigger>
+              <TabsTrigger value="entries">
+                Entries
+                <Badge variant="secondary" className="ml-2 text-xs">
+                  {form.submissions.length}
+                </Badge>
+              </TabsTrigger>
+              <TabsTrigger value="field-analysis">Field Analysis</TabsTrigger>
             </>
           )}
           <TabsTrigger value="fields">Fields</TabsTrigger>
@@ -386,7 +500,7 @@ export const FormAnalytics = ({ form, onClose }: FormAnalyticsProps) => {
                 </Card>
                 <Card className="p-4">
                   <div className="flex items-center">
-                    <Clock className="w-8 h-8 text-orange-600 mr-3" />
+                    <Activity className="w-8 h-8 text-orange-600 mr-3" />
                     <div>
                       <div className="text-2xl font-bold text-orange-600">{chatAnalytics.activeSessions}</div>
                       <div className="text-sm text-gray-600">Active (24h)</div>
@@ -444,6 +558,39 @@ export const FormAnalytics = ({ form, onClose }: FormAnalyticsProps) => {
             )}
           </div>
 
+          {/* Additional metrics for chat forms */}
+          {hasChatFields && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <Card className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-lg font-bold text-green-600">{chatAnalytics.authenticatedSessions}</div>
+                    <div className="text-sm text-gray-600">Authenticated Sessions</div>
+                  </div>
+                  <UserCheck className="w-6 h-6 text-green-600" />
+                </div>
+              </Card>
+              <Card className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-lg font-bold text-gray-600">{chatAnalytics.anonymousSessions}</div>
+                    <div className="text-sm text-gray-600">Anonymous Sessions</div>
+                  </div>
+                  <UserX className="w-6 h-6 text-gray-600" />
+                </div>
+              </Card>
+              <Card className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-lg font-bold text-blue-600">{chatAnalytics.sessionsWithMessages}</div>
+                    <div className="text-sm text-gray-600">Sessions with Messages</div>
+                  </div>
+                  <MessageCircle className="w-6 h-6 text-blue-600" />
+                </div>
+              </Card>
+            </div>
+          )}
+
           {/* Trend Chart */}
           {hasChatFields ? (
             // Chat sessions trend
@@ -499,7 +646,7 @@ export const FormAnalytics = ({ form, onClose }: FormAnalyticsProps) => {
             )
           )}
 
-          {/* Additional summary content */}
+          {/* Field completion rates for traditional forms */}
           {!hasChatFields && (
             <Card className="p-6">
               <h3 className="text-lg font-semibold mb-4">Field Completion Rates</h3>
@@ -527,6 +674,7 @@ export const FormAnalytics = ({ form, onClose }: FormAnalyticsProps) => {
             <TabsContent value="chat-sessions" className="space-y-6">
               {loadingChatSessions ? (
                 <Card className="p-8 text-center">
+                  <Loader2 className="w-8 h-8 mx-auto mb-4 animate-spin text-blue-500" />
                   <div className="text-gray-500">Loading chat sessions...</div>
                 </Card>
               ) : chatSessions.length === 0 ? (
@@ -536,47 +684,121 @@ export const FormAnalytics = ({ form, onClose }: FormAnalyticsProps) => {
                   <p className="text-gray-500">When users interact with your chat form, their sessions will appear here.</p>
                 </Card>
               ) : (
-                <Card className="p-6">
-                  <h3 className="text-lg font-semibold mb-4">All Chat Sessions ({chatSessions.length})</h3>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Session ID</TableHead>
-                        <TableHead>Created</TableHead>
-                        <TableHead>Last Activity</TableHead>
-                        <TableHead>Messages</TableHead>
-                        <TableHead>User Type</TableHead>
-                        <TableHead>Field</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {chatSessions.map((session) => (
-                        <TableRow 
-                          key={session.id} 
-                          className="cursor-pointer hover:bg-gray-50"
-                          onClick={() => setSelectedChatSession(session)}
-                        >
-                          <TableCell className="font-mono text-sm">
-                            {session.id.slice(0, 8).toUpperCase()}
-                          </TableCell>
-                          <TableCell>{session.createdAt.toLocaleString()}</TableCell>
-                          <TableCell>{session.lastActivity.toLocaleString()}</TableCell>
-                          <TableCell>
-                            <Badge variant="outline">{session.totalMessages}</Badge>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant={session.userId ? "default" : "secondary"}>
-                              {session.userId ? "Authenticated" : "Anonymous"}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-sm text-gray-600">
-                            {session.formFieldId}
-                          </TableCell>
+                <div className="space-y-6">
+                  {/* Session Statistics */}
+                  <Card className="p-6">
+                    <h3 className="text-lg font-semibold mb-4">Session Overview</h3>
+                    <div className="grid grid-cols-4 gap-4">
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-blue-600">
+                          {chatSessions.filter(s => s.userId).length}
+                        </div>
+                        <div className="text-sm text-gray-600">Authenticated</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-gray-600">
+                          {chatSessions.filter(s => !s.userId).length}
+                        </div>
+                        <div className="text-sm text-gray-600">Anonymous</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-green-600">
+                          {chatSessions.filter(s => s.totalMessages > 0).length}
+                        </div>
+                        <div className="text-sm text-gray-600">With Messages</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-orange-600">
+                          {chatSessions.filter(s => {
+                            const hoursSinceActivity = (Date.now() - s.lastActivity.getTime()) / (1000 * 60 * 60);
+                            return hoursSinceActivity < 1;
+                          }).length}
+                        </div>
+                        <div className="text-sm text-gray-600">Active (1h)</div>
+                      </div>
+                    </div>
+                  </Card>
+
+                  {/* Sessions Table */}
+                  <Card className="p-6">
+                    <h3 className="text-lg font-semibold mb-4">All Chat Sessions ({chatSessions.length})</h3>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Session ID</TableHead>
+                          <TableHead>Created</TableHead>
+                          <TableHead>Last Activity</TableHead>
+                          <TableHead>Messages</TableHead>
+                          <TableHead>User Type</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Actions</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </Card>
+                      </TableHeader>
+                      <TableBody>
+                        {chatSessions
+                          .sort((a, b) => b.lastActivity.getTime() - a.lastActivity.getTime())
+                          .map((session) => {
+                            const isRecent = (Date.now() - session.lastActivity.getTime()) < (1000 * 60 * 60); // 1 hour
+                            const hasMessages = session.totalMessages > 0;
+                            
+                            return (
+                              <TableRow 
+                                key={session.id} 
+                                className={`cursor-pointer hover:bg-gray-50 ${hasMessages ? '' : 'opacity-60'}`}
+                                onClick={() => hasMessages && setSelectedChatSession(session)}
+                              >
+                                <TableCell className="font-mono text-sm">
+                                  {session.id.slice(0, 8).toUpperCase()}
+                                  {!hasMessages && (
+                                    <div className="text-xs text-gray-400">No messages</div>
+                                  )}
+                                </TableCell>
+                                <TableCell>
+                                  <div className="text-sm">{session.createdAt.toLocaleDateString()}</div>
+                                  <div className="text-xs text-gray-500">{session.createdAt.toLocaleTimeString()}</div>
+                                </TableCell>
+                                <TableCell>
+                                  <div className="text-sm">{session.lastActivity.toLocaleDateString()}</div>
+                                  <div className="text-xs text-gray-500">{session.lastActivity.toLocaleTimeString()}</div>
+                                </TableCell>
+                                <TableCell>
+                                  <Badge variant={hasMessages ? "default" : "secondary"}>
+                                    {session.totalMessages}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell>
+                                  <Badge variant={session.userId ? "default" : "secondary"}>
+                                    {session.userId ? "Authenticated" : "Anonymous"}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell>
+                                  <Badge variant={isRecent ? "default" : "secondary"}>
+                                    {isRecent ? "Recent" : "Inactive"}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell>
+                                  {hasMessages ? (
+                                    <Button 
+                                      size="sm" 
+                                      variant="outline"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setSelectedChatSession(session);
+                                      }}
+                                    >
+                                      View Chat
+                                    </Button>
+                                  ) : (
+                                    <span className="text-xs text-gray-400">No transcript</span>
+                                  )}
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
+                      </TableBody>
+                    </Table>
+                  </Card>
+                </div>
               )}
             </TabsContent>
 
@@ -590,7 +812,8 @@ export const FormAnalytics = ({ form, onClose }: FormAnalyticsProps) => {
                       </h3>
                       <p className="text-sm text-gray-600">
                         {selectedChatSession.totalMessages} messages • 
-                        Created {selectedChatSession.createdAt.toLocaleString()}
+                        Created {selectedChatSession.createdAt.toLocaleString()} • 
+                        {selectedChatSession.userId ? 'Authenticated User' : 'Anonymous User'}
                       </p>
                     </div>
                     <Button 
@@ -606,16 +829,20 @@ export const FormAnalytics = ({ form, onClose }: FormAnalyticsProps) => {
                       <p className="text-gray-500 text-center py-8">No messages in this session</p>
                     ) : (
                       <div className="space-y-4">
-                        {selectedChatSession.fullTranscript.map((message, index) => (
-                          <div key={index} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                        {selectedChatSession.fullTranscript
+                          .sort((a, b) => (a.messageIndex || 0) - (b.messageIndex || 0))
+                          .map((message, index) => (
+                          <div key={message.id || index} className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}>
                             <div className={`max-w-[80%] rounded-lg px-4 py-2 ${
-                              message.role === 'user' 
+                              message.type === 'user' 
                                 ? 'bg-blue-600 text-white' 
+                                : message.type === 'error'
+                                ? 'bg-red-100 text-red-800 border border-red-200'
                                 : 'bg-gray-100 text-gray-900'
                             }`}>
                               <div className="flex items-center space-x-2 mb-1">
                                 <span className="text-xs font-medium">
-                                  {message.role === 'user' ? 'User' : 'Bot'}
+                                  {message.type === 'user' ? 'User' : message.type === 'error' ? 'Error' : 'Bot'}
                                 </span>
                                 <span className="text-xs opacity-70">
                                   {new Date(message.timestamp).toLocaleTimeString()}
@@ -628,6 +855,37 @@ export const FormAnalytics = ({ form, onClose }: FormAnalyticsProps) => {
                       </div>
                     )}
                   </Card>
+
+                  {/* Session Details */}
+                  <Card className="p-6">
+                    <h4 className="text-md font-semibold mb-3">Session Details</h4>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <span className="font-medium text-gray-700">Session Key:</span>
+                        <div className="font-mono text-xs bg-gray-100 p-2 rounded mt-1">
+                          {selectedChatSession.sessionKey}
+                        </div>
+                      </div>
+                      <div>
+                        <span className="font-medium text-gray-700">Form Field ID:</span>
+                        <div className="font-mono text-xs bg-gray-100 p-2 rounded mt-1">
+                          {selectedChatSession.formFieldId}
+                        </div>
+                      </div>
+                      <div>
+                        <span className="font-medium text-gray-700">Created:</span>
+                        <div className="text-gray-600 mt-1">
+                          {selectedChatSession.createdAt.toLocaleString()}
+                        </div>
+                      </div>
+                      <div>
+                        <span className="font-medium text-gray-700">Last Activity:</span>
+                        <div className="text-gray-600 mt-1">
+                          {selectedChatSession.lastActivity.toLocaleString()}
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
                 </div>
               ) : (
                 <Card className="p-8 text-center">
@@ -636,9 +894,18 @@ export const FormAnalytics = ({ form, onClose }: FormAnalyticsProps) => {
                   <p className="text-gray-500 mb-4">
                     Go to the Chat Sessions tab and click on a session to view its transcript here.
                   </p>
-                  <Button onClick={() => setSelectedChatSession(chatSessions[0])}>
-                    {chatSessions.length > 0 ? 'View Latest Session' : 'No Sessions Available'}
-                  </Button>
+                  {chatSessions.length > 0 && (
+                    <Button 
+                      onClick={() => {
+                        const sessionWithMessages = chatSessions.find(s => s.totalMessages > 0);
+                        if (sessionWithMessages) {
+                          setSelectedChatSession(sessionWithMessages);
+                        }
+                      }}
+                    >
+                      {chatSessions.filter(s => s.totalMessages > 0).length > 0 ? 'View Latest Session' : 'No Sessions with Messages'}
+                    </Button>
+                  )}
                 </Card>
               )}
             </TabsContent>
@@ -675,7 +942,13 @@ export const FormAnalytics = ({ form, onClose }: FormAnalyticsProps) => {
                               <div className="text-xs text-gray-500">
                                 IP: {submission.ipAddress || 'N/A'}
                               </div>
+                              <div className="text-xs text-gray-400">
+                                ID: {submission.id.slice(0, 8).toUpperCase()}
+                              </div>
                             </div>
+                            <Badge variant="outline" className="text-xs">
+                              {submission.submissionType || 'traditional'}
+                            </Badge>
                           </div>
                         </div>
                       ))}
@@ -688,11 +961,16 @@ export const FormAnalytics = ({ form, onClose }: FormAnalyticsProps) => {
                     </h3>
                     {selectedSubmission ? (
                       <div className="space-y-4">
-                        <div className="text-sm text-gray-600 mb-4">
-                          Submitted: {new Date(selectedSubmission.submittedAt).toLocaleString()}
+                        <div className="text-sm text-gray-600 mb-4 p-3 bg-gray-50 rounded">
+                          <div><strong>Submitted:</strong> {new Date(selectedSubmission.submittedAt).toLocaleString()}</div>
+                          <div><strong>Type:</strong> {selectedSubmission.submissionType || 'traditional'}</div>
+                          <div><strong>IP:</strong> {selectedSubmission.ipAddress || 'Unknown'}</div>
+                          {selectedSubmission.completionTimeSeconds && (
+                            <div><strong>Completion Time:</strong> {selectedSubmission.completionTimeSeconds}s</div>
+                          )}
                         </div>
                         <div className="space-y-3">
-                          {form.fields.filter(f => f.type !== 'chat').map((field) => {
+                          {form.fields.filter(f => f.type !== 'chat' && f.type !== 'page-break').map((field) => {
                             const value = selectedSubmission.data[field.id];
                             return (
                               <div key={field.id} className="border-b border-gray-100 pb-2">
@@ -719,7 +997,7 @@ export const FormAnalytics = ({ form, onClose }: FormAnalyticsProps) => {
               )}
             </TabsContent>
 
-            <TabsContent value="fields" className="space-y-6">
+            <TabsContent value="field-analysis" className="space-y-6">
               {submissionAnalytics.valueAnalytics.length === 0 ? (
                 <Card className="p-8 text-center">
                   <TrendingUp className="w-12 h-12 mx-auto mb-4 text-gray-300" />
@@ -779,6 +1057,7 @@ export const FormAnalytics = ({ form, onClose }: FormAnalyticsProps) => {
                   <TableHead>Field Type</TableHead>
                   <TableHead>Required</TableHead>
                   {!hasChatFields && <TableHead>Completion Rate</TableHead>}
+                  <TableHead>Field ID</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -789,7 +1068,7 @@ export const FormAnalytics = ({ form, onClose }: FormAnalyticsProps) => {
                       <TableCell className="font-medium">{field.label}</TableCell>
                       <TableCell>
                         <Badge variant="outline" className="capitalize">
-                          {field.type}
+                          {field.type === 'page-break' ? 'Page Break' : field.type}
                         </Badge>
                       </TableCell>
                       <TableCell>
@@ -808,11 +1087,45 @@ export const FormAnalytics = ({ form, onClose }: FormAnalyticsProps) => {
                           )}
                         </TableCell>
                       )}
+                      <TableCell className="font-mono text-xs text-gray-500">
+                        {field.id}
+                      </TableCell>
                     </TableRow>
                   );
                 })}
               </TableBody>
             </Table>
+          </Card>
+
+          {/* Field Configuration Summary */}
+          <Card className="p-6">
+            <h3 className="text-lg font-semibold mb-4">Field Configuration Summary</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="text-center p-4 bg-blue-50 rounded-lg">
+                <div className="text-2xl font-bold text-blue-600">
+                  {form.fields.filter(f => f.type !== 'chat' && f.type !== 'page-break').length}
+                </div>
+                <div className="text-sm text-gray-600">Traditional Fields</div>
+              </div>
+              <div className="text-center p-4 bg-purple-50 rounded-lg">
+                <div className="text-2xl font-bold text-purple-600">
+                  {form.fields.filter(f => f.type === 'chat').length}
+                </div>
+                <div className="text-sm text-gray-600">Chat Fields</div>
+              </div>
+              <div className="text-center p-4 bg-green-50 rounded-lg">
+                <div className="text-2xl font-bold text-green-600">
+                  {form.fields.filter(f => f.required).length}
+                </div>
+                <div className="text-sm text-gray-600">Required Fields</div>
+              </div>
+              <div className="text-center p-4 bg-orange-50 rounded-lg">
+                <div className="text-2xl font-bold text-orange-600">
+                  {form.fields.filter(f => f.type === 'page-break').length}
+                </div>
+                <div className="text-sm text-gray-600">Page Breaks</div>
+              </div>
+            </div>
           </Card>
         </TabsContent>
       </Tabs>
