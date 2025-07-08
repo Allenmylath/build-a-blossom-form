@@ -48,7 +48,17 @@ export const useFormSubmission = ({
       if (formId) {
         console.log('Submitting form data:', { formId, formData });
         
-        await FormSubmissionHandler.submitForm(formId, formData);
+        // Separate traditional fields from chat fields
+const { traditionalData, chatSessionIds } = separateFormData(formData, fields);
+
+// Use hybrid submission to link existing chat sessions
+        await FormSubmissionHandler.createHybridSubmission(
+          formId,
+          traditionalData,  // Only non-chat fields
+          chatSessionIds,   // References to existing sessions
+          userId,
+          completionTime
+        );
         
         console.log('Form submitted successfully');
         toast.success('Form submitted successfully!');
