@@ -1,3 +1,5 @@
+// Updated ChatFormField.tsx with persistent session management
+
 import { useState, useRef, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,6 +8,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { MessageCircle, Send, Loader2 } from 'lucide-react';
 import { FormField, ChatMessage, ConversationTranscript } from '@/types/form';
 import { useChatSession } from '@/hooks/useChatSession';
+import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 
 interface ChatFormFieldProps {
   field: FormField;
@@ -16,18 +19,56 @@ interface ChatFormFieldProps {
 }
 
 export const ChatFormField = ({ field, value, onChange, error, formId }: ChatFormFieldProps) => {
+  const { user } = useSupabaseAuth();
   const [inputMessage, setInputMessage] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>(value?.messages || []);
   const [isLoading, setIsLoading] = useState(false);
-  const [sessionId] = useState(() => `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
   
+  // Persistent session management
+  const [sessionId] = useState(() => {
+    if (!formId || !field.id) {
+      return `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    }
+    
+    // Create a persistent session key based on form, field, and browser session
+    const browserSessionKey = sessionStorage.getItem('browser_session_id') || 
+      (() => {
+        const newKey = `browser_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        sessionStorage.setItem('browser_session_id', newKey);
+        return newKey;
+      })();
+    
+    return `session_${formId}_${field.id}_${browserSessionKey}`;
+  });
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   
-  const { saveConversationTranscript } = useChatSession();
+  const { saveConversationTranscript, loadConversationHistory } = useChatSession();
 
   const botName = field.chatConfig?.botName || 'Assistant';
   const welcomeMessage = field.chatConfig?.welcomeMessage || 'Hello! How can I help you?';
+
+  // Load existing conversation on mount
+  useEffect(() => {
+    if (formId && field.id && sessionId && messages.length === 0) {
+      loadConversationHistory(formId, field.id, sessionId).then((history) => {
+        if (history.length > 0) {
+          console.log('Loaded conversation history:', history.length, 'messages');
+          setMessages(history);
+        } else {
+          // Initialize with welcome message only if no history
+          const welcomeMsg: ChatMessage = {
+            id: `welcome_${Date.now()}`,
+            type: 'bot',
+            content: welcomeMessage,
+            timestamp: new Date()
+          };
+          setMessages([welcomeMsg]);
+        }
+      });
+    }
+  }, [formId, field.id, sessionId, loadConversationHistory, welcomeMessage]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -36,19 +77,6 @@ export const ChatFormField = ({ field, value, onChange, error, formId }: ChatFor
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
-
-  useEffect(() => {
-    // Initialize with welcome message if no messages exist
-    if (messages.length === 0) {
-      const welcomeMsg: ChatMessage = {
-        id: `welcome_${Date.now()}`,
-        type: 'bot',
-        content: welcomeMessage,
-        timestamp: new Date()
-      };
-      setMessages([welcomeMsg]);
-    }
-  }, [welcomeMessage]);
 
   useEffect(() => {
     // Update form value whenever messages change
@@ -61,18 +89,14 @@ export const ChatFormField = ({ field, value, onChange, error, formId }: ChatFor
   }, [messages, sessionId, onChange]);
 
   const callGeminiAPI = async (messageHistory: ChatMessage[]): Promise<string> => {
-    // Note: Using hardcoded API key for frontend-only solution
-    // In production, this should be moved to a secure backend/edge function
     const GEMINI_API_KEY = 'AIzaSyBiC8GdELF2JmUfpB_qF4yCbbu3UI6TCZU';
     
-    // Convert message history to Gemini format (limit to last 10 messages for context)
     const recentMessages = messageHistory.slice(-10);
     const contents = recentMessages.map((msg) => ({
       role: msg.type === 'user' ? 'user' : 'model',
       parts: [{ text: msg.content }]
     }));
 
-    // Add system prompt at the beginning
     const systemContents = [
       {
         role: 'user',
@@ -168,7 +192,7 @@ export const ChatFormField = ({ field, value, onChange, error, formId }: ChatFor
       const finalMessages = [...updatedMessages, newBotMessage];
       setMessages(finalMessages);
 
-      // Save conversation to Supabase
+      // Save conversation to Supabase (this will handle user updates properly)
       if (formId) {
         await saveConversationTranscript(formId, field.id, sessionId, finalMessages);
       }
@@ -219,6 +243,12 @@ export const ChatFormField = ({ field, value, onChange, error, formId }: ChatFor
       </label>
       
       <Card className="w-full h-[400px] flex flex-col">
+        {/* Session Info */}
+        <div className="px-4 py-2 bg-gray-50 border-b text-xs text-gray-500">
+          Session: {sessionId.split('_').pop()?.slice(0, 8).toUpperCase()}
+          {user ? ` • Authenticated as ${user.email}` : ' • Anonymous Session'}
+        </div>
+
         {/* Messages */}
         <ScrollArea className="flex-1 p-4">
           <div className="space-y-3">
@@ -288,7 +318,7 @@ export const ChatFormField = ({ field, value, onChange, error, formId }: ChatFor
       
       {/* Session info */}
       <div className="text-xs text-gray-500 mt-2">
-        Session: {messages.length} messages
+        Session: {messages.length} messages • {user ? 'Authenticated' : 'Anonymous'}
       </div>
     </div>
   );
