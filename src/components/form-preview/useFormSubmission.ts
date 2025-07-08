@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { FormField, FormSubmission } from '@/types/form';
+import { FormField } from '@/types/form';
 import { FormValidation } from './FormValidation';
 import { FormSubmissionHandler } from './FormSubmissionHandler';
 import { toast } from 'sonner';

@@ -1,9 +1,9 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { FormSubmission } from '@/types/form';
+import { FormSubmissionData } from '@/types/form';
 
 export class FormSubmissionHandler {
-  static async submitForm(formId: string, formData: Record<string, any>): Promise<FormSubmission> {
+  static async submitForm(formId: string, formData: Record<string, any>): Promise<FormSubmissionData> {
     try {
       console.log('FormSubmissionHandler: Starting submission for form:', formId);
       
@@ -47,7 +47,7 @@ export class FormSubmissionHandler {
     }
   }
 
-  static async getFormSubmissions(formId: string): Promise<FormSubmission[]> {
+  static async getFormSubmissions(formId: string): Promise<FormSubmissionData[]> {
     try {
       const { data, error } = await supabase
         .from('form_submissions')
