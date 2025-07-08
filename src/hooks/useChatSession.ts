@@ -1,10 +1,11 @@
-// Updated useChatSession.ts with better session management
-
 import { useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useSupabaseAuth } from './useSupabaseAuth';
 import { ChatMessage } from '@/types/form';
 import { toast } from 'sonner';
+
+// Global lock to prevent concurrent saves
+const saveLocks = new Map<string, boolean>();
 
 export const useChatSession = () => {
   const { user } = useSupabaseAuth();
@@ -15,57 +16,93 @@ export const useChatSession = () => {
     sessionId: string,
     messages: ChatMessage[]
   ) => {
+    const lockKey = `${formId}_${fieldId}_${sessionId}`;
+    
+    // Check if already saving this session
+    if (saveLocks.get(lockKey)) {
+      console.log('⏳ Save already in progress for session:', sessionId.slice(-8));
+      return;
+    }
+
+    // Set lock
+    saveLocks.set(lockKey, true);
+
     try {
-      console.log('Saving conversation transcript:', { formId, fieldId, sessionId, messageCount: messages.length });
+      console.log('🔒 Acquired save lock for session:', sessionId.slice(-8));
+      console.log('💾 Starting save process:', { 
+        formId, 
+        fieldId, 
+        sessionId: sessionId.slice(-8), 
+        messageCount: messages.length,
+        userAuthenticated: !!user?.id
+      });
 
-      // Check if session already exists
-      const { data: existingSession, error: fetchError } = await supabase
-        .from('chat_sessions')
-        .select('id, user_id')
-        .eq('session_key', sessionId)
-        .eq('form_id', formId)
-        .eq('form_field_id', fieldId)
-        .single();
-
-      if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 = no rows returned
-        console.error('Error checking existing session:', fetchError);
-        return;
+      // CRITICAL: Clean and deduplicate messages BEFORE saving
+      const cleanedMessages = deduplicateMessages(messages);
+      
+      if (cleanedMessages.length !== messages.length) {
+        console.warn(`⚠️ Removed ${messages.length - cleanedMessages.length} duplicate messages before saving`);
       }
+
+      // Prepare the transcript data with proper indexing
+      const fullTranscript = cleanedMessages.map((msg, index) => ({
+        id: msg.id,
+        type: msg.type,
+        content: msg.content,
+        timestamp: msg.timestamp.toISOString(),
+        messageIndex: index
+      }));
 
       // Prepare session data
       const sessionData = {
         form_id: formId,
         form_field_id: fieldId,
         session_key: sessionId,
-        conversation_context: messages.map(msg => ({
+        conversation_context: cleanedMessages.map(msg => ({
           role: msg.type === 'user' ? 'user' : 'assistant',
           content: msg.content,
           timestamp: msg.timestamp.toISOString()
         })) as any,
         is_active: true,
-        total_messages: messages.length,
+        total_messages: cleanedMessages.length,
         last_activity: new Date().toISOString(),
-        full_transcript: messages.map(msg => ({
-          id: msg.id,
-          type: msg.type,
-          content: msg.content,
-          timestamp: msg.timestamp.toISOString()
-        })) as any,
-        user_id: user?.id || null
+        full_transcript: fullTranscript as any,
+        user_id: user?.id || null,
+        updated_at: new Date().toISOString()
       };
+
+      console.log('📝 Prepared session data:', {
+        totalMessages: sessionData.total_messages,
+        transcriptLength: fullTranscript.length,
+        userId: sessionData.user_id ? 'authenticated' : 'anonymous'
+      });
+
+      // First, check if session exists
+      const { data: existingSession, error: checkError } = await supabase
+        .from('chat_sessions')
+        .select('id, total_messages, full_transcript')
+        .eq('session_key', sessionId)
+        .eq('form_id', formId)
+        .eq('form_field_id', fieldId)
+        .maybeSingle(); // Use maybeSingle instead of single to avoid errors
+
+      if (checkError) {
+        console.error('❌ Error checking existing session:', checkError);
+        throw checkError;
+      }
 
       let sessionRecord;
 
       if (existingSession) {
-        // Update existing session
-        console.log('Updating existing session:', existingSession.id);
-        
-        // If user was null before but now we have a user, update the user_id
-        if (!existingSession.user_id && user?.id) {
-          sessionData.user_id = user.id;
-          console.log('Updating session with new user ID:', user.id);
-        }
+        console.log('🔄 Updating existing session:', existingSession.id);
+        console.log('📊 Current vs New:', {
+          currentMessages: existingSession.total_messages,
+          newMessages: sessionData.total_messages,
+          currentTranscriptLength: Array.isArray(existingSession.full_transcript) ? existingSession.full_transcript.length : 0,
+          newTranscriptLength: fullTranscript.length
+        });
 
+        // IMPORTANT: Use UPDATE with WHERE clause, not UPSERT
         const { data: updatedSession, error: updateError } = await supabase
           .from('chat_sessions')
           .update(sessionData)
@@ -74,15 +111,14 @@ export const useChatSession = () => {
           .single();
 
         if (updateError) {
-          console.error('Error updating chat session:', updateError);
-          toast.error('Failed to save conversation');
-          return;
+          console.error('❌ Error updating session:', updateError);
+          throw updateError;
         }
 
         sessionRecord = updatedSession;
+        console.log('✅ Session updated successfully');
       } else {
-        // Create new session
-        console.log('Creating new session');
+        console.log('🆕 Creating new session');
         
         const { data: newSession, error: insertError } = await supabase
           .from('chat_sessions')
@@ -91,47 +127,65 @@ export const useChatSession = () => {
           .single();
 
         if (insertError) {
-          console.error('Error creating chat session:', insertError);
-          toast.error('Failed to save conversation');
-          return;
+          console.error('❌ Error creating session:', insertError);
+          throw insertError;
         }
 
         sessionRecord = newSession;
+        console.log('✅ New session created:', sessionRecord.id);
       }
 
-      // Save individual messages to chat_messages table
-      const messageInserts = messages.map((msg, index) => ({
-        session_id: sessionRecord.id,
-        role: msg.type === 'user' ? 'user' : msg.type === 'error' ? 'system' : 'assistant',
-        content: msg.content,
-        message_type: msg.type === 'error' ? 'error' : 'text',
-        message_index: index,
-        metadata: {
-          timestamp: msg.timestamp.toISOString(),
-          messageId: msg.id
-        }
-      }));
-
-      // Delete existing messages for this session and insert new ones
-      await supabase
+      // Handle chat_messages table (secondary storage)
+      console.log('🗂️ Managing chat_messages table...');
+      
+      // Delete existing messages for this session
+      const { error: deleteError } = await supabase
         .from('chat_messages')
         .delete()
         .eq('session_id', sessionRecord.id);
 
-      const { error: messagesError } = await supabase
-        .from('chat_messages')
-        .insert(messageInserts);
-
-      if (messagesError) {
-        console.error('Error saving chat messages:', messagesError);
-        toast.error('Failed to save conversation messages');
-        return;
+      if (deleteError) {
+        console.error('⚠️ Error deleting old messages (non-critical):', deleteError);
+        // Don't throw here - this is secondary storage
       }
 
-      console.log('Conversation saved successfully:', sessionRecord.id);
+      // Insert new messages if any exist
+      if (cleanedMessages.length > 0) {
+        const messageInserts = cleanedMessages.map((msg, index) => ({
+          session_id: sessionRecord.id,
+          role: msg.type === 'user' ? 'user' : msg.type === 'error' ? 'system' : 'assistant',
+          content: msg.content,
+          message_type: msg.type === 'error' ? 'error' : 'text',
+          message_index: index,
+          metadata: {
+            timestamp: msg.timestamp.toISOString(),
+            messageId: msg.id,
+            originalType: msg.type
+          }
+        }));
+
+        const { error: messagesError } = await supabase
+          .from('chat_messages')
+          .insert(messageInserts);
+
+        if (messagesError) {
+          console.error('⚠️ Error saving messages to chat_messages (non-critical):', messagesError);
+          // Don't throw here - main transcript is saved in chat_sessions
+        } else {
+          console.log('✅ Messages saved to chat_messages table');
+        }
+      }
+
+      console.log('🎉 Save process completed successfully');
+
     } catch (error) {
-      console.error('Error in saveConversationTranscript:', error);
+      console.error('💥 Error in saveConversationTranscript:', error);
       toast.error('Failed to save conversation');
+      throw error;
+    } finally {
+      // Always release the lock
+      saveLocks.delete(lockKey);
+      console.log('🔓 Released save lock for session:', sessionId.slice(-8));
     }
   }, [user?.id]);
 
@@ -141,35 +195,60 @@ export const useChatSession = () => {
     sessionId: string
   ): Promise<ChatMessage[]> => {
     try {
-      console.log('Loading conversation history:', { formId, fieldId, sessionId });
+      console.log('📖 Loading conversation history:', { 
+        formId, 
+        fieldId, 
+        sessionId: sessionId.slice(-8) 
+      });
       
-      // First get the session
       const { data: session, error: sessionError } = await supabase
         .from('chat_sessions')
-        .select('*')
+        .select('id, full_transcript, total_messages, conversation_context')
         .eq('form_id', formId)
         .eq('form_field_id', fieldId)
         .eq('session_key', sessionId)
-        .single();
+        .maybeSingle();
 
-      if (sessionError || !session) {
-        console.log('No existing session found:', sessionError?.message);
+      if (sessionError) {
+        console.error('❌ Error loading session:', sessionError);
         return [];
       }
 
-      // If session has full_transcript, use that
+      if (!session) {
+        console.log('📭 No existing session found');
+        return [];
+      }
+
+      console.log('📋 Found session:', {
+        id: session.id,
+        totalMessages: session.total_messages,
+        hasTranscript: !!session.full_transcript,
+        transcriptLength: Array.isArray(session.full_transcript) ? session.full_transcript.length : 0
+      });
+
+      // Try to use full_transcript first
       if (session.full_transcript && Array.isArray(session.full_transcript)) {
-        console.log('Using full_transcript from session');
-        const chatMessages: ChatMessage[] = session.full_transcript.map((msg: any) => ({
+        console.log('📜 Using full_transcript from session');
+        
+        const rawMessages = session.full_transcript as any[];
+        const cleanedMessages = deduplicateMessages(rawMessages.map(msg => ({
           id: msg.id || `msg_${Date.now()}_${Math.random()}`,
           type: msg.type,
           content: msg.content,
           timestamp: new Date(msg.timestamp)
-        }));
-        return chatMessages;
+        })));
+
+        if (cleanedMessages.length !== rawMessages.length) {
+          console.warn(`⚠️ Removed ${rawMessages.length - cleanedMessages.length} duplicates during load`);
+        }
+
+        console.log(`✅ Loaded ${cleanedMessages.length} messages from full_transcript`);
+        return cleanedMessages;
       }
 
-      // Fallback: Get messages from chat_messages table
+      // Fallback to chat_messages table
+      console.log('🔄 Fallback: Loading from chat_messages table...');
+      
       const { data: messages, error: messagesError } = await supabase
         .from('chat_messages')
         .select('*')
@@ -177,22 +256,28 @@ export const useChatSession = () => {
         .order('message_index', { ascending: true });
 
       if (messagesError) {
-        console.error('Error loading messages:', messagesError);
+        console.error('❌ Error loading messages from chat_messages:', messagesError);
         return [];
       }
 
-      // Convert to ChatMessage format
-      const chatMessages: ChatMessage[] = (messages || []).map((msg: any) => ({
+      if (!messages || messages.length === 0) {
+        console.log('📭 No messages found in chat_messages table');
+        return [];
+      }
+
+      const chatMessages: ChatMessage[] = messages.map((msg: any) => ({
         id: msg.metadata?.messageId || msg.id,
         type: msg.role === 'user' ? 'user' : msg.message_type === 'error' ? 'error' : 'bot',
         content: msg.content,
         timestamp: new Date(msg.metadata?.timestamp || msg.created_at)
       }));
 
-      console.log('Loaded', chatMessages.length, 'messages from chat_messages table');
-      return chatMessages;
+      const cleanedMessages = deduplicateMessages(chatMessages);
+      console.log(`✅ Loaded ${cleanedMessages.length} messages from chat_messages table`);
+      return cleanedMessages;
+
     } catch (error) {
-      console.error('Error loading conversation history:', error);
+      console.error('💥 Error loading conversation history:', error);
       return [];
     }
   }, []);
@@ -202,3 +287,42 @@ export const useChatSession = () => {
     loadConversationHistory
   };
 };
+
+// Utility function to remove duplicate messages
+function deduplicateMessages(messages: ChatMessage[] | any[]): ChatMessage[] {
+  if (!Array.isArray(messages)) {
+    console.warn('⚠️ deduplicateMessages received non-array:', typeof messages);
+    return [];
+  }
+
+  const seen = new Set<string>();
+  const deduplicated: ChatMessage[] = [];
+
+  for (const msg of messages) {
+    if (!msg || typeof msg !== 'object') {
+      console.warn('⚠️ Skipping invalid message:', msg);
+      continue;
+    }
+
+    // Create a unique key for each message
+    const messageKey = `${msg.type || 'unknown'}:${msg.content || ''}:${new Date(msg.timestamp || 0).getTime()}`;
+    
+    if (!seen.has(messageKey)) {
+      seen.add(messageKey);
+      deduplicated.push({
+        id: msg.id || `dedup_${Date.now()}_${Math.random()}`,
+        type: msg.type || 'bot',
+        content: msg.content || '',
+        timestamp: new Date(msg.timestamp || Date.now())
+      });
+    } else {
+      console.log('🗑️ Removing duplicate message:', msg.content?.substring(0, 50) + '...');
+    }
+  }
+
+  // Sort by timestamp to ensure proper order
+  deduplicated.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+
+  console.log(`🧹 Deduplication: ${messages.length} → ${deduplicated.length} messages`);
+  return deduplicated;
+}
