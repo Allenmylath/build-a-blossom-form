@@ -63,7 +63,7 @@ export const ChatFormField = ({ field, value, onChange, error, formId }: ChatFor
   const callGeminiAPI = async (messageHistory: ChatMessage[]): Promise<string> => {
     // Note: Using hardcoded API key for frontend-only solution
     // In production, this should be moved to a secure backend/edge function
-    const GEMINI_API_KEY = 'AIzaSyDjjjb2q_OsyHh9vUKVa_G_paBZ7eVlhCM';
+    const GEMINI_API_KEY = 'AIzaSyBiC8GdELF2JmUfpB_qF4yCbbu3UI6TCZU';
     
     // Convert message history to Gemini format (limit to last 10 messages for context)
     const recentMessages = messageHistory.slice(-10);
