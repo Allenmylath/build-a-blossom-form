@@ -182,7 +182,7 @@ export const useChatSession = (formId: string, fieldId: string) => {
         .from('chat_messages')
         .insert({
           session_id: session.id,
-          chat_id: session.id, // Use session_id as chat_id since we're using sessions now
+          chat_id: session.id, // Use session_id as chat_id for compatibility
           role: role,
           content: content,
           message_type: type === 'error' ? 'error' : 'text',
