@@ -13,7 +13,24 @@ interface UseFormSubmissionProps {
   onSubmissionSuccess?: () => void;
   setIsSubmitting: (isSubmitting: boolean) => void;
 }
+const separateFormData = (formData: Record<string, any>, fields: FormField[]) => {
+  const traditionalData: Record<string, any> = {};
+  const chatSessionIds: string[] = [];
 
+  fields.forEach(field => {
+    const value = formData[field.id];
+    
+    if (field.type === 'chat' && value?.sessionId) {
+      // Chat field - extract session ID for linking
+      chatSessionIds.push(value.sessionId);
+    } else if (value !== undefined) {
+      // Traditional field - include in submission data
+      traditionalData[field.id] = value;
+    }
+  });
+
+  return { traditionalData, chatSessionIds };
+};
 export const useFormSubmission = ({
   fields,
   formData,
@@ -48,17 +65,7 @@ export const useFormSubmission = ({
       if (formId) {
         console.log('Submitting form data:', { formId, formData });
         
-        // Separate traditional fields from chat fields
-const { traditionalData, chatSessionIds } = separateFormData(formData, fields);
-
-// Use hybrid submission to link existing chat sessions
-        await FormSubmissionHandler.createHybridSubmission(
-          formId,
-          traditionalData,  // Only non-chat fields
-          chatSessionIds,   // References to existing sessions
-          userId,
-          completionTime
-        );
+        await FormSubmissionHandler.submitForm(formId, formData);
         
         console.log('Form submitted successfully');
         toast.success('Form submitted successfully!');
