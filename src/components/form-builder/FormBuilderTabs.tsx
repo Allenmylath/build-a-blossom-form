@@ -3,6 +3,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Plus, Eye, FolderOpen, FileText } from 'lucide-react';
 import { FormActions } from './FormActions';
 import { BuilderPanel } from './BuilderPanel';
+import { FieldTypesPanel } from './FieldTypesPanel';
+import { FieldList } from './FieldList';
 import { FormFieldEditor } from '../FormFieldEditor';
 import { FormPreview } from '../FormPreview';
 import { FormTemplates } from '../FormTemplates';
@@ -81,18 +83,26 @@ export const FormBuilderTabs = ({
           hasFields={fields.length > 0}
         />
         
-        <div className="grid lg:grid-cols-2 gap-6">
-          {/* Left column: Preview on top, Form Fields below (desktop view) */}
+        <div className="grid lg:grid-cols-4 gap-6">
+          {/* Left column: Field Types Panel */}
           <div className="space-y-6">
-            <FormPreview fields={fields} />
-            <BuilderPanel
+            <FieldTypesPanel onAddField={onAddField} />
+          </div>
+
+          {/* Middle left: Form Fields List */}
+          <div className="space-y-6">
+            <FieldList
               fields={fields}
               selectedFieldId={selectedFieldId}
-              onAddField={onAddField}
               onSelectField={onSelectField}
               onMoveField={onMoveField}
               onDeleteField={onDeleteField}
             />
+          </div>
+
+          {/* Middle right: Preview */}
+          <div className="space-y-6">
+            <FormPreview fields={fields} />
           </div>
 
           {/* Right column: Field Editor */}
