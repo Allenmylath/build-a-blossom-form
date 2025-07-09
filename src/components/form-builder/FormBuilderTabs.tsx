@@ -82,6 +82,7 @@ export const FormBuilderTabs = ({
         />
         
         <div className="grid lg:grid-cols-2 gap-6">
+          {/* Left column: Preview on top, Form Fields below (desktop view) */}
           <div className="space-y-6">
             <FormPreview fields={fields} />
             <BuilderPanel
@@ -94,6 +95,7 @@ export const FormBuilderTabs = ({
             />
           </div>
 
+          {/* Right column: Field Editor */}
           <div className="space-y-6">
             {selectedField ? (
               <FormFieldEditor
