@@ -111,7 +111,7 @@ export default function ChatDesign() {
     setDraggedIndex(null);
   };
 
-  const handleSaveFlow = useCallback(async (data: { name: string; description?: string }) => {
+  const handleSaveFlow = useCallback(async (data?: { name: string; description?: string }) => {
     if (flowNodes.length === 0) {
       toast.error('Cannot save empty chat flow');
       return;
@@ -144,18 +144,16 @@ export default function ChatDesign() {
     const flowData = { nodes, edges };
 
     if (currentFlow) {
-      // Update existing flow
+      // Update existing flow - no dialog needed
       const updated = await updateChatFlow(currentFlow.id, {
-        name: data.name,
-        description: data.description,
         flow_data: flowData,
       });
       if (updated) {
         setCurrentFlow(updated);
-        setFlowName(updated.name);
+        toast.success('Flow updated successfully!');
       }
-    } else {
-      // Create new flow
+    } else if (data) {
+      // Create new flow with provided data
       const saved = await saveChatFlow({
         name: data.name,
         description: data.description,
@@ -167,6 +165,16 @@ export default function ChatDesign() {
       }
     }
   }, [flowNodes, currentFlow, saveChatFlow, updateChatFlow]);
+
+  const handleSaveClick = useCallback(() => {
+    if (currentFlow) {
+      // Update existing flow directly
+      handleSaveFlow();
+    } else {
+      // New flow - show dialog
+      setShowSaveDialog(true);
+    }
+  }, [currentFlow, handleSaveFlow]);
 
   const handleLoadFlow = useCallback((flow: ChatFlow) => {
     if (flow.flow_data && flow.flow_data.nodes) {
@@ -254,7 +262,7 @@ export default function ChatDesign() {
             </Button>
             
             <Button 
-              onClick={() => setShowSaveDialog(true)} 
+              onClick={handleSaveClick} 
               disabled={flowNodes.length === 0}
             >
               <Save className="w-4 h-4 mr-2" />
