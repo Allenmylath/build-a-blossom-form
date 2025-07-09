@@ -361,7 +361,7 @@ export default function ChatDesign() {
             </div>
           </TabsContent>
           
-          <TabsContent value="manage" className="flex-1 mt-0">
+          <TabsContent value="manage" className="flex-1 mt-0 flex flex-col justify-start">
             <ChatFlowManager
               chatFlows={chatFlows}
               onSelect={handleLoadFlow}
