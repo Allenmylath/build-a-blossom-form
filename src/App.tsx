@@ -10,6 +10,7 @@ import { AppSidebar } from '@/components/AppSidebar';
 import { MainHeader } from '@/components/MainHeader';
 import Forms from '@/pages/Forms';
 import ChatForms from '@/pages/ChatForms';
+import ChatDesign from '@/pages/ChatDesign';
 import Settings from '@/pages/Settings';
 import KnowledgeBase from '@/pages/KnowledgeBase';
 import Pricing from '@/pages/Pricing';
@@ -81,6 +82,20 @@ function App() {
               <AppLayout>
                 {user ? (
                   <ChatForms user={user} />
+                ) : (
+                  <FormBuilderWithAuth />
+                )}
+              </AppLayout>
+            } 
+          />
+          
+          {/* Chat Design route */}
+          <Route 
+            path="/chat-design" 
+            element={
+              <AppLayout>
+                {user ? (
+                  <ChatDesign />
                 ) : (
                   <FormBuilderWithAuth />
                 )}
