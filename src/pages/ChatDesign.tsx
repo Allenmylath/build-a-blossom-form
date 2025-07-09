@@ -242,21 +242,21 @@ export default function ChatDesign() {
   }, []);
 
   return (
-    <div className="h-screen flex flex-col">
-      <div className="border-b bg-background p-4">
+    <div className="h-screen flex flex-col bg-slate-50">
+      <div className="border-b bg-background p-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold">Chat Design</h1>
-            <p className="text-muted-foreground">
+            <h1 className="text-2xl font-bold text-slate-900">Chat Design</h1>
+            <p className="text-slate-600 mt-1">
               {flowName ? `Editing: ${flowName}` : 'Design and manage chat flows'}
             </p>
           </div>
-          <div className="flex gap-2">
-            <Button onClick={handleNewFlow} variant="outline">
+          <div className="flex gap-3">
+            <Button onClick={handleNewFlow} variant="outline" className="font-medium">
               New Flow
             </Button>
             
-            <Button onClick={previewFlow} variant="outline">
+            <Button onClick={previewFlow} variant="outline" className="font-medium">
               <Play className="w-4 h-4 mr-2" />
               Preview
             </Button>
@@ -264,6 +264,7 @@ export default function ChatDesign() {
             <Button 
               onClick={handleSaveClick} 
               disabled={flowNodes.length === 0}
+              className="font-medium"
             >
               <Save className="w-4 h-4 mr-2" />
               {currentFlow ? 'Update' : 'Save'} Flow
@@ -280,18 +281,23 @@ export default function ChatDesign() {
           </TabsList>
           
           <TabsContent value="design" className="flex-1 flex mt-0">
-            {/* Question Templates */}
-            <div className="w-64 border-r bg-background p-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-sm">Question Templates</CardTitle>
+            {/* Question Templates Sidebar */}
+            <div className="w-64 border-r bg-slate-50 p-4">
+              <div className="mb-3">
+                <Badge className="bg-blue-600 text-white text-xs font-semibold px-2 py-1">
+                  TEMPLATES PANEL
+                </Badge>
+              </div>
+              <Card className="shadow-sm">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-semibold text-slate-700">Question Templates</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
                   {questionTemplates.map((template, index) => (
                     <Button
                       key={index}
                       variant="outline"
-                      className="w-full justify-start"
+                      className="w-full justify-start text-sm font-medium hover:bg-blue-50 hover:border-blue-300 transition-colors"
                       onClick={() => addNode(template)}
                     >
                       <Plus className="w-4 h-4 mr-2" />
@@ -302,8 +308,13 @@ export default function ChatDesign() {
               </Card>
             </div>
 
-            {/* Linear Flow */}
-            <div className="flex-1 p-6 overflow-auto">
+            {/* Flow Canvas */}
+            <div className="flex-1 p-6 overflow-auto bg-slate-50">
+              <div className="mb-4">
+                <Badge className="bg-blue-600 text-white text-xs font-semibold px-2 py-1">
+                  FLOW CANVAS
+                </Badge>
+              </div>
               <div className="max-w-2xl mx-auto">
                 <div className="mb-6">
                   <div className="flex items-center gap-2 mb-4">
@@ -361,7 +372,12 @@ export default function ChatDesign() {
             </div>
           </TabsContent>
           
-          <TabsContent value="manage" className="flex-1 mt-0">
+          <TabsContent value="manage" className="flex-1 mt-0 p-6 bg-slate-50">
+            <div className="mb-4">
+              <Badge className="bg-blue-600 text-white text-xs font-semibold px-2 py-1">
+                SAVED FLOWS
+              </Badge>
+            </div>
             <ChatFlowManager
               chatFlows={chatFlows}
               onSelect={handleLoadFlow}
