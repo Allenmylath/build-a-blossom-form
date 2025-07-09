@@ -391,7 +391,7 @@ export default function ChatDesign() {
         } : undefined}
       />
       
-      <style jsx global>{`
+      <style>{`
         /* Force proper height for tabs */
         [data-radix-tabs-root] {
           height: 100% !important;
