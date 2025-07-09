@@ -57,8 +57,7 @@ export const FormBuilder = ({ user }: FormBuilderProps) => {
 
   return (
     <div className="h-full bg-green-50">
-      <div className="h-full">
-        <FormBuilderContent
+      <FormBuilderContent
           user={user}
           fields={fields}
           selectedFieldId={selectedFieldId}
@@ -81,7 +80,7 @@ export const FormBuilder = ({ user }: FormBuilderProps) => {
           onUpdateForm={handleUpdateForm}
         />
         
-        <FormSaveDialog
+      <FormSaveDialog
           isOpen={showSaveDialog}
           onClose={() => setShowSaveDialog(false)}
           onSave={handleSaveForm}
@@ -93,7 +92,6 @@ export const FormBuilder = ({ user }: FormBuilderProps) => {
             knowledgeBaseId: currentForm.knowledgeBaseId
           } : undefined}
         />
-      </div>
     </div>
   );
 };
