@@ -42,10 +42,10 @@ export function AppSidebar() {
 
   return (
     <Sidebar
-      className={`border-r ${state === "collapsed" ? "w-16" : "w-56"} transition-all duration-300`}
+      className={`border-r ${state === "collapsed" ? "w-12" : "w-48"} transition-all duration-300`}
       collapsible="icon"
     >
-      <SidebarContent className="p-3">
+      <SidebarContent className="p-2">
         <SidebarGroup>
           <SidebarGroupLabel className="text-xs font-semibold text-muted-foreground mb-1">
             Navigation

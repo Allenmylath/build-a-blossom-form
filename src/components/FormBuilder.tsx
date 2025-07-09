@@ -57,7 +57,7 @@ export const FormBuilder = ({ user }: FormBuilderProps) => {
 
   return (
     <div className="h-full bg-green-50">
-      <div className="h-full p-4">
+      <div className="h-full">
         <FormBuilderContent
           user={user}
           fields={fields}
