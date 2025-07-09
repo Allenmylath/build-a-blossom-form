@@ -9,6 +9,7 @@ import { SharedForm } from '@/components/SharedForm';
 import { AppSidebar } from '@/components/AppSidebar';
 import { MainHeader } from '@/components/MainHeader';
 import Forms from '@/pages/Forms';
+import ChatForms from '@/pages/ChatForms';
 import Settings from '@/pages/Settings';
 import KnowledgeBase from '@/pages/KnowledgeBase';
 import Pricing from '@/pages/Pricing';
@@ -79,10 +80,7 @@ function App() {
             element={
               <AppLayout>
                 {user ? (
-                  <div className="p-6">
-                    <h1 className="text-2xl font-bold">Chat Forms</h1>
-                    <p className="text-muted-foreground">Coming soon...</p>
-                  </div>
+                  <ChatForms user={user} />
                 ) : (
                   <FormBuilderWithAuth />
                 )}
