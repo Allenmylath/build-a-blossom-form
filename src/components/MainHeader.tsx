@@ -28,7 +28,7 @@ export const MainHeader = () => {
 
   return (
     <header className="h-10 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-40">
-      <div className="flex h-10 items-center justify-between px-2">
+      <div className="flex h-10 items-center justify-between">
         <div className="flex items-center gap-2">
           <SidebarTrigger />
           <Link to="/" className="hover:opacity-80 transition-opacity">
