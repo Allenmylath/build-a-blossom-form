@@ -159,3 +159,30 @@ All colors MUST be HSL.
   transform: translateY(-5px) rotateY(10deg) scale(1.05);
   text-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
 }
+
+/* Force sidebar to be completely flush with content */
+[data-sidebar="sidebar"] {
+  margin-right: 0 !important;
+  border-right: none !important;
+}
+
+/* Remove any spacer elements */
+.sidebar-spacer {
+  display: none !important;
+}
+
+/* Make main content start immediately after sidebar */
+main {
+  margin-left: 0 !important;
+  padding-left: 0 !important;
+}
+
+/* Ensure SidebarProvider has no internal spacing */
+[data-sidebar="provider"] {
+  gap: 0 !important;
+}
+
+/* Remove any flex gaps in the layout */
+.flex {
+  gap: 0;
+}
