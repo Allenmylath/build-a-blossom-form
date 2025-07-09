@@ -2,13 +2,14 @@ import { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { LinearFlowNode } from '@/components/chat-design/LinearFlowNode';
 import { ChatFlowSaveDialog } from '@/components/chat-design/ChatFlowSaveDialog';
 import { ChatFlowManager } from '@/components/chat-design/ChatFlowManager';
 import { useChatFlows, ChatFlow } from '@/hooks/useChatFlows';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
-import { Plus, Save, Play, ArrowDown, Folder, Upload } from 'lucide-react';
+import { Plus, Save, Play, ArrowDown, Folder, Upload, Settings } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface FlowNode {
@@ -116,15 +117,31 @@ export default function ChatDesign() {
       return;
     }
 
-    const flowData = flowNodes.map((node, index) => ({
-      id: node.id,
-      type: node.type,
-      prompt: node.prompt,
-      field: node.field,
-      label: node.label,
-      hook: node.hook,
-      order: index,
-    }));
+    // Convert to nodes/edges format
+    const nodes: Record<string, any> = {};
+    const edges: [string, string][] = [];
+
+    flowNodes.forEach((node, index) => {
+      nodes[node.id] = {
+        type: node.type,
+        prompt: node.prompt,
+        field: node.field,
+        hook: node.hook,
+      };
+
+      // Create edges
+      if (index === 0) {
+        edges.push(['start', node.id]);
+      }
+      if (index < flowNodes.length - 1) {
+        edges.push([node.id, flowNodes[index + 1].id]);
+      }
+      if (index === flowNodes.length - 1) {
+        edges.push([node.id, 'end']);
+      }
+    });
+
+    const flowData = { nodes, edges };
 
     if (currentFlow) {
       // Update existing flow
@@ -152,7 +169,40 @@ export default function ChatDesign() {
   }, [flowNodes, currentFlow, saveChatFlow, updateChatFlow]);
 
   const handleLoadFlow = useCallback((flow: ChatFlow) => {
-    if (Array.isArray(flow.flow_data)) {
+    if (flow.flow_data && flow.flow_data.nodes) {
+      // Handle nodes/edges format
+      const nodes = Object.entries(flow.flow_data.nodes).map(([id, nodeData]: [string, any]) => ({
+        id,
+        type: nodeData.type,
+        prompt: nodeData.prompt,
+        field: nodeData.field,
+        label: nodeData.label || `${nodeData.field} Question`,
+        hook: nodeData.hook,
+      }));
+      
+      // Sort nodes by edge order
+      const sortedNodes = [...nodes];
+      if (flow.flow_data.edges) {
+        const edgeOrder: string[] = [];
+        flow.flow_data.edges.forEach(([from, to]: [string, string]) => {
+          if (from === 'start') edgeOrder.push(to);
+        });
+        
+        sortedNodes.sort((a, b) => {
+          const aIndex = edgeOrder.indexOf(a.id);
+          const bIndex = edgeOrder.indexOf(b.id);
+          return aIndex - bIndex;
+        });
+      }
+      
+      setFlowNodes(sortedNodes);
+      setCurrentFlow(flow);
+      setFlowName(flow.name);
+      setNodeCounter(Math.max(...sortedNodes.map((n: any) => parseInt(n.id.split('-')[1]) || 0)) + 1);
+      setShowLoadDialog(false);
+      toast.success(`Loaded chat flow: ${flow.name}`);
+    } else if (Array.isArray(flow.flow_data)) {
+      // Handle legacy array format
       const nodes = flow.flow_data.map((nodeData: any) => ({
         id: nodeData.id,
         type: nodeData.type,
@@ -190,30 +240,10 @@ export default function ChatDesign() {
           <div>
             <h1 className="text-2xl font-bold">Chat Design</h1>
             <p className="text-muted-foreground">
-              {flowName ? `Editing: ${flowName}` : 'Create a linear chat flow'}
+              {flowName ? `Editing: ${flowName}` : 'Design and manage chat flows'}
             </p>
           </div>
           <div className="flex gap-2">
-            <Dialog open={showLoadDialog} onOpenChange={setShowLoadDialog}>
-              <DialogTrigger asChild>
-                <Button variant="outline">
-                  <Folder className="w-4 h-4 mr-2" />
-                  Load Flow
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-2xl">
-                <DialogHeader>
-                  <DialogTitle>Load Chat Flow</DialogTitle>
-                </DialogHeader>
-                <ChatFlowManager
-                  chatFlows={chatFlows}
-                  onSelect={handleLoadFlow}
-                  onDelete={deleteChatFlow}
-                  loading={loading}
-                />
-              </DialogContent>
-            </Dialog>
-            
             <Button onClick={handleNewFlow} variant="outline">
               New Flow
             </Button>
@@ -234,86 +264,104 @@ export default function ChatDesign() {
         </div>
       </div>
 
-      <div className="flex-1 flex">
-        {/* Question Templates */}
-        <div className="w-64 border-r bg-background p-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm">Question Templates</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {questionTemplates.map((template, index) => (
-                <Button
-                  key={index}
-                  variant="outline"
-                  className="w-full justify-start"
-                  onClick={() => addNode(template)}
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  {template.label}
-                </Button>
-              ))}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Linear Flow */}
-        <div className="flex-1 p-6 overflow-auto">
-          <div className="max-w-2xl mx-auto">
-            <div className="mb-6">
-              <div className="flex items-center gap-2 mb-4">
-                <Badge variant="secondary">Start</Badge>
-                <p className="text-sm text-muted-foreground">Chat begins here</p>
-              </div>
-              {flowNodes.length > 0 && (
-                <ArrowDown className="w-4 h-4 text-muted-foreground mx-auto mb-4" />
-              )}
+      <div className="flex-1">
+        <Tabs defaultValue="design" className="h-full flex flex-col">
+          <TabsList className="grid w-full grid-cols-2 rounded-none border-b">
+            <TabsTrigger value="design">Design Flow</TabsTrigger>
+            <TabsTrigger value="manage">Manage Flows</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="design" className="flex-1 flex mt-0">
+            {/* Question Templates */}
+            <div className="w-64 border-r bg-background p-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-sm">Question Templates</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {questionTemplates.map((template, index) => (
+                    <Button
+                      key={index}
+                      variant="outline"
+                      className="w-full justify-start"
+                      onClick={() => addNode(template)}
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      {template.label}
+                    </Button>
+                  ))}
+                </CardContent>
+              </Card>
             </div>
 
-            {flowNodes.length === 0 ? (
-              <div className="text-center py-12">
-                <p className="text-muted-foreground mb-4">No questions added yet</p>
-                <p className="text-sm text-muted-foreground">
-                  Add question templates from the left panel to build your chat flow
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {flowNodes.map((node, index) => (
-                  <div key={node.id}>
-                    <LinearFlowNode
-                      node={node}
-                      index={index}
-                      onUpdate={updateNode}
-                      onRemove={removeNode}
-                      onDragStart={handleDragStart}
-                      onDragOver={handleDragOver}
-                      onDrop={handleDrop}
-                      isDragging={draggedIndex === index}
-                    />
-                    {index < flowNodes.length - 1 && (
-                      <div className="flex justify-center py-2">
-                        <ArrowDown className="w-4 h-4 text-muted-foreground" />
-                      </div>
-                    )}
+            {/* Linear Flow */}
+            <div className="flex-1 p-6 overflow-auto">
+              <div className="max-w-2xl mx-auto">
+                <div className="mb-6">
+                  <div className="flex items-center gap-2 mb-4">
+                    <Badge variant="secondary">Start</Badge>
+                    <p className="text-sm text-muted-foreground">Chat begins here</p>
                   </div>
-                ))}
-              </div>
-            )}
+                  {flowNodes.length > 0 && (
+                    <ArrowDown className="w-4 h-4 text-muted-foreground mx-auto mb-4" />
+                  )}
+                </div>
 
-            {flowNodes.length > 0 && (
-              <div className="mt-6">
-                <div className="flex justify-center py-2">
-                  <ArrowDown className="w-4 h-4 text-muted-foreground" />
-                </div>
-                <div className="flex items-center gap-2">
-                  <Badge variant="secondary">End</Badge>
-                  <p className="text-sm text-muted-foreground">Chat completes here</p>
-                </div>
+                {flowNodes.length === 0 ? (
+                  <div className="text-center py-12">
+                    <p className="text-muted-foreground mb-4">No questions added yet</p>
+                    <p className="text-sm text-muted-foreground">
+                      Add question templates from the left panel to build your chat flow
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {flowNodes.map((node, index) => (
+                      <div key={node.id}>
+                        <LinearFlowNode
+                          node={node}
+                          index={index}
+                          onUpdate={updateNode}
+                          onRemove={removeNode}
+                          onDragStart={handleDragStart}
+                          onDragOver={handleDragOver}
+                          onDrop={handleDrop}
+                          isDragging={draggedIndex === index}
+                        />
+                        {index < flowNodes.length - 1 && (
+                          <div className="flex justify-center py-2">
+                            <ArrowDown className="w-4 h-4 text-muted-foreground" />
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {flowNodes.length > 0 && (
+                  <div className="mt-6">
+                    <div className="flex justify-center py-2">
+                      <ArrowDown className="w-4 h-4 text-muted-foreground" />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="secondary">End</Badge>
+                      <p className="text-sm text-muted-foreground">Chat completes here</p>
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-        </div>
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="manage" className="flex-1 mt-0">
+            <ChatFlowManager
+              chatFlows={chatFlows}
+              onSelect={handleLoadFlow}
+              onDelete={deleteChatFlow}
+              loading={loading}
+            />
+          </TabsContent>
+        </Tabs>
       </div>
       
       <ChatFlowSaveDialog
