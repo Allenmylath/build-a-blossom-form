@@ -272,16 +272,16 @@ export default function ChatDesign() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 min-h-0">
         <Tabs defaultValue="design" className="h-full flex flex-col">
-          <TabsList className="grid w-full grid-cols-2 rounded-none border-b shrink-0">
+          <TabsList className="grid w-full grid-cols-2 rounded-none border-b flex-shrink-0">
             <TabsTrigger value="design">Design Flow</TabsTrigger>
             <TabsTrigger value="manage">Manage Flows</TabsTrigger>
           </TabsList>
           
-          <TabsContent value="design" className="flex-1 flex mt-0 overflow-hidden">
+          <TabsContent value="design" className="flex-1 flex mt-0 min-h-0">
             {/* Question Templates */}
-            <div className="w-64 border-r bg-background p-4 overflow-y-auto">
+            <div className="w-64 border-r bg-background p-4 overflow-y-auto flex-shrink-0">
               <Card>
                 <CardHeader>
                   <CardTitle className="text-sm">Question Templates</CardTitle>
@@ -303,7 +303,7 @@ export default function ChatDesign() {
             </div>
 
             {/* Linear Flow */}
-            <div className="flex-1 p-6 overflow-y-auto">
+            <div className="flex-1 p-6 overflow-y-auto min-h-0">
               <div className="max-w-2xl mx-auto">
                 <div className="mb-6">
                   <div className="flex items-center gap-2 mb-4">
@@ -361,8 +361,15 @@ export default function ChatDesign() {
             </div>
           </TabsContent>
           
-          <TabsContent value="manage" className="flex-1 mt-0 overflow-hidden">
-            <div className="h-full w-full">
+          <TabsContent value="manage" className="flex-1 mt-0 min-h-0 p-0">
+            <div 
+              className="h-full w-full flex flex-col"
+              style={{ 
+                height: 'calc(100vh - 140px)', // Adjust based on header height
+                maxHeight: 'calc(100vh - 140px)',
+                overflow: 'hidden'
+              }}
+            >
               <ChatFlowManager
                 chatFlows={chatFlows}
                 onSelect={handleLoadFlow}
@@ -384,28 +391,44 @@ export default function ChatDesign() {
         } : undefined}
       />
       
-      <style jsx>{`
-        /* Override global CSS for proper tab content height */
-        [data-radix-tabs-content] {
+      <style jsx global>{`
+        /* Force proper height for tabs */
+        [data-radix-tabs-root] {
           height: 100% !important;
           display: flex !important;
           flex-direction: column !important;
         }
         
-        /* Fix tab content overflow */
+        [data-radix-tabs-content] {
+          flex: 1 !important;
+          min-height: 0 !important;
+          display: flex !important;
+          flex-direction: column !important;
+        }
+        
         [data-radix-tabs-content][data-state="active"] {
-          overflow: hidden !important;
+          flex: 1 !important;
+          min-height: 0 !important;
         }
         
-        /* Ensure proper scrolling in manage tab */
+        /* Specific fix for manage tab */
         [data-radix-tabs-content][data-value="manage"] {
+          padding: 0 !important;
           overflow: hidden !important;
         }
         
-        /* Fix list stacking issue */
-        [data-radix-tabs-content] > div {
+        /* Ensure ChatFlowManager gets proper height */
+        [data-value="manage"] > div {
           height: 100% !important;
           overflow: hidden !important;
+        }
+        
+        /* Override any conflicting global styles */
+        .chat-design-manage-tab {
+          height: 100% !important;
+          overflow: hidden !important;
+          display: flex !important;
+          flex-direction: column !important;
         }
       `}</style>
     </div>
