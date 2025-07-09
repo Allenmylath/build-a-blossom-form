@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button';
-import { Copy, Share, TrendingUp, Trash2, ExternalLink, FolderOpen } from 'lucide-react';
+import { Copy, Share, TrendingUp, Trash2, ExternalLink, FolderOpen, QrCode } from 'lucide-react';
 import { SavedForm } from '@/types/form';
 import { toast } from '@/hooks/use-toast';
 import { FormCardStats } from './FormCardStats';
@@ -11,6 +11,7 @@ interface FormCardActionsProps {
   onDuplicateForm: (form: SavedForm) => void;
   onShareForm: (form: SavedForm) => void;
   onShowAnalytics: (form: SavedForm) => void;
+  onShowQRCode: (form: SavedForm) => void;
 }
 
 export const FormCardActions = ({ 
@@ -19,7 +20,8 @@ export const FormCardActions = ({
   onDeleteForm, 
   onDuplicateForm, 
   onShareForm, 
-  onShowAnalytics 
+  onShowAnalytics,
+  onShowQRCode 
 }: FormCardActionsProps) => {
   const handleDelete = () => {
     onDeleteForm(form.id);
@@ -130,8 +132,18 @@ export const FormCardActions = ({
           Analytics
         </Button>
         
-        <FormCardStats form={form} onShowAnalytics={onShowAnalytics} />
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => onShowQRCode(form)}
+          className="bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200"
+          title="QR Code"
+        >
+          <QrCode className="w-4 h-4" />
+        </Button>
       </div>
+
+      <FormCardStats form={form} onShowAnalytics={onShowAnalytics} />
 
       <Button
         size="sm"

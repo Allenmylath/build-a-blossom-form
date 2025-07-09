@@ -5,6 +5,7 @@ import { FormAnalytics } from './FormAnalytics';
 import { FormManagerHeader } from './form-manager/FormManagerHeader';
 import { EmptyFormsState } from './form-manager/EmptyFormsState';
 import { FormCard } from './form-manager/FormCard';
+import { QRCodeDialog } from './form-manager/QRCodeDialog';
 
 interface FormManagerProps {
   savedForms: SavedForm[];
@@ -25,6 +26,7 @@ export const FormManager = ({
 }: FormManagerProps) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showAnalytics, setShowAnalytics] = useState<SavedForm | null>(null);
+  const [showQRCode, setShowQRCode] = useState<SavedForm | null>(null);
 
   const filteredForms = savedForms.filter(form =>
     form.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -60,11 +62,18 @@ export const FormManager = ({
               onDuplicateForm={onDuplicateForm}
               onShareForm={onShareForm}
               onShowAnalytics={setShowAnalytics}
+              onShowQRCode={setShowQRCode}
               onUpdateForm={onUpdateForm}
             />
           ))}
         </div>
       )}
+
+      <QRCodeDialog
+        form={showQRCode}
+        isOpen={!!showQRCode}
+        onClose={() => setShowQRCode(null)}
+      />
     </div>
   );
 };

@@ -13,6 +13,7 @@ interface FormCardProps {
   onDuplicateForm: (form: SavedForm) => void;
   onShareForm: (form: SavedForm) => void;
   onShowAnalytics: (form: SavedForm) => void;
+  onShowQRCode: (form: SavedForm) => void;
   onUpdateForm?: (formId: string, updates: Partial<SavedForm>) => Promise<SavedForm | null>;
 }
 
@@ -23,6 +24,7 @@ export const FormCard = ({
   onDuplicateForm, 
   onShareForm, 
   onShowAnalytics,
+  onShowQRCode,
   onUpdateForm 
 }: FormCardProps) => {
   // Check if form has chat field
@@ -86,6 +88,7 @@ export const FormCard = ({
           onDuplicateForm={onDuplicateForm}
           onShareForm={onShareForm}
           onShowAnalytics={onShowAnalytics}
+          onShowQRCode={onShowQRCode}
         />
       </div>
     </Card>
