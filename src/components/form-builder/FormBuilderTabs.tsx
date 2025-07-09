@@ -77,7 +77,7 @@ export const FormBuilderTabs = ({
           hasFields={fields.length > 0}
         />
         
-        <div className="grid lg:grid-cols-2 gap-4">
+        <div className="grid lg:grid-cols-2 gap-2">
           {/* Left column: Field Types Panel */}
           <div className="space-y-4">
             <FieldTypesPanel onAddField={onAddField} />
