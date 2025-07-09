@@ -50,7 +50,7 @@ export const FormBuilderContent = ({
   onUpdateForm,
 }: FormBuilderContentProps) => {
   return (
-    <div className="h-full py-2 space-y-2">
+    <div className="h-full">
       <FormBuilderHeader
         user={user}
         currentForm={currentForm}
