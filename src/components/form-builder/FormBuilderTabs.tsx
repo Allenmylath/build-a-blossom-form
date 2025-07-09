@@ -69,7 +69,7 @@ export const FormBuilderTabs = ({
         </TabsTrigger>
       </TabsList>
 
-      <TabsContent value="builder" className="mt-4">
+      <TabsContent value="builder" className="mt-0">
         <FormActions
           onSave={onSave}
           onNew={onNew}
@@ -108,13 +108,13 @@ export const FormBuilderTabs = ({
         </div>
       </TabsContent>
 
-      <TabsContent value="preview">
+      <TabsContent value="preview" className="mt-0">
         <div className="max-w-2xl mx-auto">
           <FormPreview fields={fields} />
         </div>
       </TabsContent>
 
-      <TabsContent value="templates">
+      <TabsContent value="templates" className="mt-0">
         <FormTemplates onSelectTemplate={onSelectTemplate} />
       </TabsContent>
 
