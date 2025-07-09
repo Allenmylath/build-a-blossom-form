@@ -83,29 +83,18 @@ export const FormBuilderTabs = ({
           hasFields={fields.length > 0}
         />
         
-        <div className="grid lg:grid-cols-4 gap-6">
+        <div className="grid lg:grid-cols-3 gap-6">
           {/* Left column: Field Types Panel */}
           <div className="space-y-6">
             <FieldTypesPanel onAddField={onAddField} />
           </div>
 
-          {/* Middle left: Form Fields List */}
-          <div className="space-y-6">
-            <FieldList
-              fields={fields}
-              selectedFieldId={selectedFieldId}
-              onSelectField={onSelectField}
-              onMoveField={onMoveField}
-              onDeleteField={onDeleteField}
-            />
-          </div>
-
-          {/* Middle right: Preview */}
+          {/* Middle: Preview */}
           <div className="space-y-6">
             <FormPreview fields={fields} />
           </div>
 
-          {/* Right column: Field Editor */}
+          {/* Right column: Field Editor on top, Form Fields List below */}
           <div className="space-y-6">
             {selectedField ? (
               <FormFieldEditor
@@ -118,6 +107,14 @@ export const FormBuilderTabs = ({
                 <p>Select a field to edit its properties</p>
               </div>
             )}
+            
+            <FieldList
+              fields={fields}
+              selectedFieldId={selectedFieldId}
+              onSelectField={onSelectField}
+              onMoveField={onMoveField}
+              onDeleteField={onDeleteField}
+            />
           </div>
         </div>
       </TabsContent>
