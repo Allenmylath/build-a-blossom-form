@@ -81,18 +81,17 @@ export const FormBuilderTabs = ({
           hasFields={fields.length > 0}
         />
         
-        <div className="grid lg:grid-cols-3 gap-6">
-          <BuilderPanel
-            fields={fields}
-            selectedFieldId={selectedFieldId}
-            onAddField={onAddField}
-            onSelectField={onSelectField}
-            onMoveField={onMoveField}
-            onDeleteField={onDeleteField}
-          />
-
+        <div className="grid lg:grid-cols-2 gap-6">
           <div className="space-y-6">
             <FormPreview fields={fields} />
+            <BuilderPanel
+              fields={fields}
+              selectedFieldId={selectedFieldId}
+              onAddField={onAddField}
+              onSelectField={onSelectField}
+              onMoveField={onMoveField}
+              onDeleteField={onDeleteField}
+            />
           </div>
 
           <div className="space-y-6">
