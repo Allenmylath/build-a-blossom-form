@@ -272,16 +272,16 @@ export default function ChatDesign() {
         </div>
       </div>
 
-      <div className="flex-1">
+      <div className="flex-1 overflow-hidden">
         <Tabs defaultValue="design" className="h-full flex flex-col">
-          <TabsList className="grid w-full grid-cols-2 rounded-none border-b">
+          <TabsList className="grid w-full grid-cols-2 rounded-none border-b shrink-0">
             <TabsTrigger value="design">Design Flow</TabsTrigger>
             <TabsTrigger value="manage">Manage Flows</TabsTrigger>
           </TabsList>
           
-          <TabsContent value="design" className="flex-1 flex mt-0">
+          <TabsContent value="design" className="flex-1 flex mt-0 overflow-hidden">
             {/* Question Templates */}
-            <div className="w-64 border-r bg-background p-4">
+            <div className="w-64 border-r bg-background p-4 overflow-y-auto">
               <Card>
                 <CardHeader>
                   <CardTitle className="text-sm">Question Templates</CardTitle>
@@ -303,7 +303,7 @@ export default function ChatDesign() {
             </div>
 
             {/* Linear Flow */}
-            <div className="flex-1 p-6 overflow-auto">
+            <div className="flex-1 p-6 overflow-y-auto">
               <div className="max-w-2xl mx-auto">
                 <div className="mb-6">
                   <div className="flex items-center gap-2 mb-4">
@@ -361,13 +361,15 @@ export default function ChatDesign() {
             </div>
           </TabsContent>
           
-          <TabsContent value="manage" className="flex-1 mt-0">
-            <ChatFlowManager
-              chatFlows={chatFlows}
-              onSelect={handleLoadFlow}
-              onDelete={deleteChatFlow}
-              loading={loading}
-            />
+          <TabsContent value="manage" className="flex-1 mt-0 overflow-hidden">
+            <div className="h-full w-full">
+              <ChatFlowManager
+                chatFlows={chatFlows}
+                onSelect={handleLoadFlow}
+                onDelete={deleteChatFlow}
+                loading={loading}
+              />
+            </div>
           </TabsContent>
         </Tabs>
       </div>
@@ -381,6 +383,31 @@ export default function ChatDesign() {
           description: currentFlow.description,
         } : undefined}
       />
+      
+      <style jsx>{`
+        /* Override global CSS for proper tab content height */
+        [data-radix-tabs-content] {
+          height: 100% !important;
+          display: flex !important;
+          flex-direction: column !important;
+        }
+        
+        /* Fix tab content overflow */
+        [data-radix-tabs-content][data-state="active"] {
+          overflow: hidden !important;
+        }
+        
+        /* Ensure proper scrolling in manage tab */
+        [data-radix-tabs-content][data-value="manage"] {
+          overflow: hidden !important;
+        }
+        
+        /* Fix list stacking issue */
+        [data-radix-tabs-content] > div {
+          height: 100% !important;
+          overflow: hidden !important;
+        }
+      `}</style>
     </div>
   );
 }
