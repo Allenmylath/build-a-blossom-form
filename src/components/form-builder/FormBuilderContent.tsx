@@ -50,8 +50,8 @@ export const FormBuilderContent = ({
   onUpdateForm,
 }: FormBuilderContentProps) => {
   return (
-    <div className="max-w-7xl mx-auto p-6">
-      <FormBuilderHeader 
+    <div className="max-w-7xl mx-auto">
+      <FormBuilderHeader
         user={user}
         currentForm={currentForm}
         savedFormsCount={savedForms.length}

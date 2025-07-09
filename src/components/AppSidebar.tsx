@@ -25,26 +25,41 @@ export function AppSidebar() {
   const location = useLocation();
   const currentPath = location.pathname;
 
-  const isActive = (path: string) => currentPath === path;
-  const getNavCls = ({ isActive }: { isActive: boolean }) =>
-    isActive ? "bg-muted text-primary font-medium" : "hover:bg-muted/50";
+  const isActive = (path: string) => {
+    if (path === "/" && currentPath === "/") return true;
+    if (path !== "/" && currentPath === path) return true;
+    return false;
+  };
+  
+  const getNavCls = (path: string) => {
+    const active = isActive(path);
+    return `flex items-center gap-3 rounded-lg px-3 py-2 transition-all duration-200 ${
+      active 
+        ? "bg-primary text-primary-foreground shadow-sm" 
+        : "text-muted-foreground hover:bg-muted hover:text-foreground"
+    }`;
+  };
 
   return (
     <Sidebar
-      className={state === "collapsed" ? "w-14" : "w-60"}
+      className={`border-r ${state === "collapsed" ? "w-16" : "w-64"} transition-all duration-300`}
       collapsible="icon"
     >
-      <SidebarContent>
+      <SidebarContent className="p-4">
         <SidebarGroup>
-          <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-xs font-semibold text-muted-foreground mb-2">
+            Navigation
+          </SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu>
+            <SidebarMenu className="space-y-1">
               {navigationItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <NavLink to={item.url} end className={getNavCls}>
-                      <item.icon className="mr-2 h-4 w-4" />
-                      {state !== "collapsed" && <span>{item.title}</span>}
+                  <SidebarMenuButton asChild className="p-0">
+                    <NavLink to={item.url} end className={getNavCls(item.url)}>
+                      <item.icon className={`h-5 w-5 ${state === "collapsed" ? "mx-auto" : ""}`} />
+                      {state !== "collapsed" && (
+                        <span className="font-medium animate-fade-in">{item.title}</span>
+                      )}
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>

@@ -56,42 +56,44 @@ export const FormBuilder = ({ user }: FormBuilderProps) => {
   });
 
   return (
-    <div className="min-h-screen bg-green-50">
-      <FormBuilderContent
-        user={user}
-        fields={fields}
-        selectedFieldId={selectedFieldId}
-        currentForm={currentForm}
-        savedForms={savedForms}
-        isHobbyPlan={isHobbyPlan}
-        onAddField={addField}
-        onSelectField={setSelectedFieldId}
-        onMoveField={moveField}
-        onUpdateField={updateField}
-        onDeleteField={deleteField}
-        onSave={handleSaveClick}
-        onNew={startNewForm}
-        onExportImport={handleExportImport}
-        onLoadForm={handleLoadForm}
-        onDeleteForm={handleDeleteForm}
-        onDuplicateForm={handleDuplicateForm}
-        onShareForm={handleShareForm}
-        onSelectTemplate={handleSelectTemplate}
-        onUpdateForm={handleUpdateForm}
-      />
-
-      <FormSaveDialog
-        isOpen={showSaveDialog}
-        onClose={() => setShowSaveDialog(false)}
-        onSave={handleSaveForm}
-        fields={fields}
-        initialData={currentForm ? {
-          name: currentForm.name,
-          description: currentForm.description || '',
-          isPublic: currentForm.isPublic,
-          knowledgeBaseId: currentForm.knowledgeBaseId
-        } : undefined}
-      />
+    <div className="h-full bg-green-50">
+      <div className="h-full p-6">
+        <FormBuilderContent
+          user={user}
+          fields={fields}
+          selectedFieldId={selectedFieldId}
+          currentForm={currentForm}
+          savedForms={savedForms}
+          isHobbyPlan={isHobbyPlan}
+          onAddField={addField}
+          onSelectField={setSelectedFieldId}
+          onMoveField={moveField}
+          onUpdateField={updateField}
+          onDeleteField={deleteField}
+          onSave={handleSaveClick}
+          onNew={startNewForm}
+          onExportImport={handleExportImport}
+          onLoadForm={handleLoadForm}
+          onDeleteForm={handleDeleteForm}
+          onDuplicateForm={handleDuplicateForm}
+          onShareForm={handleShareForm}
+          onSelectTemplate={handleSelectTemplate}
+          onUpdateForm={handleUpdateForm}
+        />
+        
+        <FormSaveDialog
+          isOpen={showSaveDialog}
+          onClose={() => setShowSaveDialog(false)}
+          onSave={handleSaveForm}
+          fields={fields}
+          initialData={currentForm ? {
+            name: currentForm.name,
+            description: currentForm.description || '',
+            isPublic: currentForm.isPublic,
+            knowledgeBaseId: currentForm.knowledgeBaseId
+          } : undefined}
+        />
+      </div>
     </div>
   );
 };
