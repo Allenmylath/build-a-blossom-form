@@ -92,6 +92,10 @@ export const FormBuilderTabs = ({
           />
 
           <div className="space-y-6">
+            <FormPreview fields={fields} />
+          </div>
+
+          <div className="space-y-6">
             {selectedField ? (
               <FormFieldEditor
                 field={selectedField}
@@ -99,14 +103,10 @@ export const FormBuilderTabs = ({
                 onDelete={() => onDeleteField(selectedField.id)}
               />
             ) : (
-              <div className="text-center text-gray-500 py-8">
+              <div className="text-center text-gray-500 py-8 border-2 border-dashed border-gray-200 rounded-lg">
                 <p>Select a field to edit its properties</p>
               </div>
             )}
-          </div>
-
-          <div className="space-y-6">
-            <FormPreview fields={fields} />
           </div>
         </div>
       </TabsContent>
