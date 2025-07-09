@@ -74,6 +74,36 @@ export type Database = {
           },
         ]
       }
+      chat_flows: {
+        Row: {
+          created_at: string
+          description: string | null
+          flow_data: Json
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          flow_data?: Json
+          id?: string
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          flow_data?: Json
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       chat_messages: {
         Row: {
           api_response_time: number | null
@@ -349,6 +379,7 @@ export type Database = {
       }
       forms: {
         Row: {
+          chat_flow_id: string | null
           created_at: string
           description: string | null
           fields: Json
@@ -361,6 +392,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          chat_flow_id?: string | null
           created_at?: string
           description?: string | null
           fields?: Json
@@ -373,6 +405,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          chat_flow_id?: string | null
           created_at?: string
           description?: string | null
           fields?: Json
@@ -385,6 +418,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "forms_chat_flow_id_fkey"
+            columns: ["chat_flow_id"]
+            isOneToOne: false
+            referencedRelation: "chat_flows"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "forms_knowledge_base_id_fkey"
             columns: ["knowledge_base_id"]

@@ -9,7 +9,8 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { useKnowledgeBases } from '@/hooks/useKnowledgeBases';
-import { Database, MessageCircle, AlertCircle } from 'lucide-react';
+import { useChatFlows } from '@/hooks/useChatFlows';
+import { Database, MessageCircle, AlertCircle, Bot } from 'lucide-react';
 import { FormField } from '@/types/form';
 
 interface FormSaveDialogProps {
@@ -19,13 +20,15 @@ interface FormSaveDialogProps {
     name: string; 
     description: string; 
     isPublic: boolean; 
-    knowledgeBaseId?: string 
+    knowledgeBaseId?: string;
+    chatFlowId?: string;
   }) => void;
   initialData?: {
     name: string;
     description: string;
     isPublic: boolean;
     knowledgeBaseId?: string;
+    chatFlowId?: string;
   };
   fields?: FormField[];
 }
@@ -33,11 +36,13 @@ interface FormSaveDialogProps {
 export const FormSaveDialog = ({ isOpen, onClose, onSave, initialData, fields = [] }: FormSaveDialogProps) => {
   const { user } = useSupabaseAuth();
   const { knowledgeBases } = useKnowledgeBases(user);
+  const { chatFlows } = useChatFlows(user);
   const [formData, setFormData] = useState({
     name: initialData?.name || '',
     description: initialData?.description || '',
     isPublic: initialData?.isPublic || false,
     knowledgeBaseId: initialData?.knowledgeBaseId || '',
+    chatFlowId: initialData?.chatFlowId || '',
   });
 
   // Check if form contains a chat field
@@ -50,6 +55,7 @@ export const FormSaveDialog = ({ isOpen, onClose, onSave, initialData, fields = 
         description: initialData.description,
         isPublic: initialData.isPublic,
         knowledgeBaseId: initialData.knowledgeBaseId || '',
+        chatFlowId: initialData.chatFlowId || '',
       });
     }
   }, [initialData]);
@@ -67,6 +73,7 @@ export const FormSaveDialog = ({ isOpen, onClose, onSave, initialData, fields = 
       description: formData.description,
       isPublic: formData.isPublic,
       knowledgeBaseId: formData.knowledgeBaseId || undefined,
+      chatFlowId: formData.chatFlowId || undefined,
     });
   };
 
@@ -76,6 +83,7 @@ export const FormSaveDialog = ({ isOpen, onClose, onSave, initialData, fields = 
       description: '',
       isPublic: false,
       knowledgeBaseId: '',
+      chatFlowId: '',
     });
     onClose();
   };
@@ -144,6 +152,37 @@ export const FormSaveDialog = ({ isOpen, onClose, onSave, initialData, fields = 
               )}
               <p className="text-xs text-gray-500">
                 Chat forms require a knowledge base for AI-powered responses
+              </p>
+            </div>
+          )}
+
+          {hasChatField && (
+            <div className="space-y-2">
+              <Label htmlFor="chatFlow" className="flex items-center gap-2">
+                <Bot className="w-4 h-4 text-blue-600" />
+                Chat Flow (Optional)
+              </Label>
+              <Select
+                value={formData.chatFlowId}
+                onValueChange={(value) => setFormData(prev => ({ ...prev, chatFlowId: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a chat flow (optional)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">No chat flow</SelectItem>
+                  {chatFlows.map((flow) => (
+                    <SelectItem key={flow.id} value={flow.id}>
+                      <div className="flex items-center gap-2">
+                        <Bot className="w-4 h-4" />
+                        {flow.name}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-gray-500">
+                Select a chat flow to guide the conversation structure
               </p>
             </div>
           )}

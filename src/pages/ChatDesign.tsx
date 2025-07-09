@@ -2,8 +2,13 @@ import { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { LinearFlowNode } from '@/components/chat-design/LinearFlowNode';
-import { Plus, Save, Play, ArrowDown } from 'lucide-react';
+import { ChatFlowSaveDialog } from '@/components/chat-design/ChatFlowSaveDialog';
+import { ChatFlowManager } from '@/components/chat-design/ChatFlowManager';
+import { useChatFlows, ChatFlow } from '@/hooks/useChatFlows';
+import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
+import { Plus, Save, Play, ArrowDown, Folder, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface FlowNode {
@@ -44,9 +49,16 @@ const questionTemplates = [
 ];
 
 export default function ChatDesign() {
+  const { user } = useSupabaseAuth();
+  const { chatFlows, loading, saveChatFlow, updateChatFlow, deleteChatFlow } = useChatFlows(user);
+  
   const [flowNodes, setFlowNodes] = useState<FlowNode[]>([]);
   const [nodeCounter, setNodeCounter] = useState(1);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [showLoadDialog, setShowLoadDialog] = useState(false);
+  const [currentFlow, setCurrentFlow] = useState<ChatFlow | null>(null);
+  const [flowName, setFlowName] = useState('');
 
   const addNode = useCallback((template: typeof questionTemplates[0]) => {
     const newNode: FlowNode = {
@@ -98,28 +110,74 @@ export default function ChatDesign() {
     setDraggedIndex(null);
   };
 
-  const saveFlow = useCallback(() => {
-    const flowData = {
-      nodes: flowNodes.reduce((acc, node, index) => {
-        acc[node.id] = {
-          type: 'question',
-          prompt: node.prompt,
-          field: node.field,
-          hook: node.hook,
-          order: index,
-        };
-        return acc;
-      }, {} as Record<string, any>),
-      edges: flowNodes.map((node, index) => {
-        if (index === 0) return ['start', node.id];
-        if (index === flowNodes.length - 1) return [node.id, 'end'];
-        return [flowNodes[index - 1].id, node.id];
-      }).filter(Boolean),
-    };
-    
-    console.log('Linear flow saved:', flowData);
-    toast.success('Chat flow saved successfully!');
-  }, [flowNodes]);
+  const handleSaveFlow = useCallback(async (data: { name: string; description?: string }) => {
+    if (flowNodes.length === 0) {
+      toast.error('Cannot save empty chat flow');
+      return;
+    }
+
+    const flowData = flowNodes.map((node, index) => ({
+      id: node.id,
+      type: node.type,
+      prompt: node.prompt,
+      field: node.field,
+      label: node.label,
+      hook: node.hook,
+      order: index,
+    }));
+
+    if (currentFlow) {
+      // Update existing flow
+      const updated = await updateChatFlow(currentFlow.id, {
+        name: data.name,
+        description: data.description,
+        flow_data: flowData,
+      });
+      if (updated) {
+        setCurrentFlow(updated);
+        setFlowName(updated.name);
+      }
+    } else {
+      // Create new flow
+      const saved = await saveChatFlow({
+        name: data.name,
+        description: data.description,
+        flow_data: flowData,
+      });
+      if (saved) {
+        setCurrentFlow(saved);
+        setFlowName(saved.name);
+      }
+    }
+  }, [flowNodes, currentFlow, saveChatFlow, updateChatFlow]);
+
+  const handleLoadFlow = useCallback((flow: ChatFlow) => {
+    if (Array.isArray(flow.flow_data)) {
+      const nodes = flow.flow_data.map((nodeData: any) => ({
+        id: nodeData.id,
+        type: nodeData.type,
+        prompt: nodeData.prompt,
+        field: nodeData.field,
+        label: nodeData.label,
+        hook: nodeData.hook,
+      }));
+      
+      setFlowNodes(nodes);
+      setCurrentFlow(flow);
+      setFlowName(flow.name);
+      setNodeCounter(Math.max(...nodes.map((n: any) => parseInt(n.id.split('-')[1]) || 0)) + 1);
+      setShowLoadDialog(false);
+      toast.success(`Loaded chat flow: ${flow.name}`);
+    }
+  }, []);
+
+  const handleNewFlow = useCallback(() => {
+    setFlowNodes([]);
+    setCurrentFlow(null);
+    setFlowName('');
+    setNodeCounter(1);
+    toast.success('Started new chat flow');
+  }, []);
 
   const previewFlow = useCallback(() => {
     toast.info('Chat flow preview coming soon!');
@@ -131,16 +189,46 @@ export default function ChatDesign() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold">Chat Design</h1>
-            <p className="text-muted-foreground">Create a linear chat flow</p>
+            <p className="text-muted-foreground">
+              {flowName ? `Editing: ${flowName}` : 'Create a linear chat flow'}
+            </p>
           </div>
           <div className="flex gap-2">
+            <Dialog open={showLoadDialog} onOpenChange={setShowLoadDialog}>
+              <DialogTrigger asChild>
+                <Button variant="outline">
+                  <Folder className="w-4 h-4 mr-2" />
+                  Load Flow
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>Load Chat Flow</DialogTitle>
+                </DialogHeader>
+                <ChatFlowManager
+                  chatFlows={chatFlows}
+                  onSelect={handleLoadFlow}
+                  onDelete={deleteChatFlow}
+                  loading={loading}
+                />
+              </DialogContent>
+            </Dialog>
+            
+            <Button onClick={handleNewFlow} variant="outline">
+              New Flow
+            </Button>
+            
             <Button onClick={previewFlow} variant="outline">
               <Play className="w-4 h-4 mr-2" />
               Preview
             </Button>
-            <Button onClick={saveFlow} disabled={flowNodes.length === 0}>
+            
+            <Button 
+              onClick={() => setShowSaveDialog(true)} 
+              disabled={flowNodes.length === 0}
+            >
               <Save className="w-4 h-4 mr-2" />
-              Save Flow
+              {currentFlow ? 'Update' : 'Save'} Flow
             </Button>
           </div>
         </div>
@@ -227,6 +315,16 @@ export default function ChatDesign() {
           </div>
         </div>
       </div>
+      
+      <ChatFlowSaveDialog
+        isOpen={showSaveDialog}
+        onClose={() => setShowSaveDialog(false)}
+        onSave={handleSaveFlow}
+        initialData={currentFlow ? {
+          name: currentFlow.name,
+          description: currentFlow.description,
+        } : undefined}
+      />
     </div>
   );
 }

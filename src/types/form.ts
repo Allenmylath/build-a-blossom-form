@@ -85,6 +85,7 @@ export interface SavedForm {
   isPublic: boolean;
   shareUrl?: string;
   knowledgeBaseId?: string;
+  chatFlowId?: string;
 }
 
 export interface FormSubmissionData {
