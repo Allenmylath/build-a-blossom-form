@@ -88,6 +88,7 @@ export const FormBuilderTabs = ({
             onAddField={onAddField}
             onSelectField={onSelectField}
             onMoveField={onMoveField}
+            onDeleteField={onDeleteField}
           />
 
           <div className="space-y-6">

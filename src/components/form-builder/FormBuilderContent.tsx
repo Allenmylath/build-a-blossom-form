@@ -12,6 +12,7 @@ interface FormBuilderContentProps {
   savedForms: SavedForm[];
   isHobbyPlan: boolean;
   onAddField: (type: FormFieldType) => void;
+  onSelectField: (fieldId: string) => void;
   onMoveField: (fieldId: string, direction: 'up' | 'down') => void;
   onUpdateField: (fieldId: string, updates: Partial<FormField>) => void;
   onDeleteField: (fieldId: string) => void;
@@ -34,6 +35,7 @@ export const FormBuilderContent = ({
   savedForms,
   isHobbyPlan,
   onAddField,
+  onSelectField,
   onMoveField,
   onUpdateField,
   onDeleteField,
@@ -62,10 +64,7 @@ export const FormBuilderContent = ({
         currentForm={currentForm}
         savedForms={savedForms}
         onAddField={onAddField}
-        onSelectField={(fieldId) => {
-          // This will be handled by selecting the field in the useFormBuilder hook
-          // For now, we'll keep the existing selectedFieldId logic
-        }}
+        onSelectField={onSelectField}
         onMoveField={onMoveField}
         onUpdateField={onUpdateField}
         onDeleteField={onDeleteField}

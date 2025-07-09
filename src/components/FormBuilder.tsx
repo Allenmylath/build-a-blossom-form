@@ -18,6 +18,7 @@ export const FormBuilder = ({ user }: FormBuilderProps) => {
     fields,
     currentForm,
     selectedFieldId,
+    setSelectedFieldId,
     addField,
     updateField,
     deleteField,
@@ -66,6 +67,7 @@ export const FormBuilder = ({ user }: FormBuilderProps) => {
         savedForms={savedForms}
         isHobbyPlan={isHobbyPlan}
         onAddField={addField}
+        onSelectField={setSelectedFieldId}
         onMoveField={moveField}
         onUpdateField={updateField}
         onDeleteField={deleteField}

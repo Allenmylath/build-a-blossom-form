@@ -9,6 +9,7 @@ interface BuilderPanelProps {
   onAddField: (type: FormFieldType) => void;
   onSelectField: (fieldId: string) => void;
   onMoveField: (fieldId: string, direction: 'up' | 'down') => void;
+  onDeleteField: (fieldId: string) => void;
 }
 
 export const BuilderPanel = ({
@@ -17,6 +18,7 @@ export const BuilderPanel = ({
   onAddField,
   onSelectField,
   onMoveField,
+  onDeleteField,
 }: BuilderPanelProps) => {
   return (
     <div className="space-y-6">
@@ -26,6 +28,7 @@ export const BuilderPanel = ({
         selectedFieldId={selectedFieldId}
         onSelectField={onSelectField}
         onMoveField={onMoveField}
+        onDeleteField={onDeleteField}
       />
     </div>
   );
