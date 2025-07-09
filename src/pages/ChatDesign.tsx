@@ -3,13 +3,26 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { LinearFlowNode } from '@/components/chat-design/LinearFlowNode';
 import { ChatFlowSaveDialog } from '@/components/chat-design/ChatFlowSaveDialog';
 import { ChatFlowManager } from '@/components/chat-design/ChatFlowManager';
 import { useChatFlows, ChatFlow } from '@/hooks/useChatFlows';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
-import { Plus, Save, Play, ArrowDown, Folder, Upload, Settings } from 'lucide-react';
+import { 
+  Plus, 
+  Save, 
+  Play, 
+  ArrowDown, 
+  Sparkles,
+  MessageSquare,
+  Mail,
+  Phone,
+  Globe,
+  HelpCircle,
+  FileText,
+  PlusCircle,
+  Workflow
+} from 'lucide-react';
 import { toast } from 'sonner';
 
 interface FlowNode {
@@ -26,26 +39,41 @@ const questionTemplates = [
     prompt: "What's your name?",
     field: 'name',
     label: 'Name Question',
+    icon: MessageSquare,
+    color: 'bg-blue-50 border-blue-200 hover:bg-blue-100',
+    iconColor: 'text-blue-600'
   },
   {
     prompt: "What's your email address?",
     field: 'email',
     label: 'Email Question',
+    icon: Mail,
+    color: 'bg-green-50 border-green-200 hover:bg-green-100',
+    iconColor: 'text-green-600'
   },
   {
     prompt: "What's your phone number?",
     field: 'phone',
     label: 'Phone Question',
+    icon: Phone,
+    color: 'bg-orange-50 border-orange-200 hover:bg-orange-100',
+    iconColor: 'text-orange-600'
   },
   {
     prompt: "What's your website URL?",
     field: 'website',
     label: 'Website Question',
+    icon: Globe,
+    color: 'bg-purple-50 border-purple-200 hover:bg-purple-100',
+    iconColor: 'text-purple-600'
   },
   {
     prompt: 'Tell me about {customFieldName}',
     field: 'customInfo',
     label: 'Custom Question',
+    icon: HelpCircle,
+    color: 'bg-pink-50 border-pink-200 hover:bg-pink-100',
+    iconColor: 'text-pink-600'
   },
 ];
 
@@ -57,7 +85,6 @@ export default function ChatDesign() {
   const [nodeCounter, setNodeCounter] = useState(1);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
-  const [showLoadDialog, setShowLoadDialog] = useState(false);
   const [currentFlow, setCurrentFlow] = useState<ChatFlow | null>(null);
   const [flowName, setFlowName] = useState('');
 
@@ -207,7 +234,6 @@ export default function ChatDesign() {
       setCurrentFlow(flow);
       setFlowName(flow.name);
       setNodeCounter(Math.max(...sortedNodes.map((n: any) => parseInt(n.id.split('-')[1]) || 0)) + 1);
-      setShowLoadDialog(false);
       toast.success(`Loaded chat flow: ${flow.name}`);
     } else if (Array.isArray(flow.flow_data)) {
       // Handle legacy array format
@@ -224,7 +250,6 @@ export default function ChatDesign() {
       setCurrentFlow(flow);
       setFlowName(flow.name);
       setNodeCounter(Math.max(...nodes.map((n: any) => parseInt(n.id.split('-')[1]) || 0)) + 1);
-      setShowLoadDialog(false);
       toast.success(`Loaded chat flow: ${flow.name}`);
     }
   }, []);
@@ -242,141 +267,223 @@ export default function ChatDesign() {
   }, []);
 
   return (
-    <div className="h-screen flex flex-col">
-      <div className="border-b bg-background p-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold">Chat Design</h1>
-            <p className="text-muted-foreground">
-              {flowName ? `Editing: ${flowName}` : 'Design and manage chat flows'}
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Button onClick={handleNewFlow} variant="outline">
-              New Flow
-            </Button>
-            
-            <Button onClick={previewFlow} variant="outline">
-              <Play className="w-4 h-4 mr-2" />
-              Preview
-            </Button>
-            
-            <Button 
-              onClick={handleSaveClick} 
-              disabled={flowNodes.length === 0}
-            >
-              <Save className="w-4 h-4 mr-2" />
-              {currentFlow ? 'Update' : 'Save'} Flow
-            </Button>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+      {/* Modern Header */}
+      <div className="bg-white border-b border-slate-200 shadow-sm">
+        <div className="container mx-auto px-6 py-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <Workflow className="w-6 h-6 text-primary" />
+                </div>
+                <div>
+                  <h1 className="text-2xl font-bold text-slate-900">Chat Flow Designer</h1>
+                  <p className="text-slate-600 text-sm">
+                    {flowName ? (
+                      <span className="flex items-center gap-2">
+                        <FileText className="w-4 h-4" />
+                        Editing: <span className="font-medium">{flowName}</span>
+                      </span>
+                    ) : (
+                      'Create and manage conversational workflows'
+                    )}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <Button 
+                onClick={handleNewFlow} 
+                variant="outline"
+                className="flex items-center gap-2"
+              >
+                <PlusCircle className="w-4 h-4" />
+                New Flow
+              </Button>
+              
+              <Button 
+                onClick={previewFlow} 
+                variant="outline"
+                className="flex items-center gap-2"
+              >
+                <Play className="w-4 h-4" />
+                Preview
+              </Button>
+              
+              <Button 
+                onClick={handleSaveClick} 
+                disabled={flowNodes.length === 0}
+                className="flex items-center gap-2 bg-primary hover:bg-primary/90"
+              >
+                <Save className="w-4 h-4" />
+                {currentFlow ? 'Update' : 'Save'} Flow
+              </Button>
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="flex-1 min-h-0">
-        <Tabs defaultValue="design" className="h-full flex flex-col">
-          <TabsList className="grid w-full grid-cols-2 rounded-none border-b flex-shrink-0">
-            <TabsTrigger value="design">Design Flow</TabsTrigger>
-            <TabsTrigger value="manage">Manage Flows</TabsTrigger>
+      {/* Main Content */}
+      <div className="container mx-auto px-6 py-8">
+        <Tabs defaultValue="design" className="space-y-6">
+          <TabsList className="grid w-full max-w-md mx-auto grid-cols-2 bg-white border border-slate-200 p-1">
+            <TabsTrigger 
+              value="design" 
+              className="data-[state=active]:bg-primary data-[state=active]:text-white"
+            >
+              <Sparkles className="w-4 h-4 mr-2" />
+              Design Flow
+            </TabsTrigger>
+            <TabsTrigger 
+              value="manage"
+              className="data-[state=active]:bg-primary data-[state=active]:text-white"
+            >
+              <FileText className="w-4 h-4 mr-2" />
+              Manage Flows
+            </TabsTrigger>
           </TabsList>
           
-          <TabsContent value="design" className="flex-1 flex mt-0 min-h-0">
-            {/* Question Templates */}
-            <div className="w-64 border-r bg-background p-4 overflow-y-auto flex-shrink-0">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-sm">Question Templates</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  {questionTemplates.map((template, index) => (
-                    <Button
-                      key={index}
-                      variant="outline"
-                      className="w-full justify-start"
-                      onClick={() => addNode(template)}
-                    >
-                      <Plus className="w-4 h-4 mr-2" />
-                      {template.label}
-                    </Button>
-                  ))}
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Linear Flow */}
-            <div className="flex-1 p-6 overflow-y-auto min-h-0">
-              <div className="max-w-2xl mx-auto">
-                <div className="mb-6">
-                  <div className="flex items-center gap-2 mb-4">
-                    <Badge variant="secondary">Start</Badge>
-                    <p className="text-sm text-muted-foreground">Chat begins here</p>
-                  </div>
-                  {flowNodes.length > 0 && (
-                    <ArrowDown className="w-4 h-4 text-muted-foreground mx-auto mb-4" />
-                  )}
-                </div>
-
-                {flowNodes.length === 0 ? (
-                  <div className="text-center py-12">
-                    <p className="text-muted-foreground mb-4">No questions added yet</p>
-                    <p className="text-sm text-muted-foreground">
-                      Add question templates from the left panel to build your chat flow
+          <TabsContent value="design" className="space-y-6">
+            <div className="grid grid-cols-12 gap-6">
+              {/* Question Templates Sidebar */}
+              <div className="col-span-12 lg:col-span-3">
+                <Card className="bg-white border-slate-200 shadow-sm">
+                  <CardHeader className="pb-4">
+                    <CardTitle className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+                      <Plus className="w-5 h-5" />
+                      Question Templates
+                    </CardTitle>
+                    <p className="text-sm text-slate-600">
+                      Click to add questions to your flow
                     </p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {flowNodes.map((node, index) => (
-                      <div key={node.id}>
-                        <LinearFlowNode
-                          node={node}
-                          index={index}
-                          onUpdate={updateNode}
-                          onRemove={removeNode}
-                          onDragStart={handleDragStart}
-                          onDragOver={handleDragOver}
-                          onDrop={handleDrop}
-                          isDragging={draggedIndex === index}
-                        />
-                        {index < flowNodes.length - 1 && (
-                          <div className="flex justify-center py-2">
-                            <ArrowDown className="w-4 h-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {questionTemplates.map((template, index) => {
+                      const IconComponent = template.icon;
+                      return (
+                        <button
+                          key={index}
+                          onClick={() => addNode(template)}
+                          className={`w-full p-4 rounded-lg border-2 transition-all duration-200 text-left group ${template.color}`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className={`p-2 rounded-md bg-white/80 ${template.iconColor}`}>
+                              <IconComponent className="w-4 h-4" />
+                            </div>
+                            <div>
+                              <div className="font-medium text-slate-900 group-hover:text-slate-700">
+                                {template.label}
+                              </div>
+                              <div className="text-xs text-slate-600 mt-1">
+                                {template.prompt}
+                              </div>
+                            </div>
                           </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
+                        </button>
+                      );
+                    })}
+                  </CardContent>
+                </Card>
+              </div>
 
-                {flowNodes.length > 0 && (
-                  <div className="mt-6">
-                    <div className="flex justify-center py-2">
-                      <ArrowDown className="w-4 h-4 text-muted-foreground" />
+              {/* Flow Canvas */}
+              <div className="col-span-12 lg:col-span-9">
+                <Card className="bg-white border-slate-200 shadow-sm min-h-[600px]">
+                  <CardContent className="p-8">
+                    <div className="max-w-3xl mx-auto">
+                      {/* Start Badge */}
+                      <div className="text-center mb-8">
+                        <div className="inline-flex items-center gap-3 bg-green-50 border border-green-200 rounded-full px-6 py-3">
+                          <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                          <Badge variant="secondary" className="bg-green-100 text-green-800 border-green-300">
+                            Start
+                          </Badge>
+                          <span className="text-sm text-green-700 font-medium">Chat begins here</span>
+                        </div>
+                      </div>
+
+                      {/* Flow Content */}
+                      {flowNodes.length === 0 ? (
+                        <div className="text-center py-16">
+                          <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                            <MessageSquare className="w-8 h-8 text-slate-400" />
+                          </div>
+                          <h3 className="text-lg font-medium text-slate-900 mb-2">
+                            No questions added yet
+                          </h3>
+                          <p className="text-slate-600 mb-6 max-w-md mx-auto">
+                            Start building your chat flow by adding question templates from the sidebar.
+                            Each question will guide your users through the conversation.
+                          </p>
+                          <div className="flex items-center justify-center gap-2 text-sm text-slate-500">
+                            <ArrowDown className="w-4 h-4" />
+                            <span>Add your first question to get started</span>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="space-y-6">
+                          {/* Connection line from start */}
+                          <div className="flex justify-center">
+                            <div className="w-px h-8 bg-gradient-to-b from-green-300 to-primary/30"></div>
+                          </div>
+
+                          {flowNodes.map((node, index) => (
+                            <div key={node.id} className="relative">
+                              <LinearFlowNode
+                                node={node}
+                                index={index}
+                                onUpdate={updateNode}
+                                onRemove={removeNode}
+                                onDragStart={handleDragStart}
+                                onDragOver={handleDragOver}
+                                onDrop={handleDrop}
+                                isDragging={draggedIndex === index}
+                              />
+                              {index < flowNodes.length - 1 && (
+                                <div className="flex justify-center py-4">
+                                  <div className="w-px h-6 bg-gradient-to-b from-primary/30 to-primary/30"></div>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+
+                          {/* Connection line to end */}
+                          <div className="flex justify-center">
+                            <div className="w-px h-8 bg-gradient-to-b from-primary/30 to-red-300"></div>
+                          </div>
+
+                          {/* End Badge */}
+                          <div className="text-center">
+                            <div className="inline-flex items-center gap-3 bg-red-50 border border-red-200 rounded-full px-6 py-3">
+                              <Badge variant="secondary" className="bg-red-100 text-red-800 border-red-300">
+                                End
+                              </Badge>
+                              <span className="text-sm text-red-700 font-medium">Chat completes here</span>
+                              <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="secondary">End</Badge>
-                      <p className="text-sm text-muted-foreground">Chat completes here</p>
-                    </div>
-                  </div>
-                )}
+                  </CardContent>
+                </Card>
               </div>
             </div>
           </TabsContent>
           
-          <TabsContent value="manage" className="flex-1 mt-0 min-h-0 p-0">
-            <div 
-              className="h-full w-full flex flex-col"
-              style={{ 
-                height: 'calc(100vh - 140px)', // Adjust based on header height
-                maxHeight: 'calc(100vh - 140px)',
-                overflow: 'hidden'
-              }}
-            >
-              <ChatFlowManager
-                chatFlows={chatFlows}
-                onSelect={handleLoadFlow}
-                onDelete={deleteChatFlow}
-                loading={loading}
-              />
-            </div>
+          <TabsContent value="manage" className="space-y-6">
+            <Card className="bg-white border-slate-200 shadow-sm">
+              <CardContent className="p-0">
+                <ChatFlowManager
+                  chatFlows={chatFlows}
+                  onSelect={handleLoadFlow}
+                  onDelete={deleteChatFlow}
+                  loading={loading}
+                />
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </div>
@@ -390,47 +497,6 @@ export default function ChatDesign() {
           description: currentFlow.description,
         } : undefined}
       />
-      
-      <style>{`
-        /* Force proper height for tabs */
-        [data-radix-tabs-root] {
-          height: 100% !important;
-          display: flex !important;
-          flex-direction: column !important;
-        }
-        
-        [data-radix-tabs-content] {
-          flex: 1 !important;
-          min-height: 0 !important;
-          display: flex !important;
-          flex-direction: column !important;
-        }
-        
-        [data-radix-tabs-content][data-state="active"] {
-          flex: 1 !important;
-          min-height: 0 !important;
-        }
-        
-        /* Specific fix for manage tab */
-        [data-radix-tabs-content][data-value="manage"] {
-          padding: 0 !important;
-          overflow: hidden !important;
-        }
-        
-        /* Ensure ChatFlowManager gets proper height */
-        [data-value="manage"] > div {
-          height: 100% !important;
-          overflow: hidden !important;
-        }
-        
-        /* Override any conflicting global styles */
-        .chat-design-manage-tab {
-          height: 100% !important;
-          overflow: hidden !important;
-          display: flex !important;
-          flex-direction: column !important;
-        }
-      `}</style>
     </div>
   );
 }
