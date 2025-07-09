@@ -71,7 +71,7 @@ export const ChatFlowManager = ({
   }
 
   return (
-    <div className="p-6 h-full overflow-auto">
+    <div className="p-6">
       <div className="space-y-4">
         {chatFlows.map((flow) => (
           <Card key={flow.id} className="hover:shadow-md transition-shadow">
