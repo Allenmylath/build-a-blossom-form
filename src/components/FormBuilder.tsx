@@ -1,7 +1,6 @@
 
 import { User } from '@supabase/supabase-js';
 import { FormBuilderContent } from './form-builder/FormBuilderContent';
-import { NavigationHeader } from './NavigationHeader';
 import { FormSaveDialog } from './FormSaveDialog';
 import { useFormBuilder } from '@/hooks/useFormBuilder';
 import { useSupabaseForms } from '@/hooks/useSupabaseForms';
@@ -58,7 +57,6 @@ export const FormBuilder = ({ user }: FormBuilderProps) => {
 
   return (
     <div className="min-h-screen bg-green-50">
-      <NavigationHeader />
       <FormBuilderContent
         user={user}
         fields={fields}

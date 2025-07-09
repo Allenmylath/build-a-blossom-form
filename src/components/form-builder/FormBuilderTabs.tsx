@@ -1,14 +1,12 @@
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Eye, FolderOpen, FileText } from 'lucide-react';
+import { Plus, Eye, FileText } from 'lucide-react';
 import { FormActions } from './FormActions';
-import { BuilderPanel } from './BuilderPanel';
 import { FieldTypesPanel } from './FieldTypesPanel';
 import { FieldList } from './FieldList';
 import { FormFieldEditor } from '../FormFieldEditor';
 import { FormPreview } from '../FormPreview';
 import { FormTemplates } from '../FormTemplates';
-import { FormManager } from '../FormManager';
 import { FormField, SavedForm, FormTemplate } from '@/types/form';
 
 interface FormBuilderTabsProps {
@@ -56,7 +54,7 @@ export const FormBuilderTabs = ({
 
   return (
     <Tabs defaultValue="builder" className="w-full">
-      <TabsList className="grid w-full grid-cols-4">
+      <TabsList className="grid w-full grid-cols-3">
         <TabsTrigger value="builder" className="flex items-center">
           <Plus className="w-4 h-4 mr-2" />
           Builder
@@ -68,10 +66,6 @@ export const FormBuilderTabs = ({
         <TabsTrigger value="templates" className="flex items-center">
           <FileText className="w-4 h-4 mr-2" />
           Templates
-        </TabsTrigger>
-        <TabsTrigger value="manage" className="flex items-center">
-          <FolderOpen className="w-4 h-4 mr-2" />
-          Manage
         </TabsTrigger>
       </TabsList>
 
@@ -122,17 +116,6 @@ export const FormBuilderTabs = ({
 
       <TabsContent value="templates">
         <FormTemplates onSelectTemplate={onSelectTemplate} />
-      </TabsContent>
-
-      <TabsContent value="manage">
-        <FormManager
-          savedForms={savedForms}
-          onLoadForm={onLoadForm}
-          onDeleteForm={onDeleteForm}
-          onDuplicateForm={onDuplicateForm}
-          onShareForm={onShareForm}
-          onUpdateForm={onUpdateForm}
-        />
       </TabsContent>
 
     </Tabs>

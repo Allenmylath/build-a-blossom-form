@@ -2,9 +2,12 @@
 import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Toaster } from '@/components/ui/toaster';
+import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { FormBuilderWithAuth } from '@/components/FormBuilderWithAuth';
 import { SharedForm } from '@/components/SharedForm';
+import { AppSidebar } from '@/components/AppSidebar';
+import Forms from '@/pages/Forms';
 import Settings from '@/pages/Settings';
 import KnowledgeBase from '@/pages/KnowledgeBase';
 import Pricing from '@/pages/Pricing';
@@ -14,6 +17,28 @@ import './App.css';
 function App() {
   const { user, loading, signOut } = useSupabaseAuth();
 
+  const AppLayout = ({ children }: { children: React.ReactNode }) => {
+    if (!user) {
+      return children;
+    }
+
+    return (
+      <SidebarProvider>
+        <div className="min-h-screen flex w-full">
+          <AppSidebar />
+          <main className="flex-1">
+            <header className="h-12 flex items-center border-b bg-background px-4">
+              <SidebarTrigger />
+            </header>
+            <div className="flex-1">
+              {children}
+            </div>
+          </main>
+        </div>
+      </SidebarProvider>
+    );
+  };
+
   return (
     <Router>
       <div className="min-h-screen bg-gray-50">
@@ -21,21 +46,62 @@ function App() {
           {/* Main form builder route */}
           <Route 
             path="/" 
-            element={<FormBuilderWithAuth />} 
+            element={
+              <AppLayout>
+                {user ? (
+                  <FormBuilderWithAuth />
+                ) : (
+                  <FormBuilderWithAuth />
+                )}
+              </AppLayout>
+            } 
+          />
+          
+          {/* Forms management route */}
+          <Route 
+            path="/forms" 
+            element={
+              <AppLayout>
+                {user ? (
+                  <Forms user={user} />
+                ) : (
+                  <FormBuilderWithAuth />
+                )}
+              </AppLayout>
+            } 
           />
           
           {/* Shared form route */}
           <Route path="/form/:id" element={<SharedForm />} />
           
+          {/* Chat Forms route */}
+          <Route 
+            path="/chat-forms" 
+            element={
+              <AppLayout>
+                {user ? (
+                  <div className="p-6">
+                    <h1 className="text-2xl font-bold">Chat Forms</h1>
+                    <p className="text-muted-foreground">Coming soon...</p>
+                  </div>
+                ) : (
+                  <FormBuilderWithAuth />
+                )}
+              </AppLayout>
+            } 
+          />
+          
           {/* Settings route */}
           <Route 
             path="/settings" 
             element={
-              user ? (
-                <Settings user={user} onSignOut={signOut} />
-              ) : (
-                <FormBuilderWithAuth />
-              )
+              <AppLayout>
+                {user ? (
+                  <Settings user={user} onSignOut={signOut} />
+                ) : (
+                  <FormBuilderWithAuth />
+                )}
+              </AppLayout>
             } 
           />
 
@@ -43,16 +109,25 @@ function App() {
           <Route 
             path="/knowledge-base" 
             element={
-              user ? (
-                <KnowledgeBase user={user} />
-              ) : (
-                <FormBuilderWithAuth />
-              )
+              <AppLayout>
+                {user ? (
+                  <KnowledgeBase user={user} />
+                ) : (
+                  <FormBuilderWithAuth />
+                )}
+              </AppLayout>
             } 
           />
           
           {/* Pricing route */}
-          <Route path="/pricing" element={<Pricing />} />
+          <Route 
+            path="/pricing" 
+            element={
+              <AppLayout>
+                <Pricing />
+              </AppLayout>
+            } 
+          />
           
           {/* 404 route */}
           <Route path="*" element={<NotFound />} />
