@@ -7,6 +7,7 @@ import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { FormBuilderWithAuth } from '@/components/FormBuilderWithAuth';
 import { SharedForm } from '@/components/SharedForm';
 import { AppSidebar } from '@/components/AppSidebar';
+import { MainHeader } from '@/components/MainHeader';
 import Forms from '@/pages/Forms';
 import Settings from '@/pages/Settings';
 import KnowledgeBase from '@/pages/KnowledgeBase';
@@ -27,9 +28,7 @@ function App() {
         <div className="min-h-screen flex w-full bg-background">
           <AppSidebar />
           <main className="flex-1 flex flex-col">
-            <header className="h-12 flex items-center border-b bg-background px-4 shadow-sm">
-              <SidebarTrigger />
-            </header>
+            <MainHeader />
             <div className="flex-1 overflow-auto">
               {children}
             </div>
