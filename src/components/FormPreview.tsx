@@ -7,6 +7,7 @@ import { FormFieldRenderer } from '@/components/form-preview/FormFieldRenderer';
 import { FormSubmissionHandler } from '@/components/form-preview/FormSubmissionHandler';
 import { FormValidation } from '@/components/form-preview/FormValidation';
 import { EmptyFormState } from '@/components/form-preview/EmptyFormState';
+import { MultiPageForm } from '@/components/MultiPageForm';
 import { toast } from 'sonner';
 
 interface FormPreviewProps {
@@ -81,6 +82,35 @@ export const FormPreview: React.FC<FormPreviewProps> = ({
     return <EmptyFormState />;
   }
 
+  // Check if form has page breaks
+  const hasPageBreaks = fields.some(field => field.type === 'page-break');
+
+  // If form has page breaks, use MultiPageForm component
+  if (hasPageBreaks) {
+    const handleSubmissionSuccess = () => {
+      toast.success('Form submitted successfully!');
+    };
+
+    return (
+      <div className="w-full max-w-4xl mx-auto">
+        {(title !== "Form Preview" || description) && (
+          <Card className="p-6 mb-6">
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">{title}</h2>
+            {description && (
+              <p className="text-gray-600">{description}</p>
+            )}
+          </Card>
+        )}
+        <MultiPageForm 
+          fields={fields} 
+          formId={savedForm?.id || formId}
+          onSubmissionSuccess={handleSubmissionSuccess}
+        />
+      </div>
+    );
+  }
+
+  // For single-page forms, use the original layout
   return (
     <Card className="w-full max-w-2xl mx-auto p-6">
       <div className="mb-6">
