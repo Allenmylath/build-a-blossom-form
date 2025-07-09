@@ -27,9 +27,9 @@ export const MainHeader = () => {
   const userInitials = user.email?.charAt(0).toUpperCase() || 'U';
 
   return (
-    <header className="h-14 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-40">
-      <div className="flex h-14 items-center justify-between px-4">
-        <div className="flex items-center gap-4">
+    <header className="h-12 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-40">
+      <div className="flex h-12 items-center justify-between px-3">
+        <div className="flex items-center gap-3">
           <SidebarTrigger />
           <Link to="/" className="hover:opacity-80 transition-opacity">
             <div className="text-xl font-bold tracking-wide">

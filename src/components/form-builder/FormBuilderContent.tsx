@@ -50,7 +50,7 @@ export const FormBuilderContent = ({
   onUpdateForm,
 }: FormBuilderContentProps) => {
   return (
-    <div className="max-w-7xl mx-auto">
+    <div className="max-w-7xl mx-auto space-y-4">
       <FormBuilderHeader
         user={user}
         currentForm={currentForm}

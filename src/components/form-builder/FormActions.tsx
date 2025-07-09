@@ -11,15 +11,16 @@ interface FormActionsProps {
 
 export const FormActions = ({ onSave, onNew, onExportImport, hasFields }: FormActionsProps) => {
   return (
-    <div className="flex space-x-2 mb-4">
+    <div className="flex flex-wrap gap-2 mb-4">
       <Button 
         onClick={onSave} 
-        className="flex items-center bg-green-600 hover:bg-green-700 text-white"
+        disabled={!hasFields}
+        className="flex-1 sm:flex-none bg-green-600 hover:bg-green-700 text-white"
       >
         <Save className="w-4 h-4 mr-2" />
         Save Form
       </Button>
-      <Button onClick={onNew} variant="outline" className="flex items-center">
+      <Button onClick={onNew} variant="outline" className="flex-1 sm:flex-none">
         <Plus className="w-4 h-4 mr-2" />
         New Form
       </Button>
@@ -27,7 +28,7 @@ export const FormActions = ({ onSave, onNew, onExportImport, hasFields }: FormAc
         onClick={() => onExportImport('export')} 
         variant="outline" 
         disabled={!hasFields}
-        className="flex items-center"
+        className="flex-1 sm:flex-none"
       >
         <Download className="w-4 h-4 mr-2" />
         Export
@@ -35,7 +36,7 @@ export const FormActions = ({ onSave, onNew, onExportImport, hasFields }: FormAc
       <Button 
         onClick={() => onExportImport('import')} 
         variant="outline"
-        className="flex items-center"
+        className="flex-1 sm:flex-none"
       >
         <Upload className="w-4 h-4 mr-2" />
         Import

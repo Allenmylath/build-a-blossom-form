@@ -69,7 +69,7 @@ export const FormBuilderTabs = ({
         </TabsTrigger>
       </TabsList>
 
-      <TabsContent value="builder">
+      <TabsContent value="builder" className="mt-4">
         <FormActions
           onSave={onSave}
           onNew={onNew}
@@ -77,14 +77,14 @@ export const FormBuilderTabs = ({
           hasFields={fields.length > 0}
         />
         
-        <div className="grid lg:grid-cols-2 gap-6">
+        <div className="grid lg:grid-cols-2 gap-4">
           {/* Left column: Field Types Panel */}
-          <div className="space-y-6">
+          <div className="space-y-4">
             <FieldTypesPanel onAddField={onAddField} />
           </div>
 
           {/* Right column: Field Editor on top, Form Fields List below */}
-          <div className="space-y-6">
+          <div className="space-y-4">
             {selectedField ? (
               <FormFieldEditor
                 field={selectedField}
