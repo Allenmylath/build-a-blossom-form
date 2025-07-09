@@ -24,10 +24,10 @@ function App() {
     }
 
     return (
-      <SidebarProvider>
-        <div className="min-h-screen flex w-full bg-background">
+      <SidebarProvider defaultOpen style={{ '--sidebar-width': '12rem', '--sidebar-width-icon': '3rem' } as any}>
+        <div className="min-h-screen flex w-full bg-background" style={{ gap: 0 }}>
           <AppSidebar />
-          <main className="flex-1 flex flex-col">
+          <main className="flex-1 flex flex-col" style={{ marginLeft: 0 }}>
             <MainHeader />
             <div className="flex-1 overflow-auto">
               {children}
