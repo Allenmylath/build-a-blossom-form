@@ -43,7 +43,7 @@ export const ChatFlowManager = ({
 
   if (loading) {
     return (
-      <div className="p-6 h-full">
+      <div className="p-6 flex flex-col">
         <div className="space-y-4">
           {[1, 2, 3].map((i) => (
             <Card key={i} className="animate-pulse">
@@ -60,7 +60,7 @@ export const ChatFlowManager = ({
 
   if (chatFlows.length === 0) {
     return (
-      <div className="p-6 text-center h-full flex flex-col justify-center">
+      <div className="p-6 text-center flex flex-col justify-center min-h-64">
         <Folder className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
         <h3 className="text-lg font-medium mb-2">No Chat Flows</h3>
         <p className="text-muted-foreground text-sm">
@@ -71,7 +71,7 @@ export const ChatFlowManager = ({
   }
 
   return (
-    <div className="p-6">
+    <div className="p-6 flex flex-col">
       <div className="space-y-4">
         {chatFlows.map((flow) => (
           <Card key={flow.id} className="hover:shadow-md transition-shadow">
