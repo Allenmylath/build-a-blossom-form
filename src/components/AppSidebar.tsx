@@ -42,7 +42,7 @@ export function AppSidebar() {
 
   return (
     <Sidebar
-      className={`border-r ${state === "collapsed" ? "w-12" : "w-48"} transition-all duration-300`}
+      className={`${state === "collapsed" ? "w-12" : "w-48"} transition-all duration-300`}
       collapsible="icon"
     >
       <SidebarContent className="p-1">
