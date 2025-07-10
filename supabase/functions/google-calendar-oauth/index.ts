@@ -120,7 +120,7 @@ serve(async (req) => {
 
       // Redirect back to settings page with success
       // Use the app origin from the decoded state or a fallback
-      const finalAppOrigin = appOrigin || 'https://lovable.dev'; // fallback
+      const finalAppOrigin = appOrigin || 'https://build-a-blossom-form.vercel.app'; // fallback
       return new Response(null, {
         status: 302,
         headers: {
