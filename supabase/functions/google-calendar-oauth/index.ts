@@ -20,12 +20,13 @@ serve(async (req) => {
 
   try {
     const url = new URL(req.url);
-    let action, userId;
+    let action, userId, appOrigin;
 
     if (req.method === 'POST') {
       const body = await req.json();
       action = body.action;
       userId = body.user_id;
+      appOrigin = body.app_origin;
     } else {
       action = url.searchParams.get('action');
       userId = url.searchParams.get('user_id');
@@ -44,7 +45,7 @@ serve(async (req) => {
         'https://www.googleapis.com/auth/userinfo.email'
       ].join(' ');
 
-      const state = btoa(JSON.stringify({ userId }));
+      const state = btoa(JSON.stringify({ userId, appOrigin }));
       
       const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
       authUrl.searchParams.set('client_id', googleClientId);
@@ -68,7 +69,7 @@ serve(async (req) => {
         throw new Error('Authorization code or state missing');
       }
 
-      const { userId } = JSON.parse(atob(state));
+      const { userId, appOrigin } = JSON.parse(atob(state));
       const redirectUri = `${url.origin}/supabase/functions/v1/google-calendar-oauth?action=callback`;
 
       // Exchange code for tokens
@@ -118,10 +119,12 @@ serve(async (req) => {
       }
 
       // Redirect back to settings page with success
+      // Use the app origin from the decoded state or a fallback
+      const finalAppOrigin = appOrigin || 'https://lovable.dev'; // fallback
       return new Response(null, {
         status: 302,
         headers: {
-          Location: `${url.origin}/settings?calendar_connected=true`,
+          Location: `${finalAppOrigin}/settings?calendar_connected=true`,
         },
       });
 

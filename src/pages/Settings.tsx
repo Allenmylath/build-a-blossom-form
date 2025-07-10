@@ -146,7 +146,8 @@ const Settings = ({ user, onSignOut }: SettingsProps) => {
       const { data, error } = await supabase.functions.invoke('google-calendar-oauth', {
         body: { 
           action: 'auth', 
-          user_id: user.id 
+          user_id: user.id,
+          app_origin: window.location.origin
         }
       });
 
