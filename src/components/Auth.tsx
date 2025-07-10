@@ -201,9 +201,6 @@ export const Auth = ({ onAuthChange }: AuthProps) => {
                 </h1>
               </div>
               
-              <p className="text-lg text-muted-foreground leading-relaxed">
-                Build intelligent forms with AI conversations and seamless data collection.
-              </p>
             </div>
 
             <div className="grid gap-6">
