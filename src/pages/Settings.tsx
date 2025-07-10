@@ -1,12 +1,12 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { User, CreditCard, FileText, LogOut, Database, Calendar, Link, CheckCircle } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
@@ -27,6 +27,42 @@ const Settings = ({ user, onSignOut }: SettingsProps) => {
   
   const [calendarConnected, setCalendarConnected] = useState(false);
   const [calendarLoading, setCalendarLoading] = useState(false);
+  const [calendarEmail, setCalendarEmail] = useState<string | null>(null);
+  const [searchParams] = useSearchParams();
+
+  useEffect(() => {
+    checkCalendarConnection();
+    
+    // Check if user just connected calendar
+    if (searchParams.get('calendar_connected') === 'true') {
+      toast({
+        title: "Calendar Connected",
+        description: "Your Google Calendar has been successfully connected!",
+      });
+      // Clear the URL parameter
+      window.history.replaceState({}, '', '/settings');
+    }
+  }, [searchParams]);
+
+  const checkCalendarConnection = async () => {
+    if (!user?.id) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('calendar_integrations')
+        .select('calendar_email, is_active')
+        .eq('user_id', user.id)
+        .eq('is_active', true)
+        .single();
+
+      if (data && !error) {
+        setCalendarConnected(true);
+        setCalendarEmail(data.calendar_email);
+      }
+    } catch (error) {
+      console.log('No calendar integration found');
+    }
+  };
 
   const handleSignOut = async () => {
     setLoading(true);
@@ -65,33 +101,53 @@ const Settings = ({ user, onSignOut }: SettingsProps) => {
   };
 
   const handleConnectGoogleCalendar = async () => {
+    if (!user?.id) return;
+    
     setCalendarLoading(true);
     try {
-      // This would integrate with Google Calendar API
-      // For now, we'll simulate the connection
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      setCalendarConnected(true);
-      toast({
-        title: "Calendar Connected",
-        description: "Your Google Calendar has been successfully connected.",
+      const { data, error } = await supabase.functions.invoke('google-calendar-oauth', {
+        body: { action: 'auth', user_id: user.id }
       });
+
+      if (error) throw error;
+
+      // Redirect to Google OAuth
+      window.location.href = data.authUrl;
     } catch (error) {
+      console.error('Calendar connection error:', error);
       toast({
         title: "Connection Failed",
         description: "Failed to connect your Google Calendar. Please try again.",
         variant: "destructive",
       });
-    } finally {
       setCalendarLoading(false);
     }
   };
 
-  const handleDisconnectGoogleCalendar = () => {
-    setCalendarConnected(false);
-    toast({
-      title: "Calendar Disconnected",
-      description: "Your Google Calendar has been disconnected.",
-    });
+  const handleDisconnectGoogleCalendar = async () => {
+    if (!user?.id) return;
+    
+    try {
+      const { error } = await supabase.functions.invoke('google-calendar-oauth', {
+        body: { action: 'disconnect', user_id: user.id }
+      });
+
+      if (error) throw error;
+
+      setCalendarConnected(false);
+      setCalendarEmail(null);
+      toast({
+        title: "Calendar Disconnected",
+        description: "Your Google Calendar has been disconnected.",
+      });
+    } catch (error) {
+      console.error('Calendar disconnection error:', error);
+      toast({
+        title: "Disconnection Failed",
+        description: "Failed to disconnect your Google Calendar. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -257,7 +313,7 @@ const Settings = ({ user, onSignOut }: SettingsProps) => {
                           <span className="text-green-800 font-medium">Connected</span>
                         </div>
                         <p className="text-green-700 text-sm mt-1">
-                          Your Google Calendar is connected and ready for appointment booking.
+                          {calendarEmail ? `Connected as ${calendarEmail}` : 'Your Google Calendar is connected and ready for appointment booking.'}
                         </p>
                       </div>
                       <Button 
