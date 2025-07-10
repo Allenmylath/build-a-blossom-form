@@ -5,10 +5,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { User, CreditCard, FileText, LogOut, Database, Calendar, Link, CheckCircle } from 'lucide-react';
+import { User, CreditCard, FileText, LogOut, Database, Link } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { CalendarConnection } from '@/components/CalendarConnection';
 
 interface SettingsProps {
   user: any;
@@ -26,7 +27,6 @@ const Settings = ({ user, onSignOut }: SettingsProps) => {
   });
   
   const [calendarConnected, setCalendarConnected] = useState(false);
-  const [calendarLoading, setCalendarLoading] = useState(false);
   const [calendarEmail, setCalendarEmail] = useState<string | null>(null);
   const [searchParams] = useSearchParams();
 
@@ -100,53 +100,10 @@ const Settings = ({ user, onSignOut }: SettingsProps) => {
     });
   };
 
-  const handleConnectGoogleCalendar = async () => {
-    if (!user?.id) return;
-    
-    setCalendarLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('google-calendar-oauth', {
-        body: { action: 'auth', user_id: user.id }
-      });
-
-      if (error) throw error;
-
-      // Redirect to Google OAuth
-      window.location.href = data.authUrl;
-    } catch (error) {
-      console.error('Calendar connection error:', error);
-      toast({
-        title: "Connection Failed",
-        description: "Failed to connect your Google Calendar. Please try again.",
-        variant: "destructive",
-      });
-      setCalendarLoading(false);
-    }
-  };
-
-  const handleDisconnectGoogleCalendar = async () => {
-    if (!user?.id) return;
-    
-    try {
-      const { error } = await supabase.functions.invoke('google-calendar-oauth', {
-        body: { action: 'disconnect', user_id: user.id }
-      });
-
-      if (error) throw error;
-
-      setCalendarConnected(false);
+  const handleCalendarConnectionChange = (connected: boolean) => {
+    setCalendarConnected(connected);
+    if (!connected) {
       setCalendarEmail(null);
-      toast({
-        title: "Calendar Disconnected",
-        description: "Your Google Calendar has been disconnected.",
-      });
-    } catch (error) {
-      console.error('Calendar disconnection error:', error);
-      toast({
-        title: "Disconnection Failed",
-        description: "Failed to disconnect your Google Calendar. Please try again.",
-        variant: "destructive",
-      });
     }
   };
 
@@ -281,77 +238,21 @@ const Settings = ({ user, onSignOut }: SettingsProps) => {
           </TabsContent>
 
           <TabsContent value="integrations">
-            <Card>
-              <CardHeader>
-                <CardTitle>Integrations</CardTitle>
-                <CardDescription>
+            <div className="space-y-6">
+              <div>
+                <h2 className="text-2xl font-bold mb-2">Integrations</h2>
+                <p className="text-muted-foreground">
                   Connect external services to enhance your form functionality
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="border rounded-lg p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center space-x-3">
-                      <Calendar className="w-8 h-8 text-blue-600" />
-                      <div>
-                        <h3 className="font-semibold text-lg">Google Calendar</h3>
-                        <p className="text-gray-600 text-sm">
-                          Connect your Google Calendar for appointment booking
-                        </p>
-                      </div>
-                    </div>
-                    {calendarConnected && (
-                      <CheckCircle className="w-6 h-6 text-green-600" />
-                    )}
-                  </div>
-                  
-                  {calendarConnected ? (
-                    <div className="space-y-4">
-                      <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                        <div className="flex items-center space-x-2">
-                          <CheckCircle className="w-5 h-5 text-green-600" />
-                          <span className="text-green-800 font-medium">Connected</span>
-                        </div>
-                        <p className="text-green-700 text-sm mt-1">
-                          {calendarEmail ? `Connected as ${calendarEmail}` : 'Your Google Calendar is connected and ready for appointment booking.'}
-                        </p>
-                      </div>
-                      <Button 
-                        variant="outline" 
-                        onClick={handleDisconnectGoogleCalendar}
-                        className="w-full"
-                      >
-                        Disconnect Calendar
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      <p className="text-gray-600 text-sm">
-                        Connect your Google Calendar to enable appointment booking functionality. 
-                        This will allow users to schedule meetings directly through your forms.
-                      </p>
-                      <Button 
-                        onClick={handleConnectGoogleCalendar}
-                        disabled={calendarLoading}
-                        className="w-full"
-                      >
-                        {calendarLoading ? "Connecting..." : "Connect Google Calendar"}
-                      </Button>
-                    </div>
-                  )}
-                </div>
-                
-                <div className="text-sm text-gray-500 bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <h4 className="font-medium text-blue-900 mb-2">How it works:</h4>
-                  <ul className="space-y-1 text-blue-800">
-                    <li>• Forms can include appointment booking fields</li>
-                    <li>• Users can select available time slots</li>
-                    <li>• Appointments are automatically added to your calendar</li>
-                    <li>• Email confirmations are sent to both parties</li>
-                  </ul>
-                </div>
-              </CardContent>
-            </Card>
+                </p>
+              </div>
+              
+              <CalendarConnection
+                isConnected={calendarConnected}
+                calendarEmail={calendarEmail}
+                onConnectionChange={handleCalendarConnectionChange}
+                user={user}
+              />
+            </div>
           </TabsContent>
 
           <TabsContent value="knowledge">
