@@ -444,8 +444,8 @@ export default function ChatDesign() {
                             ? 'bg-gradient-to-br from-indigo-50 to-purple-50 border-indigo-200 hover:from-indigo-100 hover:to-purple-100' 
                             : 'bg-slate-50 border-slate-200 hover:bg-slate-100'
                         }`}>
-                          <div className="flex items-center gap-4">
-                            <div className={`p-3 rounded-xl shadow-sm transition-all duration-200 ${
+                          <div className="flex items-start gap-4">
+                            <div className={`p-3 rounded-xl shadow-sm transition-all duration-200 flex-shrink-0 ${
                               isConnected 
                                 ? 'bg-white/90 text-indigo-600 group-hover:scale-110' 
                                 : 'bg-white/90 text-slate-400'
@@ -456,13 +456,13 @@ export default function ChatDesign() {
                                 <AlertCircle className="w-5 h-5" />
                               )}
                             </div>
-                            <div className="flex-1">
-                              <div className={`font-semibold text-base ${
+                            <div className="flex-1 min-w-0">
+                              <div className={`font-semibold text-base leading-tight ${
                                 isConnected ? 'text-slate-900' : 'text-slate-500'
                               }`}>
                                 Calendar Appointment
                               </div>
-                              <div className="text-sm text-slate-600 mt-1">
+                              <div className="text-sm text-slate-600 mt-1 leading-relaxed">
                                 {isConnected 
                                   ? 'Enable direct appointment booking'
                                   : 'Connect calendar to enable bookings'
@@ -470,21 +470,21 @@ export default function ChatDesign() {
                               </div>
                               {isConnected && calendarEmail && (
                                 <div className="flex items-center gap-2 mt-2">
-                                  <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                                  <span className="text-xs text-indigo-600 font-medium">
+                                  <div className="w-2 h-2 bg-green-400 rounded-full flex-shrink-0"></div>
+                                  <span className="text-xs text-indigo-600 font-medium truncate">
                                     {calendarEmail}
                                   </span>
                                 </div>
                               )}
                             </div>
-                            <div className="flex flex-col items-end gap-2">
+                            <div className="flex flex-col items-end gap-2 flex-shrink-0">
                               {!isConnected && (
-                                <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-xs px-2 py-1">
+                                <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-xs px-2 py-1 whitespace-nowrap">
                                   Setup Required
                                 </Badge>
                               )}
                               {isConnected && (
-                                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-xs px-2 py-1">
+                                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-xs px-2 py-1 whitespace-nowrap">
                                   Ready
                                 </Badge>
                               )}
