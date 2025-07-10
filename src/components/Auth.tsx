@@ -186,11 +186,11 @@ export const Auth = ({ onAuthChange }: AuthProps) => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
-      <div className="container mx-auto px-4 py-4 lg:py-8 min-h-screen flex items-center">
-        <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 w-full max-w-6xl mx-auto items-center">
+      <div className="container mx-auto px-4 py-4 min-h-screen flex items-center justify-center">
+        <div className="w-full max-w-7xl mx-auto grid lg:grid-cols-5 gap-8 items-center">
           
-          {/* Left Column - App Details */}
-          <div className="space-y-6 lg:space-y-8 animate-fade-in order-2 lg:order-1 hidden lg:block">
+          {/* Left Column - App Details - Hidden on mobile/tablet */}
+          <div className="hidden xl:block xl:col-span-2 space-y-8 animate-fade-in">
             <div className="space-y-6">
               <div className="flex items-center space-x-3">
                 <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center">
@@ -200,7 +200,6 @@ export const Auth = ({ onAuthChange }: AuthProps) => {
                   ModFormz
                 </h1>
               </div>
-              
             </div>
 
             <div className="grid gap-6">
@@ -249,44 +248,44 @@ export const Auth = ({ onAuthChange }: AuthProps) => {
             </div>
           </div>
 
-          {/* Right Column - Login Forms */}
-          <div className="animate-fade-in animation-delay-200 order-1 lg:order-2">
-            {/* Mobile Header */}
-            <div className="lg:hidden text-center mb-6">
+          {/* Center Column - Login Forms - MAIN FOCUS */}
+          <div className="col-span-full lg:col-span-3 xl:col-span-3 max-w-md mx-auto w-full animate-fade-in">
+            {/* Mobile/Tablet Header */}
+            <div className="xl:hidden text-center mb-8">
               <div className="flex items-center justify-center space-x-3 mb-4">
-                <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
-                  <Zap className="w-5 h-5 text-primary" />
+                <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center">
+                  <Zap className="w-6 h-6 text-primary" />
                 </div>
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+                <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
                   ModFormz
                 </h1>
               </div>
-              <p className="text-sm text-muted-foreground">AI-powered forms with conversational intelligence</p>
+              <p className="text-muted-foreground">AI-powered forms with conversational intelligence</p>
             </div>
             
-            <Card className="p-6 lg:p-8 shadow-2xl border-0 bg-card/50 backdrop-blur-sm">
+            <Card className="p-8 lg:p-10 shadow-2xl border-0 bg-card/80 backdrop-blur-lg">
               <Tabs defaultValue="signin" className="w-full">
-                <TabsList className="grid w-full grid-cols-2 mb-6">
-                  <TabsTrigger value="signin" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                <TabsList className="grid w-full grid-cols-2 mb-8 h-12">
+                  <TabsTrigger value="signin" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground h-10 text-base font-medium">
                     Sign In
                   </TabsTrigger>
-                  <TabsTrigger value="signup" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                  <TabsTrigger value="signup" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground h-10 text-base font-medium">
                     Sign Up
                   </TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="signin" className="space-y-4">
-                  <div className="text-center mb-6">
-                    <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                      <LogIn className="w-8 h-8 text-primary" />
+                <TabsContent value="signin" className="space-y-6">
+                  <div className="text-center mb-8">
+                    <div className="w-20 h-20 bg-primary/10 rounded-3xl flex items-center justify-center mx-auto mb-6">
+                      <LogIn className="w-10 h-10 text-primary" />
                     </div>
-                    <h2 className="text-2xl font-bold text-foreground">Welcome Back</h2>
-                    <p className="text-muted-foreground mt-1">Sign in to your account</p>
+                    <h2 className="text-3xl font-bold text-foreground mb-2">Welcome Back</h2>
+                    <p className="text-muted-foreground text-lg">Sign in to your account</p>
                   </div>
 
-                  <form onSubmit={handleSignIn} className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="signin-email" className="text-sm font-medium">Email</Label>
+                  <form onSubmit={handleSignIn} className="space-y-6">
+                    <div className="space-y-3">
+                      <Label htmlFor="signin-email" className="text-base font-medium">Email</Label>
                       <Input
                         id="signin-email"
                         type="email"
@@ -294,12 +293,12 @@ export const Auth = ({ onAuthChange }: AuthProps) => {
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         required
-                        className="h-11"
+                        className="h-12 text-base"
                       />
                     </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="signin-password" className="text-sm font-medium">Password</Label>
+                    <div className="space-y-3">
+                      <Label htmlFor="signin-password" className="text-base font-medium">Password</Label>
                       <Input
                         id="signin-password"
                         type="password"
@@ -307,15 +306,15 @@ export const Auth = ({ onAuthChange }: AuthProps) => {
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         required
-                        className="h-11"
+                        className="h-12 text-base"
                       />
                     </div>
 
-                    <Button type="submit" className="w-full h-11 font-medium" disabled={loading}>
+                    <Button type="submit" className="w-full h-12 font-medium text-base" disabled={loading}>
                       {loading ? "Signing in..." : "Sign In"}
                     </Button>
 
-                    <div className="relative my-6">
+                    <div className="relative my-8">
                       <div className="absolute inset-0 flex items-center">
                         <span className="w-full border-t border-border" />
                       </div>
@@ -329,7 +328,7 @@ export const Auth = ({ onAuthChange }: AuthProps) => {
                     <Button 
                       type="button" 
                       variant="outline" 
-                      className="w-full h-11 font-medium" 
+                      className="w-full h-12 font-medium text-base" 
                       onClick={handleGoogleSignIn}
                       disabled={loading}
                     >
@@ -356,18 +355,18 @@ export const Auth = ({ onAuthChange }: AuthProps) => {
                   </form>
                 </TabsContent>
 
-                <TabsContent value="signup" className="space-y-4">
-                  <div className="text-center mb-6">
-                    <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                      <UserPlus className="w-8 h-8 text-primary" />
+                <TabsContent value="signup" className="space-y-6">
+                  <div className="text-center mb-8">
+                    <div className="w-20 h-20 bg-primary/10 rounded-3xl flex items-center justify-center mx-auto mb-6">
+                      <UserPlus className="w-10 h-10 text-primary" />
                     </div>
-                    <h2 className="text-2xl font-bold text-foreground">Get Started</h2>
-                    <p className="text-muted-foreground mt-1">Create your account</p>
+                    <h2 className="text-3xl font-bold text-foreground mb-2">Get Started</h2>
+                    <p className="text-muted-foreground text-lg">Create your account</p>
                   </div>
 
-                  <form onSubmit={handleSignUp} className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="signup-email" className="text-sm font-medium">Email</Label>
+                  <form onSubmit={handleSignUp} className="space-y-6">
+                    <div className="space-y-3">
+                      <Label htmlFor="signup-email" className="text-base font-medium">Email</Label>
                       <Input
                         id="signup-email"
                         type="email"
@@ -375,12 +374,12 @@ export const Auth = ({ onAuthChange }: AuthProps) => {
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         required
-                        className="h-11"
+                        className="h-12 text-base"
                       />
                     </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="signup-password" className="text-sm font-medium">Password</Label>
+                    <div className="space-y-3">
+                      <Label htmlFor="signup-password" className="text-base font-medium">Password</Label>
                       <Input
                         id="signup-password"
                         type="password"
@@ -389,15 +388,15 @@ export const Auth = ({ onAuthChange }: AuthProps) => {
                         onChange={(e) => setPassword(e.target.value)}
                         required
                         minLength={6}
-                        className="h-11"
+                        className="h-12 text-base"
                       />
                     </div>
 
-                    <Button type="submit" className="w-full h-11 font-medium" disabled={loading}>
+                    <Button type="submit" className="w-full h-12 font-medium text-base" disabled={loading}>
                       {loading ? "Creating account..." : "Create Account"}
                     </Button>
 
-                    <div className="relative my-6">
+                    <div className="relative my-8">
                       <div className="absolute inset-0 flex items-center">
                         <span className="w-full border-t border-border" />
                       </div>
@@ -411,7 +410,7 @@ export const Auth = ({ onAuthChange }: AuthProps) => {
                     <Button 
                       type="button" 
                       variant="outline" 
-                      className="w-full h-11 font-medium" 
+                      className="w-full h-12 font-medium text-base" 
                       onClick={handleGoogleSignIn}
                       disabled={loading}
                     >
