@@ -106,7 +106,6 @@ const Settings = ({ user, onSignOut }: SettingsProps) => {
     setCalendarLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke('google-calendar-oauth', {
-        method: 'GET',
         body: { action: 'auth', user_id: user.id }
       });
 
