@@ -186,120 +186,175 @@ export const Auth = ({ onAuthChange }: AuthProps) => {
 
   return (
     <div className="min-h-screen bg-white font-neue">
-      {/* Top Navigation Bar */}
-      <nav className="border-b border-gray-300 bg-white/95 backdrop-blur-sm sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
-                <Zap className="w-5 h-5 text-white" />
+      {/* Main Container */}
+      <div className="min-h-screen flex">
+        
+        {/* Left Side - Branding & Content */}
+        <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-blue-500 to-blue-600 relative overflow-hidden">
+          {/* Background Pattern */}
+          <div className="absolute inset-0 opacity-10">
+            <div className="absolute top-10 left-10 w-32 h-32 bg-white rounded-full"></div>
+            <div className="absolute top-40 right-20 w-20 h-20 bg-white rounded-full"></div>
+            <div className="absolute bottom-20 left-20 w-24 h-24 bg-white rounded-full"></div>
+            <div className="absolute bottom-40 right-10 w-16 h-16 bg-white rounded-full"></div>
+          </div>
+          
+          {/* Content */}
+          <div className="relative z-10 flex flex-col justify-center px-12 text-white">
+            <div className="space-y-8">
+              {/* Logo */}
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center">
+                  <Zap className="w-6 h-6 text-blue-500" />
+                </div>
+                <span className="text-2xl font-bold">ModFormz</span>
               </div>
-              <span className="text-xl font-bold text-black">ModFormz</span>
-            </div>
-            <div className="hidden sm:flex items-center space-x-6 text-sm font-medium">
-              <span className="text-gray-600">Features</span>
-              <span className="text-gray-600">Pricing</span>
-              <span className="text-gray-600">Support</span>
+              
+              {/* New Tagline & Description */}
+              <div className="space-y-6">
+                <h1 className="text-4xl font-bold leading-tight">
+                  Conversations that
+                  <br />
+                  <span className="text-blue-200">convert</span>
+                </h1>
+                <p className="text-xl text-blue-100 leading-relaxed max-w-md">
+                  Transform boring forms into intelligent conversations. 
+                  Boost engagement by 300% with AI-powered interactions.
+                </p>
+              </div>
+              
+              {/* Stats */}
+              <div className="grid grid-cols-2 gap-6 pt-8">
+                <div>
+                  <div className="text-3xl font-bold">10,000+</div>
+                  <div className="text-blue-200 text-sm">Forms created</div>
+                </div>
+                <div>
+                  <div className="text-3xl font-bold">300%</div>
+                  <div className="text-blue-200 text-sm">Higher engagement</div>
+                </div>
+                <div>
+                  <div className="text-3xl font-bold">99.9%</div>
+                  <div className="text-blue-200 text-sm">Uptime</div>
+                </div>
+                <div>
+                  <div className="text-3xl font-bold">500+</div>
+                  <div className="text-blue-200 text-sm">Happy customers</div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
-      </nav>
 
-      {/* Main Content Area */}
-      <div className="max-w-7xl mx-auto px-6 pt-16 pb-24">
-        {/* Authentication Section - Centered */}
-        <div className="max-w-md mx-auto">
-          <div className="bg-white border border-gray-300 rounded-2xl shadow-sm p-8">
-            <Tabs defaultValue="signin" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 mb-8 bg-gray-100 border border-gray-300 rounded-xl p-1">
-                <TabsTrigger 
-                  value="signin" 
-                  className="rounded-lg font-medium text-base py-3 data-[state=active]:bg-white data-[state=active]:text-black data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-gray-300"
-                >
-                  Sign In
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="signup" 
-                  className="rounded-lg font-medium text-base py-3 data-[state=active]:bg-white data-[state=active]:text-black data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-gray-300"
-                >
-                  Sign Up
-                </TabsTrigger>
-              </TabsList>
+        {/* Right Side - Authentication */}
+        <div className="w-full lg:w-1/2 flex flex-col">
+          {/* Mobile Header */}
+          <div className="lg:hidden bg-blue-500 text-white px-6 py-8">
+            <div className="flex items-center space-x-3 mb-6">
+              <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center">
+                <Zap className="w-5 h-5 text-blue-500" />
+              </div>
+              <span className="text-xl font-bold">ModFormz</span>
+            </div>
+            <h1 className="text-2xl font-bold mb-2">Conversations that convert</h1>
+            <p className="text-blue-100">Transform forms into intelligent conversations</p>
+          </div>
 
-              <TabsContent value="signin" className="space-y-6">
-                <div className="text-center mb-6">
-                  <h2 className="text-2xl font-bold text-black mb-2">Welcome back</h2>
-                  <p className="text-gray-600">Continue building amazing forms</p>
-                </div>
+          {/* Auth Form Container */}
+          <div className="flex-1 flex items-center justify-center px-6 py-12">
+            <div className="w-full max-w-sm">
+              
+              {/* Welcome Header */}
+              <div className="text-center mb-8">
+                <h2 className="text-3xl font-bold text-black mb-2">Welcome</h2>
+                <p className="text-gray-600">Choose your preferred sign-in method</p>
+              </div>
 
-                <form onSubmit={handleSignIn} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="signin-email" className="text-sm font-medium text-black">
-                      Email address
-                    </Label>
-                    <Input
-                      id="signin-email"
-                      type="email"
-                      placeholder="Enter your email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                      className="h-12 text-base border-gray-300 rounded-xl focus:border-blue-500 focus:ring-blue-500/50"
-                      style={{
-                        borderColor: '#e5e7eb',
-                        '--tw-ring-color': 'rgb(59 130 246 / 0.5)',
-                        '--tw-ring-offset-color': '#fff'
-                      } as React.CSSProperties}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="signin-password" className="text-sm font-medium text-black">
-                      Password
-                    </Label>
-                    <Input
-                      id="signin-password"
-                      type="password"
-                      placeholder="Enter your password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                      className="h-12 text-base border-gray-300 rounded-xl focus:border-blue-500 focus:ring-blue-500/50"
-                      style={{
-                        borderColor: '#e5e7eb',
-                        '--tw-ring-color': 'rgb(59 130 246 / 0.5)',
-                        '--tw-ring-offset-color': '#fff'
-                      } as React.CSSProperties}
-                    />
-                  </div>
-
-                  <Button 
-                    type="submit" 
-                    className="w-full h-12 font-medium text-base bg-blue-500 hover:bg-blue-600 text-white rounded-xl border-0 shadow-sm mt-6" 
-                    disabled={loading}
+              {/* Auth Tabs */}
+              <Tabs defaultValue="signin" className="w-full">
+                <TabsList className="grid w-full grid-cols-2 mb-8 bg-gray-100 border border-gray-300 rounded-2xl p-1 h-12">
+                  <TabsTrigger 
+                    value="signin" 
+                    className="rounded-xl font-medium text-sm data-[state=active]:bg-white data-[state=active]:text-black data-[state=active]:shadow-sm"
                   >
-                    {loading ? "Signing in..." : "Sign In"}
-                  </Button>
+                    Sign In
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="signup" 
+                    className="rounded-xl font-medium text-sm data-[state=active]:bg-white data-[state=active]:text-black data-[state=active]:shadow-sm"
+                  >
+                    Sign Up
+                  </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="signin" className="space-y-5">
+                  <form onSubmit={handleSignIn} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="signin-email" className="text-sm font-medium text-black">
+                        Email
+                      </Label>
+                      <Input
+                        id="signin-email"
+                        type="email"
+                        placeholder="you@example.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
+                        className="h-11 text-sm border-gray-300 rounded-xl focus:border-blue-500 focus:ring-blue-500/20"
+                        style={{
+                          borderColor: '#e5e7eb',
+                          '--tw-ring-color': 'rgb(59 130 246 / 0.5)',
+                          '--tw-ring-offset-color': '#fff'
+                        } as React.CSSProperties}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="signin-password" className="text-sm font-medium text-black">
+                        Password
+                      </Label>
+                      <Input
+                        id="signin-password"
+                        type="password"
+                        placeholder="••••••••"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                        className="h-11 text-sm border-gray-300 rounded-xl focus:border-blue-500 focus:ring-blue-500/20"
+                        style={{
+                          borderColor: '#e5e7eb',
+                          '--tw-ring-color': 'rgb(59 130 246 / 0.5)',
+                          '--tw-ring-offset-color': '#fff'
+                        } as React.CSSProperties}
+                      />
+                    </div>
+
+                    <Button 
+                      type="submit" 
+                      className="w-full h-11 font-medium text-sm bg-blue-500 hover:bg-blue-600 text-white rounded-xl border-0 shadow-sm mt-6" 
+                      disabled={loading}
+                    >
+                      {loading ? "Signing in..." : "Sign In"}
+                    </Button>
+                  </form>
 
                   <div className="relative my-6">
                     <div className="absolute inset-0 flex items-center">
                       <span className="w-full border-t border-gray-300" />
                     </div>
-                    <div className="relative flex justify-center text-xs uppercase">
-                      <span className="bg-white px-4 text-gray-500 font-medium">
-                        Or continue with
-                      </span>
+                    <div className="relative flex justify-center text-xs">
+                      <span className="bg-white px-3 text-gray-500 font-medium">or</span>
                     </div>
                   </div>
 
                   <Button 
                     type="button" 
                     variant="outline" 
-                    className="w-full h-12 font-medium text-base border-gray-300 rounded-xl hover:bg-gray-50" 
+                    className="w-full h-11 font-medium text-sm border-gray-300 rounded-xl hover:bg-gray-50" 
                     onClick={handleGoogleSignIn}
                     disabled={loading}
                   >
-                    <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24">
                       <path
                         fill="currentColor"
                         d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -317,86 +372,79 @@ export const Auth = ({ onAuthChange }: AuthProps) => {
                         d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                       />
                     </svg>
-                    {loading ? "Signing in..." : "Continue with Google"}
+                    Continue with Google
                   </Button>
-                </form>
-              </TabsContent>
+                </TabsContent>
 
-              <TabsContent value="signup" className="space-y-6">
-                <div className="text-center mb-6">
-                  <h2 className="text-2xl font-bold text-black mb-2">Create account</h2>
-                  <p className="text-gray-600">Start building intelligent forms today</p>
-                </div>
+                <TabsContent value="signup" className="space-y-5">
+                  <form onSubmit={handleSignUp} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="signup-email" className="text-sm font-medium text-black">
+                        Email
+                      </Label>
+                      <Input
+                        id="signup-email"
+                        type="email"
+                        placeholder="you@example.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
+                        className="h-11 text-sm border-gray-300 rounded-xl focus:border-blue-500 focus:ring-blue-500/20"
+                        style={{
+                          borderColor: '#e5e7eb',
+                          '--tw-ring-color': 'rgb(59 130 246 / 0.5)',
+                          '--tw-ring-offset-color': '#fff'
+                        } as React.CSSProperties}
+                      />
+                    </div>
 
-                <form onSubmit={handleSignUp} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-email" className="text-sm font-medium text-black">
-                      Email address
-                    </Label>
-                    <Input
-                      id="signup-email"
-                      type="email"
-                      placeholder="Enter your email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                      className="h-12 text-base border-gray-300 rounded-xl focus:border-blue-500 focus:ring-blue-500/50"
-                      style={{
-                        borderColor: '#e5e7eb',
-                        '--tw-ring-color': 'rgb(59 130 246 / 0.5)',
-                        '--tw-ring-offset-color': '#fff'
-                      } as React.CSSProperties}
-                    />
-                  </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="signup-password" className="text-sm font-medium text-black">
+                        Password
+                      </Label>
+                      <Input
+                        id="signup-password"
+                        type="password"
+                        placeholder="••••••••"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                        minLength={6}
+                        className="h-11 text-sm border-gray-300 rounded-xl focus:border-blue-500 focus:ring-blue-500/20"
+                        style={{
+                          borderColor: '#e5e7eb',
+                          '--tw-ring-color': 'rgb(59 130 246 / 0.5)',
+                          '--tw-ring-offset-color': '#fff'
+                        } as React.CSSProperties}
+                      />
+                    </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-password" className="text-sm font-medium text-black">
-                      Password
-                    </Label>
-                    <Input
-                      id="signup-password"
-                      type="password"
-                      placeholder="Create a password (min. 6 characters)"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                      minLength={6}
-                      className="h-12 text-base border-gray-300 rounded-xl focus:border-blue-500 focus:ring-blue-500/50"
-                      style={{
-                        borderColor: '#e5e7eb',
-                        '--tw-ring-color': 'rgb(59 130 246 / 0.5)',
-                        '--tw-ring-offset-color': '#fff'
-                      } as React.CSSProperties}
-                    />
-                  </div>
-
-                  <Button 
-                    type="submit" 
-                    className="w-full h-12 font-medium text-base bg-blue-500 hover:bg-blue-600 text-white rounded-xl border-0 shadow-sm mt-6" 
-                    disabled={loading}
-                  >
-                    {loading ? "Creating account..." : "Create Account"}
-                  </Button>
+                    <Button 
+                      type="submit" 
+                      className="w-full h-11 font-medium text-sm bg-blue-500 hover:bg-blue-600 text-white rounded-xl border-0 shadow-sm mt-6" 
+                      disabled={loading}
+                    >
+                      {loading ? "Creating account..." : "Create Account"}
+                    </Button>
+                  </form>
 
                   <div className="relative my-6">
                     <div className="absolute inset-0 flex items-center">
                       <span className="w-full border-t border-gray-300" />
                     </div>
-                    <div className="relative flex justify-center text-xs uppercase">
-                      <span className="bg-white px-4 text-gray-500 font-medium">
-                        Or continue with
-                      </span>
+                    <div className="relative flex justify-center text-xs">
+                      <span className="bg-white px-3 text-gray-500 font-medium">or</span>
                     </div>
                   </div>
 
                   <Button 
                     type="button" 
                     variant="outline" 
-                    className="w-full h-12 font-medium text-base border-gray-300 rounded-xl hover:bg-gray-50" 
+                    className="w-full h-11 font-medium text-sm border-gray-300 rounded-xl hover:bg-gray-50" 
                     onClick={handleGoogleSignIn}
                     disabled={loading}
                   >
-                    <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24">
                       <path
                         fill="currentColor"
                         d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -414,64 +462,24 @@ export const Auth = ({ onAuthChange }: AuthProps) => {
                         d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                       />
                     </svg>
-                    {loading ? "Signing up..." : "Continue with Google"}
+                    Continue with Google
                   </Button>
-                </form>
-              </TabsContent>
-            </Tabs>
-          </div>
+                </TabsContent>
+              </Tabs>
 
-          {/* Trust Indicators */}
-          <div className="mt-12 text-center">
-            <p className="text-sm text-gray-500 mb-4">Trusted by creators worldwide</p>
-            <div className="flex items-center justify-center space-x-8 text-xs text-gray-400">
-              <div className="flex items-center space-x-1">
-                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                <span>10,000+ Forms Created</span>
+              {/* Footer Links */}
+              <div className="text-center mt-8 space-y-2">
+                <p className="text-xs text-gray-500">
+                  By signing up, you agree to our Terms of Service and Privacy Policy
+                </p>
+                <div className="flex justify-center space-x-4 text-xs text-gray-400">
+                  <span>Help</span>
+                  <span>•</span>
+                  <span>Privacy</span>
+                  <span>•</span>
+                  <span>Terms</span>
+                </div>
               </div>
-              <div className="flex items-center space-x-1">
-                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                <span>500+ Happy Users</span>
-              </div>
-              <div className="flex items-center space-x-1">
-                <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                <span>99.9% Uptime</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Bottom Features Section */}
-        <div className="mt-24 max-w-4xl mx-auto">
-          <div className="grid md:grid-cols-3 gap-8 text-center">
-            <div className="space-y-3">
-              <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mx-auto">
-                <BarChart3 className="w-6 h-6 text-blue-500" />
-              </div>
-              <h3 className="font-semibold text-black text-lg">Advanced Analytics</h3>
-              <p className="text-gray-600 text-sm leading-relaxed">
-                Track performance with real-time insights and detailed reporting
-              </p>
-            </div>
-            
-            <div className="space-y-3">
-              <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center mx-auto">
-                <Users className="w-6 h-6 text-green-500" />
-              </div>
-              <h3 className="font-semibold text-black text-lg">AI Chat Forms</h3>
-              <p className="text-gray-600 text-sm leading-relaxed">
-                Create conversational experiences with intelligent AI interactions
-              </p>
-            </div>
-            
-            <div className="space-y-3">
-              <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center mx-auto">
-                <Shield className="w-6 h-6 text-orange-500" />
-              </div>
-              <h3 className="font-semibold text-black text-lg">Enterprise Security</h3>
-              <p className="text-gray-600 text-sm leading-relaxed">
-                Bank-level encryption with GDPR compliance and data protection
-              </p>
             </div>
           </div>
         </div>
