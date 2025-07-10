@@ -18,6 +18,12 @@ export default {
 			}
 		},
 		extend: {
+			fontFamily: {
+				'sans': ['var(--font-neue-alte-grotesk)'],
+				'neue': ['var(--font-neue-alte-grotesk)'],
+				'mono': ['var(--font-chivo-mono)'],
+				'system': ['var(--font-system)'],
+			},
 			colors: {
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
