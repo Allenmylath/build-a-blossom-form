@@ -186,3 +186,12 @@ main {
 .flex {
   gap: 0;
 }
+
+/* Custom animation utilities */
+.hover-scale {
+  @apply transition-transform duration-200 hover:scale-105;
+}
+
+.animation-delay-200 {
+  animation-delay: 200ms;
+}
