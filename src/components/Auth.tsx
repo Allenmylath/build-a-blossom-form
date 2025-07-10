@@ -206,37 +206,7 @@ export const Auth = ({ onAuthChange }: AuthProps) => {
       </nav>
 
       {/* Main Content Area */}
-      <div className="max-w-7xl mx-auto px-6 pt-12 pb-24">
-        {/* Header Section - Stacked at Top */}
-        <div className="text-center mb-16">
-          <div className="space-y-6">
-            <div className="space-y-4">
-              <h1 className="text-5xl font-bold text-black leading-tight">
-                Build Intelligent Forms
-                <br />
-                <span className="text-blue-500">with AI Power</span>
-              </h1>
-              <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-                Create conversational forms, analyze responses with AI, and boost engagement 
-                with intelligent chat interfaces. Join 10,000+ creators transforming how they collect data.
-              </p>
-            </div>
-            
-            {/* Key Features Pills */}
-            <div className="flex flex-wrap justify-center gap-3 mt-8">
-              <div className="bg-gray-100 border border-gray-300 rounded-full px-4 py-2 text-sm font-medium text-gray-700">
-                ✨ AI-Powered Chat Forms
-              </div>
-              <div className="bg-gray-100 border border-gray-300 rounded-full px-4 py-2 text-sm font-medium text-gray-700">
-                📊 Real-time Analytics
-              </div>
-              <div className="bg-gray-100 border border-gray-300 rounded-full px-4 py-2 text-sm font-medium text-gray-700">
-                🔒 Enterprise Security
-              </div>
-            </div>
-          </div>
-        </div>
-
+      <div className="max-w-7xl mx-auto px-6 pt-16 pb-24">
         {/* Authentication Section - Centered */}
         <div className="max-w-md mx-auto">
           <div className="bg-white border border-gray-300 rounded-2xl shadow-sm p-8">
