@@ -129,13 +129,15 @@ serve(async (req) => {
       });
 
     } else if (action === 'disconnect') {
-      // Handle disconnection
-      const { user_id } = await req.json();
+      // Handle disconnection - userId is already parsed above
+      if (!userId) {
+        throw new Error('User ID is required');
+      }
 
       const { error } = await supabase
         .from('calendar_integrations')
         .update({ is_active: false })
-        .eq('user_id', user_id);
+        .eq('user_id', userId);
 
       if (error) throw error;
 
