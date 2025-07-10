@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button';
-import { Copy, Share, TrendingUp, Trash2, ExternalLink, FolderOpen, QrCode } from 'lucide-react';
+import { Copy, Share, TrendingUp, Trash2, ExternalLink, FolderOpen, QrCode, Code } from 'lucide-react';
 import { SavedForm } from '@/types/form';
 import { toast } from '@/hooks/use-toast';
 import { FormCardStats } from './FormCardStats';
@@ -73,6 +73,34 @@ export const FormCardActions = ({
     window.open(shareUrl, '_blank', 'noopener,noreferrer');
   };
 
+  const handleGetEmbedCode = () => {
+    if (!form.isPublic) {
+      toast({
+        title: "Form Not Public",
+        description: "This form needs to be public to generate embed code.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const currentDomain = window.location.origin;
+    const embedUrl = `${currentDomain}/form/${form.id}`;
+    
+    const embedCode = `<iframe 
+  src="${embedUrl}" 
+  width="100%" 
+  height="600" 
+  frameborder="0" 
+  style="border: none; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+</iframe>`;
+
+    navigator.clipboard.writeText(embedCode);
+    toast({
+      title: "Embed Code Copied",
+      description: "HTML embed code has been copied to clipboard. Paste it into your website.",
+    });
+  };
+
   return (
     <div className="space-y-3">
       <div className="flex gap-2">
@@ -117,6 +145,18 @@ export const FormCardActions = ({
         >
           <Share className="w-4 h-4 mr-1" />
           Share
+        </Button>
+        
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={handleGetEmbedCode}
+          className="flex-1 hover:bg-orange-50 text-orange-700 border-orange-200"
+          title="Get HTML Embed Code"
+          disabled={!form.isPublic}
+        >
+          <Code className="w-4 h-4 mr-1" />
+          Embed
         </Button>
       </div>
 

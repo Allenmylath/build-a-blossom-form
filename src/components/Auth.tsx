@@ -186,11 +186,11 @@ export const Auth = ({ onAuthChange }: AuthProps) => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
-      <div className="container mx-auto px-4 py-8 h-screen flex items-center">
-        <div className="grid lg:grid-cols-2 gap-12 w-full max-w-6xl mx-auto items-center">
+      <div className="container mx-auto px-4 py-4 lg:py-8 min-h-screen flex items-center">
+        <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 w-full max-w-6xl mx-auto items-center">
           
           {/* Left Column - App Details */}
-          <div className="space-y-8 animate-fade-in">
+          <div className="space-y-6 lg:space-y-8 animate-fade-in order-2 lg:order-1 hidden lg:block">
             <div className="space-y-6">
               <div className="flex items-center space-x-3">
                 <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center">
@@ -250,8 +250,21 @@ export const Auth = ({ onAuthChange }: AuthProps) => {
           </div>
 
           {/* Right Column - Login Forms */}
-          <div className="animate-fade-in animation-delay-200">
-            <Card className="p-8 shadow-2xl border-0 bg-card/50 backdrop-blur-sm">
+          <div className="animate-fade-in animation-delay-200 order-1 lg:order-2">
+            {/* Mobile Header */}
+            <div className="lg:hidden text-center mb-6">
+              <div className="flex items-center justify-center space-x-3 mb-4">
+                <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
+                  <Zap className="w-5 h-5 text-primary" />
+                </div>
+                <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+                  ModFormz
+                </h1>
+              </div>
+              <p className="text-sm text-muted-foreground">AI-powered forms with conversational intelligence</p>
+            </div>
+            
+            <Card className="p-6 lg:p-8 shadow-2xl border-0 bg-card/50 backdrop-blur-sm">
               <Tabs defaultValue="signin" className="w-full">
                 <TabsList className="grid w-full grid-cols-2 mb-6">
                   <TabsTrigger value="signin" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
