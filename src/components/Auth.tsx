@@ -197,12 +197,12 @@ export const Auth = ({ onAuthChange }: AuthProps) => {
                   <Zap className="w-6 h-6 text-primary" />
                 </div>
                 <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-                  FormCraft Pro
+                  ModFormz
                 </h1>
               </div>
               
-              <p className="text-xl text-muted-foreground leading-relaxed">
-                Build powerful, intelligent forms with AI-driven conversations and seamless data collection.
+              <p className="text-lg text-muted-foreground leading-relaxed">
+                Build intelligent forms with AI conversations and seamless data collection.
               </p>
             </div>
 
@@ -212,8 +212,8 @@ export const Auth = ({ onAuthChange }: AuthProps) => {
                   <BarChart3 className="w-5 h-5 text-primary" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-foreground mb-1">Advanced Analytics</h3>
-                  <p className="text-muted-foreground text-sm">Get deep insights into user behavior and form performance with real-time analytics.</p>
+                  <h3 className="font-semibold text-foreground mb-1">Analytics</h3>
+                  <p className="text-muted-foreground text-sm">Real-time insights and performance tracking.</p>
                 </div>
               </div>
 
@@ -223,7 +223,7 @@ export const Auth = ({ onAuthChange }: AuthProps) => {
                 </div>
                 <div>
                   <h3 className="font-semibold text-foreground mb-1">AI Chat Forms</h3>
-                  <p className="text-muted-foreground text-sm">Create conversational forms that engage users through intelligent AI interactions.</p>
+                  <p className="text-muted-foreground text-sm">Conversational forms with intelligent AI interactions.</p>
                 </div>
               </div>
 
@@ -233,7 +233,7 @@ export const Auth = ({ onAuthChange }: AuthProps) => {
                 </div>
                 <div>
                   <h3 className="font-semibold text-foreground mb-1">Secure & Reliable</h3>
-                  <p className="text-muted-foreground text-sm">Enterprise-grade security with data encryption and GDPR compliance built-in.</p>
+                  <p className="text-muted-foreground text-sm">Enterprise security with encryption and GDPR compliance.</p>
                 </div>
               </div>
             </div>
