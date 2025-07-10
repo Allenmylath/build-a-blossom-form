@@ -1,15 +1,14 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { User, CreditCard, FileText, LogOut, Database, Link } from 'lucide-react';
+import { User, CreditCard, FileText, LogOut, Database, Calendar, Link, CheckCircle } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
-import { CalendarConnection } from '@/components/CalendarConnection';
 
 interface SettingsProps {
   user: any;
@@ -27,6 +26,7 @@ const Settings = ({ user, onSignOut }: SettingsProps) => {
   });
   
   const [calendarConnected, setCalendarConnected] = useState(false);
+  const [calendarLoading, setCalendarLoading] = useState(false);
   const [calendarEmail, setCalendarEmail] = useState<string | null>(null);
   const [searchParams] = useSearchParams();
 
@@ -41,26 +41,61 @@ const Settings = ({ user, onSignOut }: SettingsProps) => {
       });
       // Clear the URL parameter
       window.history.replaceState({}, '', '/settings');
+      // Recheck calendar connection after successful connection
+      setTimeout(() => {
+        checkCalendarConnection();
+      }, 1000);
+    }
+
+    // Check for calendar connection errors
+    const calendarError = searchParams.get('calendar_error');
+    if (calendarError) {
+      toast({
+        title: "Calendar Connection Failed",
+        description: `Error: ${calendarError}`,
+        variant: "destructive",
+      });
+      // Clear the URL parameter
+      window.history.replaceState({}, '', '/settings');
     }
   }, [searchParams]);
 
   const checkCalendarConnection = async () => {
-    if (!user?.id) return;
+    if (!user?.id) {
+      console.log('No user ID available');
+      return;
+    }
     
     try {
+      console.log('Checking calendar connection for user:', user.id);
+      
+      // Use maybeSingle() to avoid 406 errors when no rows exist
       const { data, error } = await supabase
         .from('calendar_integrations')
         .select('calendar_email, is_active')
         .eq('user_id', user.id)
         .eq('is_active', true)
-        .single();
+        .maybeSingle();
 
-      if (data && !error) {
+      console.log('Calendar query result:', { data, error });
+
+      if (error) {
+        console.error('Error checking calendar connection:', error);
+        return;
+      }
+
+      if (data) {
         setCalendarConnected(true);
         setCalendarEmail(data.calendar_email);
+        console.log('✅ Calendar connected:', data.calendar_email);
+      } else {
+        setCalendarConnected(false);
+        setCalendarEmail(null);
+        console.log('📭 No calendar connection found');
       }
     } catch (error) {
-      console.log('No calendar integration found');
+      console.error('Exception in checkCalendarConnection:', error);
+      setCalendarConnected(false);
     }
   };
 
@@ -100,10 +135,75 @@ const Settings = ({ user, onSignOut }: SettingsProps) => {
     });
   };
 
-  const handleCalendarConnectionChange = (connected: boolean) => {
-    setCalendarConnected(connected);
-    if (!connected) {
+  const handleConnectGoogleCalendar = async () => {
+    if (!user?.id) return;
+    
+    setCalendarLoading(true);
+    try {
+      console.log('Initiating calendar connection for user:', user.id);
+      
+      // Call your Edge Function to get the auth URL
+      const { data, error } = await supabase.functions.invoke('google-calendar-oauth', {
+        body: { 
+          action: 'auth', 
+          user_id: user.id 
+        }
+      });
+
+      if (error) {
+        console.error('Edge function error:', error);
+        throw error;
+      }
+
+      if (data?.authUrl) {
+        console.log('Redirecting to Google auth:', data.authUrl);
+        // Redirect to Google OAuth
+        window.location.href = data.authUrl;
+      } else {
+        throw new Error('No auth URL returned from Edge Function');
+      }
+    } catch (error) {
+      console.error('Calendar connection error:', error);
+      toast({
+        title: "Connection Failed",
+        description: "Failed to connect your Google Calendar. Please try again.",
+        variant: "destructive",
+      });
+      setCalendarLoading(false);
+    }
+  };
+
+  const handleDisconnectGoogleCalendar = async () => {
+    if (!user?.id) return;
+    
+    try {
+      console.log('Disconnecting calendar for user:', user.id);
+      
+      const { data, error } = await supabase.functions.invoke('google-calendar-oauth', {
+        body: { 
+          action: 'disconnect', 
+          user_id: user.id 
+        }
+      });
+
+      if (error) {
+        console.error('Disconnect error:', error);
+        throw error;
+      }
+
+      setCalendarConnected(false);
       setCalendarEmail(null);
+      toast({
+        title: "Calendar Disconnected",
+        description: "Your Google Calendar has been disconnected.",
+      });
+    } catch (error) {
+      console.error('Calendar disconnection error:', error);
+      toast({
+        title: "Disconnection Failed",
+        description: "Failed to disconnect your Google Calendar. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -238,21 +338,77 @@ const Settings = ({ user, onSignOut }: SettingsProps) => {
           </TabsContent>
 
           <TabsContent value="integrations">
-            <div className="space-y-6">
-              <div>
-                <h2 className="text-2xl font-bold mb-2">Integrations</h2>
-                <p className="text-muted-foreground">
+            <Card>
+              <CardHeader>
+                <CardTitle>Integrations</CardTitle>
+                <CardDescription>
                   Connect external services to enhance your form functionality
-                </p>
-              </div>
-              
-              <CalendarConnection
-                isConnected={calendarConnected}
-                calendarEmail={calendarEmail}
-                onConnectionChange={handleCalendarConnectionChange}
-                user={user}
-              />
-            </div>
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="border rounded-lg p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center space-x-3">
+                      <Calendar className="w-8 h-8 text-blue-600" />
+                      <div>
+                        <h3 className="font-semibold text-lg">Google Calendar</h3>
+                        <p className="text-gray-600 text-sm">
+                          Connect your Google Calendar for appointment booking
+                        </p>
+                      </div>
+                    </div>
+                    {calendarConnected && (
+                      <CheckCircle className="w-6 h-6 text-green-600" />
+                    )}
+                  </div>
+                  
+                  {calendarConnected ? (
+                    <div className="space-y-4">
+                      <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                        <div className="flex items-center space-x-2">
+                          <CheckCircle className="w-5 h-5 text-green-600" />
+                          <span className="text-green-800 font-medium">Connected</span>
+                        </div>
+                        <p className="text-green-700 text-sm mt-1">
+                          {calendarEmail ? `Connected as ${calendarEmail}` : 'Your Google Calendar is connected and ready for appointment booking.'}
+                        </p>
+                      </div>
+                      <Button 
+                        variant="outline" 
+                        onClick={handleDisconnectGoogleCalendar}
+                        className="w-full"
+                      >
+                        Disconnect Calendar
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <p className="text-gray-600 text-sm">
+                        Connect your Google Calendar to enable appointment booking functionality. 
+                        This will allow users to schedule meetings directly through your forms.
+                      </p>
+                      <Button 
+                        onClick={handleConnectGoogleCalendar}
+                        disabled={calendarLoading}
+                        className="w-full"
+                      >
+                        {calendarLoading ? "Connecting..." : "Connect Google Calendar"}
+                      </Button>
+                    </div>
+                  )}
+                </div>
+                
+                <div className="text-sm text-gray-500 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <h4 className="font-medium text-blue-900 mb-2">How it works:</h4>
+                  <ul className="space-y-1 text-blue-800">
+                    <li>• Forms can include appointment booking fields</li>
+                    <li>• Users can select available time slots</li>
+                    <li>• Appointments are automatically added to your calendar</li>
+                    <li>• Email confirmations are sent to both parties</li>
+                  </ul>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="knowledge">
