@@ -105,25 +105,13 @@ const Settings = ({ user, onSignOut }: SettingsProps) => {
     
     setCalendarLoading(true);
     try {
-      // Call the edge function with proper URL parameters
-      const response = await fetch(
-        `https://rfalsaauwanevzrqaoaa.supabase.co/functions/v1/google-calendar-oauth?action=auth&user_id=${user.id}`,
-        {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
+      const { data, error } = await supabase.functions.invoke('google-calendar-oauth', {
+        method: 'GET',
+        body: { action: 'auth', user_id: user.id }
+      });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to get authorization URL');
-      }
+      if (error) throw error;
 
-      const data = await response.json();
-      
       // Redirect to Google OAuth
       window.location.href = data.authUrl;
     } catch (error) {

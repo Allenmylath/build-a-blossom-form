@@ -20,11 +20,19 @@ serve(async (req) => {
 
   try {
     const url = new URL(req.url);
-    const action = url.searchParams.get('action');
+    let action, userId;
+
+    if (req.method === 'POST') {
+      const body = await req.json();
+      action = body.action;
+      userId = body.user_id;
+    } else {
+      action = url.searchParams.get('action');
+      userId = url.searchParams.get('user_id');
+    }
 
     if (action === 'auth') {
       // Generate OAuth URL
-      const userId = url.searchParams.get('user_id');
       if (!userId) {
         throw new Error('User ID is required');
       }
