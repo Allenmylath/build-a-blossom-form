@@ -8,6 +8,7 @@ import { ChatFlowSaveDialog } from '@/components/chat-design/ChatFlowSaveDialog'
 import { ChatFlowManager } from '@/components/chat-design/ChatFlowManager';
 import { useChatFlows, ChatFlow } from '@/hooks/useChatFlows';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
+import { useCalendarIntegration } from '@/hooks/useCalendarIntegration';
 import { 
   Plus, 
   Save, 
@@ -21,7 +22,9 @@ import {
   HelpCircle,
   FileText,
   PlusCircle,
-  Workflow
+  Workflow,
+  Calendar,
+  AlertCircle
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -80,6 +83,7 @@ const questionTemplates = [
 export default function ChatDesign() {
   const { user } = useSupabaseAuth();
   const { chatFlows, loading, saveChatFlow, updateChatFlow, deleteChatFlow } = useChatFlows(user);
+  const { isConnected, calendarEmail } = useCalendarIntegration(user);
   
   const [flowNodes, setFlowNodes] = useState<FlowNode[]>([]);
   const [nodeCounter, setNodeCounter] = useState(1);
@@ -100,6 +104,31 @@ export default function ChatDesign() {
     setFlowNodes(prev => [...prev, newNode]);
     setNodeCounter(prev => prev + 1);
   }, [nodeCounter]);
+
+  const handleCalendarAppointmentClick = useCallback(() => {
+    if (!isConnected) {
+      toast.error('Calendar Integration Required', {
+        description: 'Please connect your Google Calendar in Settings before adding appointment booking to your flow.',
+        action: {
+          label: 'Go to Settings',
+          onClick: () => window.location.href = '/settings'
+        }
+      });
+      return;
+    }
+
+    const appointmentNode: FlowNode = {
+      id: `node-${nodeCounter}`,
+      type: 'question',
+      prompt: 'Please select a time for your appointment',
+      field: 'appointment',
+      label: 'Calendar Appointment',
+      hook: 'useCalendarBooking',
+    };
+    setFlowNodes(prev => [...prev, appointmentNode]);
+    setNodeCounter(prev => prev + 1);
+    toast.success('Calendar appointment tool added to your flow!');
+  }, [isConnected, nodeCounter]);
 
   const removeNode = useCallback((id: string) => {
     setFlowNodes(prev => prev.filter(node => node.id !== id));
@@ -359,32 +388,86 @@ export default function ChatDesign() {
                       Click to add questions to your flow
                     </p>
                   </CardHeader>
-                  <CardContent className="space-y-3">
-                    {questionTemplates.map((template, index) => {
-                      const IconComponent = template.icon;
-                      return (
-                        <button
-                          key={index}
-                          onClick={() => addNode(template)}
-                          className={`w-full p-4 rounded-lg border-2 transition-all duration-200 text-left group ${template.color}`}
-                        >
-                          <div className="flex items-center gap-3">
-                            <div className={`p-2 rounded-md bg-white/80 ${template.iconColor}`}>
-                              <IconComponent className="w-4 h-4" />
-                            </div>
-                            <div>
-                              <div className="font-medium text-slate-900 group-hover:text-slate-700">
-                                {template.label}
-                              </div>
-                              <div className="text-xs text-slate-600 mt-1">
-                                {template.prompt}
-                              </div>
-                            </div>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </CardContent>
+                   <CardContent className="space-y-3">
+                     {questionTemplates.map((template, index) => {
+                       const IconComponent = template.icon;
+                       return (
+                         <button
+                           key={index}
+                           onClick={() => addNode(template)}
+                           className={`w-full p-4 rounded-lg border-2 transition-all duration-200 text-left group ${template.color}`}
+                         >
+                           <div className="flex items-center gap-3">
+                             <div className={`p-2 rounded-md bg-white/80 ${template.iconColor}`}>
+                               <IconComponent className="w-4 h-4" />
+                             </div>
+                             <div>
+                               <div className="font-medium text-slate-900 group-hover:text-slate-700">
+                                 {template.label}
+                               </div>
+                               <div className="text-xs text-slate-600 mt-1">
+                                 {template.prompt}
+                               </div>
+                             </div>
+                           </div>
+                         </button>
+                       );
+                     })}
+                     
+                     {/* Calendar Appointment Section */}
+                     <div className="pt-4 border-t border-slate-200">
+                       <div className="flex items-center gap-2 mb-3">
+                         <Calendar className="w-4 h-4 text-slate-600" />
+                         <span className="text-sm font-medium text-slate-700">Appointment Booking</span>
+                       </div>
+                       
+                       <button
+                         onClick={handleCalendarAppointmentClick}
+                         className={`w-full p-4 rounded-lg border-2 transition-all duration-200 text-left group ${
+                           isConnected 
+                             ? 'bg-indigo-50 border-indigo-200 hover:bg-indigo-100' 
+                             : 'bg-slate-50 border-slate-200 hover:bg-slate-100 opacity-75'
+                         }`}
+                       >
+                         <div className="flex items-center gap-3">
+                           <div className={`p-2 rounded-md ${
+                             isConnected 
+                               ? 'bg-white/80 text-indigo-600' 
+                               : 'bg-white/80 text-slate-400'
+                           }`}>
+                             {isConnected ? (
+                               <Calendar className="w-4 h-4" />
+                             ) : (
+                               <AlertCircle className="w-4 h-4" />
+                             )}
+                           </div>
+                           <div className="flex-1">
+                             <div className={`font-medium group-hover:text-slate-700 ${
+                               isConnected ? 'text-slate-900' : 'text-slate-500'
+                             }`}>
+                               Calendar Appointment
+                             </div>
+                             <div className="text-xs text-slate-600 mt-1">
+                               {isConnected 
+                                 ? 'Let users book appointments directly'
+                                 : 'Calendar integration required'
+                               }
+                             </div>
+                             {isConnected && calendarEmail && (
+                               <div className="text-xs text-indigo-600 mt-1">
+                                 Connected: {calendarEmail}
+                               </div>
+                             )}
+                           </div>
+                           {!isConnected && (
+                             <div className="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded">
+                               Setup Required
+                             </div>
+                           )}
+                         </div>
+                       </button>
+                     </div>
+                   </CardContent>
                 </Card>
               </div>
 
