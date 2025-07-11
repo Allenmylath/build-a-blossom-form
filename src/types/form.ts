@@ -1,5 +1,5 @@
 
-export type FormFieldType = 'text' | 'email' | 'number' | 'textarea' | 'select' | 'radio' | 'checkbox' | 'date' | 'file' | 'phone' | 'url' | 'chat' | 'page-break';
+export type FormFieldType = 'text' | 'email' | 'number' | 'textarea' | 'select' | 'radio' | 'checkbox' | 'date' | 'file' | 'phone' | 'url' | 'chat' | 'page-break' | 'appointment';
 
 export type SubmissionType = 'traditional' | 'chat' | 'hybrid';
 
@@ -58,6 +58,16 @@ export interface FormField {
     botName?: string;
     welcomeMessage?: string;
     apiUrl?: string;
+  };
+  // Appointment-specific properties
+  appointmentConfig?: {
+    duration?: number; // in minutes
+    availableTimeSlots?: string[];
+    workingHours?: {
+      start: string;
+      end: string;
+    };
+    bookingNotice?: string;
   };
 }
 

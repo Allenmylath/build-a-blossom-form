@@ -23,6 +23,7 @@ export const FieldTypesPanel = ({ onAddField }: FieldTypesPanelProps) => {
     { type: 'url', label: 'Website URL', icon: '🔗' },
     { type: 'chat', label: 'Chat Form', icon: '💬' },
     { type: 'page-break', label: 'Page Break', icon: '📄' },
+    { type: 'appointment', label: 'Appointment Booking', icon: '📅' },
   ];
 
   const handleAddField = (type: FormFieldType) => {

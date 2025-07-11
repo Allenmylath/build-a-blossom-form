@@ -13,6 +13,7 @@ import { CalendarIcon, Upload } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { ChatFormField } from '@/components/form-fields/ChatFormField';
+import { AppointmentBookingField } from '@/components/form-fields/AppointmentBookingField';
 
 interface FormFieldRendererProps {
   field: FormField;
@@ -222,12 +223,22 @@ export const FormFieldRenderer: React.FC<FormFieldRendererProps> = ({
           </div>
         );
 
+      case 'appointment':
+        return (
+          <AppointmentBookingField
+            field={field}
+            value={value}
+            onChange={onChange}
+            error={error}
+          />
+        );
+
       default:
         return null;
     }
   };
 
-  if (field.type === 'page-break') {
+  if (field.type === 'page-break' || field.type === 'appointment') {
     return renderField();
   }
 

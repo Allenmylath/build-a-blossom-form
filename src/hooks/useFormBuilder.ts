@@ -40,7 +40,8 @@ export const useFormBuilder = ({
       phone: 'Phone Number',
       url: 'Website URL',
       chat: 'Chat Field',
-      'page-break': 'Page Break'
+      'page-break': 'Page Break',
+      appointment: 'Appointment Booking'
     };
     return labelMap[type] || 'New Field';
   };
@@ -57,7 +58,7 @@ export const useFormBuilder = ({
       console.log('Adding field of type:', type);
       
       // Validate field type
-      const validTypes: FormFieldType[] = ['text', 'email', 'number', 'textarea', 'select', 'radio', 'checkbox', 'date', 'file', 'phone', 'url', 'chat', 'page-break'];
+      const validTypes: FormFieldType[] = ['text', 'email', 'number', 'textarea', 'select', 'radio', 'checkbox', 'date', 'file', 'phone', 'url', 'chat', 'page-break', 'appointment'];
       if (!validTypes.includes(type)) {
         console.error('Invalid field type:', type);
         toast({
