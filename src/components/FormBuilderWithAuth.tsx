@@ -2,10 +2,11 @@
 import { useState } from 'react';
 import { User } from '@supabase/supabase-js';
 import { FormBuilder } from './FormBuilder';
-import { Auth } from './Auth';
 import { Card } from '@/components/ui/card';
-import { Plus } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Plus, LogIn } from 'lucide-react';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
+import { Link } from 'react-router-dom';
 
 export const FormBuilderWithAuth = () => {
   const { user, loading } = useSupabaseAuth();
@@ -38,8 +39,13 @@ export const FormBuilderWithAuth = () => {
             </p>
           </div>
 
-          <div className="mb-8">
-            <Auth onAuthChange={handleAuthChange} />
+          <div className="text-center mb-8">
+            <Link to="/auth">
+              <Button size="lg" className="bg-purple-600 hover:bg-purple-700 text-white px-8 py-3">
+                <LogIn className="w-5 h-5 mr-2" />
+                Sign In to Get Started
+              </Button>
+            </Link>
           </div>
 
           <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">

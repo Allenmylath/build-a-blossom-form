@@ -14,6 +14,7 @@ import ChatDesign from '@/pages/ChatDesign';
 import Settings from '@/pages/Settings';
 import KnowledgeBase from '@/pages/KnowledgeBase';
 import Pricing from '@/pages/Pricing';
+import Auth from '@/pages/Auth';
 import NotFound from '@/pages/NotFound';
 import './App.css';
 
@@ -140,6 +141,9 @@ function App() {
               </AppLayout>
             } 
           />
+          
+          {/* Auth route */}
+          <Route path="/auth" element={<Auth />} />
           
           {/* 404 route */}
           <Route path="*" element={<NotFound />} />

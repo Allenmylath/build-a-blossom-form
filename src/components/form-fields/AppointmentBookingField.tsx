@@ -9,9 +9,10 @@ import { Badge } from '@/components/ui/badge';
 import { useCalendarIntegration } from '@/hooks/useCalendarIntegration';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { CalendarIcon, Clock, AlertCircle, CheckCircle } from 'lucide-react';
+import { CalendarIcon, Clock, AlertCircle, CheckCircle, LogIn } from 'lucide-react';
 import { format, addDays, isSameDay, isAfter, isBefore, setHours, setMinutes } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { Link } from 'react-router-dom';
 
 interface AppointmentBookingFieldProps {
   field: FormField;
@@ -135,6 +136,34 @@ export const AppointmentBookingField: React.FC<AppointmentBookingFieldProps> = (
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
             <span className="ml-2">Checking calendar integration...</span>
           </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!user) {
+    return (
+      <Card className="w-full">
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            <CalendarIcon className="w-5 h-5 mr-2" />
+            {field.label}
+            <Badge variant="secondary" className="ml-2">Sign-in Required</Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Alert>
+            <LogIn className="h-4 w-4" />
+            <AlertDescription className="mb-4">
+              Please sign in to book appointments through Google Calendar integration.
+            </AlertDescription>
+          </Alert>
+          <Link to="/auth">
+            <Button className="w-full">
+              <LogIn className="w-4 h-4 mr-2" />
+              Sign In to Book Appointment
+            </Button>
+          </Link>
         </CardContent>
       </Card>
     );
