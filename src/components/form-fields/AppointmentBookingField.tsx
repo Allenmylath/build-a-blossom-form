@@ -8,6 +8,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { useCalendarIntegration } from '@/hooks/useCalendarIntegration';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
+import { supabase } from '@/integrations/supabase/client';
 import { CalendarIcon, Clock, AlertCircle, CheckCircle } from 'lucide-react';
 import { format, addDays, isSameDay, isAfter, isBefore, setHours, setMinutes } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -17,19 +18,22 @@ interface AppointmentBookingFieldProps {
   value: any;
   onChange: (value: any) => void;
   error?: string;
+  formId?: string;
 }
 
 export const AppointmentBookingField: React.FC<AppointmentBookingFieldProps> = ({
   field,
   value,
   onChange,
-  error
+  error,
+  formId
 }) => {
   const { user } = useSupabaseAuth();
   const { isConnected, calendarEmail, loading } = useCalendarIntegration(user);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(value?.date ? new Date(value.date) : undefined);
   const [selectedTime, setSelectedTime] = useState<string>(value?.time || '');
   const [bookingStatus, setBookingStatus] = useState<'idle' | 'booking' | 'success' | 'error'>('idle');
+  const [errorMessage, setErrorMessage] = useState<string>('');
 
   // Default configuration
   const config = field.appointmentConfig || {
@@ -60,26 +64,58 @@ export const AppointmentBookingField: React.FC<AppointmentBookingFieldProps> = (
 
   // Handle booking submission
   const handleBooking = async () => {
-    if (!selectedDate || !selectedTime) return;
+    if (!selectedDate || !selectedTime || !formId || !user) return;
 
     setBookingStatus('booking');
+    setErrorMessage('');
     
     try {
-      // In a real implementation, this would integrate with Google Calendar API
-      // For now, we'll simulate the booking process
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Get the current session for authentication
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('No active session found');
+      }
+
+      // Call the edge function to create the calendar event
+      const { data, error } = await supabase.functions.invoke('create-calendar-event', {
+        body: {
+          formId,
+          fieldId: field.id,
+          date: format(selectedDate, 'yyyy-MM-dd'),
+          time: selectedTime,
+          duration: config.duration || 30,
+          title: field.label,
+          description: config.bookingNotice || 'Appointment booked through form',
+        },
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+        }
+      });
+
+      if (error) {
+        console.error('Calendar booking error:', error);
+        throw new Error(error.message || 'Failed to book appointment');
+      }
+
+      if (!data?.success) {
+        throw new Error(data?.error || 'Failed to create calendar event');
+      }
       
       const appointmentData = {
         date: format(selectedDate, 'yyyy-MM-dd'),
         time: selectedTime,
         duration: config.duration,
         status: 'booked',
-        bookedAt: new Date().toISOString()
+        bookedAt: new Date().toISOString(),
+        calendarEventId: data.event?.id,
+        calendarEventLink: data.event?.htmlLink,
       };
       
       onChange(appointmentData);
       setBookingStatus('success');
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Booking error:', error);
+      setErrorMessage(error.message || 'Failed to book appointment. Please try again.');
       setBookingStatus('error');
     }
   };
@@ -139,7 +175,17 @@ export const AppointmentBookingField: React.FC<AppointmentBookingFieldProps> = (
               </p>
               {calendarEmail && (
                 <p className="text-xs mt-1">
-                  Calendar invite sent to {calendarEmail}
+                  Calendar event created in {calendarEmail}
+                  {value?.calendarEventLink && (
+                    <a 
+                      href={value.calendarEventLink} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:underline ml-1"
+                    >
+                      (View in Calendar)
+                    </a>
+                  )}
                 </p>
               )}
             </div>
@@ -231,7 +277,7 @@ export const AppointmentBookingField: React.FC<AppointmentBookingFieldProps> = (
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              Failed to book appointment. Please try again.
+              {errorMessage || 'Failed to book appointment. Please try again.'}
             </AlertDescription>
           </Alert>
         )}
