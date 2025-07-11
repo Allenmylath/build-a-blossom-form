@@ -139,13 +139,78 @@ const handler = async (req: Request): Promise<Response> => {
       });
     }
 
+    // Check if token is expired and refresh if needed
+    let accessToken = integration.access_token_encrypted;
+    const now = new Date();
+    const expiresAt = new Date(integration.expires_at);
+    
+    if (expiresAt <= now) {
+      console.log('Access token expired, attempting to refresh...');
+      
+      if (!integration.refresh_token_encrypted) {
+        return new Response(JSON.stringify({ 
+          error: 'Access token expired and no refresh token available. Please reconnect your calendar.' 
+        }), {
+          status: 401,
+          headers: { 'Content-Type': 'application/json', ...corsHeaders },
+        });
+      }
+
+      // Refresh the token
+      const refreshResponse = await fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          client_id: Deno.env.get('GOOGLE_CLIENT_ID') ?? '',
+          client_secret: Deno.env.get('GOOGLE_CLIENT_SECRET') ?? '',
+          refresh_token: integration.refresh_token_encrypted,
+          grant_type: 'refresh_token',
+        }),
+      });
+
+      if (!refreshResponse.ok) {
+        const refreshError = await refreshResponse.text();
+        console.error('Token refresh failed:', refreshError);
+        return new Response(JSON.stringify({ 
+          error: 'Failed to refresh access token. Please reconnect your calendar.' 
+        }), {
+          status: 401,
+          headers: { 'Content-Type': 'application/json', ...corsHeaders },
+        });
+      }
+
+      const refreshData = await refreshResponse.json();
+      accessToken = refreshData.access_token;
+      
+      // Update the integration with new token and expiry
+      const newExpiresAt = new Date(Date.now() + refreshData.expires_in * 1000);
+      
+      const { error: updateError } = await supabase
+        .from('calendar_integrations')
+        .update({
+          access_token_encrypted: accessToken,
+          expires_at: newExpiresAt.toISOString(),
+          updated_at: now.toISOString(),
+        })
+        .eq('id', integration.id);
+
+      if (updateError) {
+        console.error('Failed to update access token:', updateError);
+        // Continue anyway with the new token
+      }
+
+      console.log('Token refreshed successfully');
+    }
+
     // Create the calendar event using Google Calendar API
     const calendarResponse = await fetch(
       `https://www.googleapis.com/calendar/v3/calendars/${integration.calendar_id || 'primary'}/events`,
       {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${integration.access_token_encrypted}`,
+          'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(eventData),
