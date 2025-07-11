@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { LogIn, UserPlus, Loader2 } from 'lucide-react';
+import { FcGoogle } from 'react-icons/fc';
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -52,6 +53,31 @@ export default function Auth() {
       if (data.user) {
         setSuccess('Successfully signed in! Redirecting...');
         setTimeout(() => navigate('/'), 1000);
+      }
+    } catch (err: any) {
+      setError(err.message || 'An unexpected error occurred');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    setLoading(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      const redirectUrl = `${window.location.origin}/`;
+      
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: redirectUrl
+        }
+      });
+
+      if (error) {
+        setError(error.message);
       }
     } catch (err: any) {
       setError(err.message || 'An unexpected error occurred');
@@ -128,6 +154,27 @@ export default function Auth() {
             </TabsList>
 
             <TabsContent value="signin" className="space-y-4">
+              <Button 
+                onClick={handleGoogleSignIn} 
+                variant="outline" 
+                className="w-full" 
+                disabled={loading}
+              >
+                <FcGoogle className="w-4 h-4 mr-2" />
+                Continue with Google
+              </Button>
+              
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-background px-2 text-muted-foreground">
+                    Or continue with email
+                  </span>
+                </div>
+              </div>
+
               <form onSubmit={handleSignIn} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="signin-email">Email</Label>
@@ -165,6 +212,27 @@ export default function Auth() {
             </TabsContent>
 
             <TabsContent value="signup" className="space-y-4">
+              <Button 
+                onClick={handleGoogleSignIn} 
+                variant="outline" 
+                className="w-full" 
+                disabled={loading}
+              >
+                <FcGoogle className="w-4 h-4 mr-2" />
+                Continue with Google
+              </Button>
+              
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-background px-2 text-muted-foreground">
+                    Or create account with email
+                  </span>
+                </div>
+              </div>
+
               <form onSubmit={handleSignUp} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="signup-email">Email</Label>
