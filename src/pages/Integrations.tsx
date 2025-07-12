@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Calendar, Settings, Zap, Shield, Loader2, AlertCircle } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 const Integrations: React.FC = () => {
   const { user } = useSupabaseAuth();
@@ -289,215 +290,268 @@ const Integrations: React.FC = () => {
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-8">
-      {/* Header */}
-      <div className="space-y-2">
-        <div className="flex items-center gap-2">
-          <Settings className="h-8 w-8 text-primary" />
-          <h1 className="text-3xl font-bold tracking-tight">Integrations</h1>
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/10">
+      <div className="container mx-auto p-6 max-w-6xl">
+        {/* Hero Header */}
+        <div className="text-center space-y-6 mb-12">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 border border-primary/20 mb-4">
+            <Settings className="h-8 w-8 text-primary" />
+          </div>
+          <div className="space-y-3">
+            <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+              Integrations
+            </h1>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+              Seamlessly connect your favorite tools to supercharge your forms with appointment booking and scheduling capabilities
+            </p>
+          </div>
         </div>
-        <p className="text-muted-foreground">
-          Connect your calendar and scheduling services to enable appointment booking in your forms.
-        </p>
-      </div>
 
-      {/* Processing Alert */}
-      {processing && (
-        <Alert>
-          <Loader2 className="h-4 w-4 animate-spin" />
-          <AlertDescription>
-            Processing your request...
-          </AlertDescription>
-        </Alert>
-      )}
+        {/* Processing Alert */}
+        {processing && (
+          <Alert className="mb-8 border-blue-200 bg-blue-50/50">
+            <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+            <AlertDescription className="text-blue-800">
+              Processing your request...
+            </AlertDescription>
+          </Alert>
+        )}
 
-      {/* Error Alert */}
-      {calendlyError && (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            {calendlyError}
-          </AlertDescription>
-        </Alert>
-      )}
+        {/* Error Alert */}
+        {calendlyError && (
+          <Alert variant="destructive" className="mb-8">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              {calendlyError}
+            </AlertDescription>
+          </Alert>
+        )}
 
-      {/* Integration Status Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Google Calendar</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center space-x-2">
-              <Badge variant={calendarConnected ? "default" : "secondary"}>
-                {calendarConnected ? "Connected" : "Not Connected"}
-              </Badge>
-              {calendarConnected && calendarEmail && (
-                <span className="text-sm text-muted-foreground">{calendarEmail}</span>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Calendly</CardTitle>
-            <Zap className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center space-x-2">
-              {calendlyLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Badge variant={calendlyConnected ? "default" : "secondary"}>
-                  {calendlyConnected ? "Connected" : "Not Connected"}
+        {/* Integration Cards Grid */}
+        <div className="grid gap-8 lg:grid-cols-2">
+          {/* Google Calendar Integration */}
+          <Card className="group relative overflow-hidden border-0 bg-gradient-to-br from-white via-white to-blue-50/30 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            <CardHeader className="relative space-y-4 pb-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 rounded-xl bg-blue-100 border border-blue-200">
+                    <Calendar className="h-6 w-6 text-blue-600" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-xl font-semibold">Google Calendar</CardTitle>
+                    <CardDescription className="text-sm mt-1">
+                      Enable appointment booking functionality
+                    </CardDescription>
+                  </div>
+                </div>
+                <Badge 
+                  variant={calendarConnected ? "default" : "secondary"}
+                  className={cn(
+                    "px-3 py-1 text-xs font-medium",
+                    calendarConnected 
+                      ? "bg-green-100 text-green-700 border-green-200" 
+                      : "bg-gray-100 text-gray-600 border-gray-200"
+                  )}
+                >
+                  {calendarConnected ? "Connected" : "Not Connected"}
                 </Badge>
+              </div>
+              {calendarConnected && calendarEmail && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground bg-green-50 border border-green-200 rounded-lg p-3">
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                  <span className="font-medium">{calendarEmail}</span>
+                </div>
               )}
+            </CardHeader>
+            <CardContent className="relative pt-0">
+              <CalendarConnection
+                isConnected={calendarConnected}
+                calendarEmail={calendarEmail}
+                onConnectionChange={setCalendarConnected}
+                user={user}
+              />
+            </CardContent>
+          </Card>
+
+          {/* Calendly Integration */}
+          <Card className="group relative overflow-hidden border-0 bg-gradient-to-br from-white via-white to-orange-50/30 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
+            <div className="absolute inset-0 bg-gradient-to-br from-orange-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            <CardHeader className="relative space-y-4 pb-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 rounded-xl bg-orange-100 border border-orange-200">
+                    <img 
+                      src="/lovable-uploads/fc819cd2-41b9-464b-975a-01ee9cb6307f.png" 
+                      alt="Calendly" 
+                      className="h-6 w-6"
+                    />
+                  </div>
+                  <div>
+                    <CardTitle className="text-xl font-semibold">Calendly</CardTitle>
+                    <CardDescription className="text-sm mt-1">
+                      Embed scheduling links in your forms
+                    </CardDescription>
+                  </div>
+                </div>
+                {calendlyLoading ? (
+                  <Loader2 className="h-5 w-5 animate-spin text-orange-500" />
+                ) : (
+                  <Badge 
+                    variant={calendlyConnected ? "default" : "secondary"}
+                    className={cn(
+                      "px-3 py-1 text-xs font-medium",
+                      calendlyConnected 
+                        ? "bg-green-100 text-green-700 border-green-200" 
+                        : "bg-gray-100 text-gray-600 border-gray-200"
+                    )}
+                  >
+                    {calendlyConnected ? "Connected" : "Not Connected"}
+                  </Badge>
+                )}
+              </div>
               {calendlyConnected && calendlyEmail && (
-                <span className="text-sm text-muted-foreground">{calendlyEmail}</span>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground bg-green-50 border border-green-200 rounded-lg p-3">
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                  <span className="font-medium">{calendlyEmail}</span>
+                </div>
               )}
+            </CardHeader>
+            <CardContent className="relative pt-0 space-y-6">
+              {calendlyConnected ? (
+                <div className="space-y-4">
+                  <div className="text-center py-8">
+                    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-green-100 border border-green-200 flex items-center justify-center">
+                      <Zap className="h-8 w-8 text-green-600" />
+                    </div>
+                    <h3 className="font-semibold text-lg mb-2">All Set!</h3>
+                    <p className="text-muted-foreground text-sm mb-6">
+                      Your Calendly account is connected and ready to use in your forms
+                    </p>
+                    <Button 
+                      variant="outline" 
+                      onClick={handleCalendlyDisconnect}
+                      disabled={processing || calendlyLoading}
+                      className="hover:bg-red-50 hover:text-red-600 hover:border-red-300"
+                    >
+                      {processing ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Disconnecting...
+                        </>
+                      ) : (
+                        'Disconnect'
+                      )}
+                    </Button>
+                  </div>
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <h4 className="font-medium text-blue-900 mb-2">What's Next?</h4>
+                    <ul className="text-sm text-blue-700 space-y-1">
+                      <li>• Add Calendly scheduling fields to your forms</li>
+                      <li>• Embed booking links directly in form responses</li>
+                      <li>• Allow seamless appointment scheduling</li>
+                    </ul>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  <div className="text-center py-8">
+                    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-orange-100 border-2 border-dashed border-orange-300 flex items-center justify-center">
+                      <Zap className="h-8 w-8 text-orange-500" />
+                    </div>
+                    <h3 className="font-semibold text-lg mb-2">Connect Calendly</h3>
+                    <p className="text-muted-foreground text-sm mb-6">
+                      Allow access to embed scheduling links in your forms
+                    </p>
+                    <Button 
+                      onClick={handleCalendlyConnect}
+                      disabled={processing || calendlyLoading}
+                      className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2"
+                    >
+                      {processing ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Connecting...
+                        </>
+                      ) : (
+                        'Connect Calendly'
+                      )}
+                    </Button>
+                  </div>
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                    <h4 className="font-medium text-gray-900 mb-3">Benefits of Connecting:</h4>
+                    <ul className="text-sm text-gray-600 space-y-2">
+                      <li className="flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 bg-orange-500 rounded-full" />
+                        Access your Calendly event types and scheduling links
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 bg-orange-500 rounded-full" />
+                        Embed scheduling functionality directly in your forms
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 bg-orange-500 rounded-full" />
+                        Allow form respondents to book appointments seamlessly
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Security Information */}
+        <Card className="mt-12 border-0 bg-gradient-to-r from-slate-50 via-white to-slate-50 shadow-lg">
+          <CardHeader className="text-center pb-6">
+            <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-green-100 border border-green-200 mb-4 mx-auto">
+              <Shield className="h-6 w-6 text-green-600" />
+            </div>
+            <CardTitle className="text-xl font-semibold">Security & Privacy</CardTitle>
+            <CardDescription>
+              Your data protection is our top priority
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid md:grid-cols-2 gap-6">
+              <div className="space-y-3">
+                <div className="flex items-start gap-3">
+                  <div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0" />
+                  <p className="text-sm text-muted-foreground">
+                    Calendar credentials are stored securely and encrypted in our database
+                  </p>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0" />
+                  <p className="text-sm text-muted-foreground">
+                    We only access your calendar to create events when appointments are booked
+                  </p>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0" />
+                  <p className="text-sm text-muted-foreground">
+                    For Calendly, we only access scheduling links - never modify your settings
+                  </p>
+                </div>
+              </div>
+              <div className="space-y-3">
+                <div className="flex items-start gap-3">
+                  <div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0" />
+                  <p className="text-sm text-muted-foreground">
+                    Disconnect any integration at any time to immediately revoke access
+                  </p>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0" />
+                  <p className="text-sm text-muted-foreground">
+                    All data transmission is encrypted and follows industry security standards
+                  </p>
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
       </div>
-
-      {/* Calendar Integration Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="h-5 w-5" />
-            Google Calendar Integration
-          </CardTitle>
-          <CardDescription>
-            Connect your Google Calendar to enable appointment booking functionality in your forms.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <CalendarConnection
-            isConnected={calendarConnected}
-            calendarEmail={calendarEmail}
-            onConnectionChange={setCalendarConnected}
-            user={user}
-          />
-        </CardContent>
-      </Card>
-
-      {/* Calendly Integration Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Zap className="h-5 w-5" />
-            Calendly Integration
-          </CardTitle>
-          <CardDescription>
-            Connect your Calendly account to embed scheduling links in your forms.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {calendlyConnected ? (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    <div>
-                      <p className="font-medium">Connected to Calendly</p>
-                      {calendlyEmail && (
-                        <p className="text-sm text-muted-foreground">{calendlyEmail}</p>
-                      )}
-                    </div>
-                  </div>
-                  <Button 
-                    variant="outline" 
-                    onClick={handleCalendlyDisconnect}
-                    disabled={processing || calendlyLoading}
-                  >
-                    {processing ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Disconnecting...
-                      </>
-                    ) : (
-                      'Disconnect'
-                    )}
-                  </Button>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  Your Calendly account is connected and ready to use in your forms. You can now add Calendly scheduling links to your form fields.
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 border rounded-lg border-dashed">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
-                    <div>
-                      <p className="font-medium">Connect your Calendly account</p>
-                      <p className="text-sm text-muted-foreground">
-                        Allow access to embed scheduling links in your forms
-                      </p>
-                    </div>
-                  </div>
-                  <Button 
-                    onClick={handleCalendlyConnect}
-                    disabled={processing || calendlyLoading}
-                  >
-                    {processing ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Connecting...
-                      </>
-                    ) : (
-                      'Connect Calendly'
-                    )}
-                  </Button>
-                </div>
-                <div className="text-sm text-muted-foreground space-y-2">
-                  <p>
-                    • Access your Calendly event types and scheduling links
-                  </p>
-                  <p>
-                    • Embed scheduling functionality directly in your forms
-                  </p>
-                  <p>
-                    • Allow form respondents to book appointments seamlessly
-                  </p>
-                </div>
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Information Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Shield className="h-5 w-5" />
-            Security & Privacy
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="text-sm text-muted-foreground space-y-2">
-            <p>
-              • Your calendar credentials are stored securely and encrypted in our database.
-            </p>
-            <p>
-              • We only access your calendar to create events when appointments are booked through your forms.
-            </p>
-            <p>
-              • For Calendly, we only access your scheduling links and event types - we never modify your settings.
-            </p>
-            <p>
-              • You can disconnect any integration at any time, which will immediately revoke access.
-            </p>
-            <p>
-              • We never read, modify, or delete existing events in your calendar.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 };
