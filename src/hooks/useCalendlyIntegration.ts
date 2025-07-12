@@ -19,26 +19,28 @@ export const useCalendlyIntegration = (user: User | null) => {
       setError(null);
       console.log('Checking Calendly integration status for user:', user.id);
       
-      // Query the unified calendar_integrations table for Calendly
-      const { data, error: dbError } = await supabase
-        .from('calendar_integrations')
-        .select('calendar_email, calendar_id, created_at')
-        .eq('user_id', user.id)
-        .eq('provider', 'calendly')
-        .eq('is_active', true)
-        .maybeSingle();
+      // Call the edge function to check status
+      const { data, error: functionError } = await supabase.functions.invoke('calendly-oauth', {
+        body: { 
+          action: 'check_status', 
+          user_id: user.id 
+        }
+      });
 
-      if (dbError && dbError.code !== 'PGRST116') {
-        console.error('Database query error:', dbError);
-        // Fall back to edge function if direct query fails
-        return await checkStatusViaEdgeFunction();
+      if (functionError) {
+        console.error('Error checking Calendly integration:', functionError);
+        setError(functionError.message);
+        setIsConnected(false);
+        setCalendlyEmail(null);
+        setCalendlyUserUri(null);
+        return;
       }
 
-      if (data) {
+      if (data?.connected) {
         console.log('Found active Calendly integration:', data);
         setIsConnected(true);
-        setCalendlyEmail(data.calendar_email);
-        setCalendlyUserUri(data.calendar_id);
+        setCalendlyEmail(data.email);
+        setCalendlyUserUri(data.user_uri);
       } else {
         console.log('No active Calendly integration found');
         setIsConnected(false);
@@ -54,39 +56,6 @@ export const useCalendlyIntegration = (user: User | null) => {
       setCalendlyUserUri(null);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const checkStatusViaEdgeFunction = async () => {
-    try {
-      console.log('Fallback: checking status via edge function');
-      
-      const { data, error: functionError } = await supabase.functions.invoke('calendly-oauth', {
-        body: { 
-          action: 'check_status', 
-          user_id: user!.id 
-        }
-      });
-
-      if (functionError) {
-        console.error('Edge function error:', functionError);
-        throw functionError;
-      }
-
-      if (data?.connected) {
-        console.log('Edge function confirms connection:', data);
-        setIsConnected(true);
-        setCalendlyEmail(data.email);
-        setCalendlyUserUri(data.user_uri);
-      } else {
-        console.log('Edge function confirms no connection');
-        setIsConnected(false);
-        setCalendlyEmail(null);
-        setCalendlyUserUri(null);
-      }
-    } catch (error) {
-      console.error('Edge function status check failed:', error);
-      setError('Failed to verify connection status');
     }
   };
 
