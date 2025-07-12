@@ -36,28 +36,38 @@ const Integrations = () => {
   } = useCalendlyIntegration(user);
 
   const [loading, setLoading] = useState(false);
+  const [debugInfo, setDebugInfo] = useState<any>(null);
 
   useEffect(() => {
-    // Handle OAuth callbacks
+    // Handle OAuth callbacks with detailed error logging
     const code = searchParams.get('code');
     const state = searchParams.get('state');
     const error = searchParams.get('error');
     const errorDescription = searchParams.get('error_description');
 
+    console.log('URL Parameters:', {
+      code: code ? 'present' : 'missing',
+      state: state ? 'present' : 'missing',
+      error,
+      errorDescription,
+      userIdMatch: user?.id === state
+    });
+
     // Handle OAuth errors
     if (error) {
+      console.error('OAuth Error from URL:', { error, errorDescription });
       toast({
         title: "OAuth Error",
         description: errorDescription || error,
         variant: "destructive",
       });
-      // Clear URL parameters
       window.history.replaceState({}, '', '/integrations');
       return;
     }
 
     // Handle successful OAuth callback
     if (code && state && user?.id === state) {
+      console.log('Processing OAuth callback...', { code: code.substring(0, 10) + '...', state });
       handleOAuthCallback(code, state);
     }
 
@@ -84,6 +94,7 @@ const Integrations = () => {
     // Check for connection errors
     const calendarError = searchParams.get('calendar_error');
     if (calendarError) {
+      console.error('Calendar Error from URL:', calendarError);
       toast({
         title: "Calendar Connection Failed",
         description: `Error: ${calendarError}`,
@@ -94,6 +105,7 @@ const Integrations = () => {
 
     const calendlyErrorParam = searchParams.get('calendly_error');
     if (calendlyErrorParam) {
+      console.error('Calendly Error from URL:', calendlyErrorParam);
       toast({
         title: "Calendly Connection Failed",
         description: `Error: ${calendlyErrorParam}`,
@@ -107,22 +119,41 @@ const Integrations = () => {
     try {
       setLoading(true);
       
-      // Determine which OAuth provider based on the current URL or stored state
-      // For now, we'll assume Calendly since Google Calendar uses a different callback flow
+      console.log('Starting OAuth callback processing...', {
+        code: code.substring(0, 10) + '...',
+        state,
+        origin: window.location.origin
+      });
+      
+      const requestBody = { 
+        action: 'callback', 
+        code, 
+        state,
+        app_origin: window.location.origin
+      };
+
+      console.log('Sending request to edge function:', requestBody);
+
       const { data, error } = await supabase.functions.invoke('calendly-oauth', {
-        body: { 
-          action: 'callback', 
-          code, 
-          state,
-          app_origin: window.location.origin
-        }
+        body: requestBody
+      });
+
+      console.log('Edge function response:', { data, error });
+
+      // Store debug info for display
+      setDebugInfo({
+        request: requestBody,
+        response: { data, error },
+        timestamp: new Date().toISOString()
       });
 
       if (error) {
+        console.error('Edge function error:', error);
         throw error;
       }
 
       if (data?.success) {
+        console.log('OAuth callback successful:', data);
         toast({
           title: "Calendly Connected",
           description: "Your Calendly account has been successfully connected!",
@@ -130,14 +161,34 @@ const Integrations = () => {
         setCalendlyConnected(true);
         refreshCalendlyStatus();
       } else {
+        console.error('OAuth callback failed:', data);
         throw new Error(data?.error || 'Unknown error occurred');
       }
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('OAuth callback error:', error);
+      
+      // Enhanced error logging
+      console.error('Error details:', {
+        name: error.name,
+        message: error.message,
+        stack: error.stack,
+        cause: error.cause
+      });
+
+      // Store error info for debugging
+      setDebugInfo({
+        error: {
+          name: error.name,
+          message: error.message,
+          stack: error.stack?.split('\n').slice(0, 5)
+        },
+        timestamp: new Date().toISOString()
+      });
+
       toast({
         title: "Connection Failed",
-        description: error instanceof Error ? error.message : "Failed to complete OAuth callback",
+        description: `Error: ${error.message || 'Failed to complete OAuth callback'}`,
         variant: "destructive",
       });
     } finally {
@@ -191,13 +242,19 @@ const Integrations = () => {
     try {
       console.log('Initiating Calendly connection for user:', user.id);
       
+      const requestBody = { 
+        action: 'auth', 
+        user_id: user.id,
+        app_origin: window.location.origin
+      };
+
+      console.log('Calendly auth request:', requestBody);
+
       const { data, error } = await supabase.functions.invoke('calendly-oauth', {
-        body: { 
-          action: 'auth', 
-          user_id: user.id,
-          app_origin: window.location.origin
-        }
+        body: requestBody
       });
+
+      console.log('Calendly auth response:', { data, error });
 
       if (error) {
         console.error('Calendly edge function error:', error);
@@ -361,6 +418,28 @@ const Integrations = () => {
             Back to App
           </Button>
         </div>
+
+        {/* Debug Info Section */}
+        {debugInfo && (
+          <Card className="mb-6 border-yellow-200 bg-yellow-50">
+            <CardHeader>
+              <CardTitle className="text-yellow-800">Debug Information</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <pre className="text-xs overflow-auto max-h-40 bg-white p-2 rounded border">
+                {JSON.stringify(debugInfo, null, 2)}
+              </pre>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setDebugInfo(null)}
+                className="mt-2"
+              >
+                Clear Debug Info
+              </Button>
+            </CardContent>
+          </Card>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {integrations.map((integration) => (
