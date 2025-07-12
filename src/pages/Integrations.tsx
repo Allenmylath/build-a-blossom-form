@@ -133,72 +133,26 @@ const Integrations = () => {
       ]
     },
     {
-      id: 'zapier',
-      name: 'Zapier',
-      description: 'Automate workflows with thousands of apps',
-      icon: Zap,
+      id: 'calendly',
+      name: 'Calendly',
+      description: 'Embed Calendly scheduling into your forms',
+      icon: Calendar,
       connected: false,
       connectedEmail: null,
       onConnect: () => {
         toast({
           title: "Coming Soon",
-          description: "Zapier integration will be available soon!",
+          description: "Calendly integration will be available soon!",
         });
       },
       onDisconnect: () => {},
       loading: false,
-      color: 'orange',
+      color: 'blue',
       howItWorks: [
-        'Trigger automated workflows when forms are submitted',
-        'Connect to 5000+ apps and services',
-        'Sync data with CRMs, email tools, and databases',
-        'Create custom automation chains'
-      ]
-    },
-    {
-      id: 'slack',
-      name: 'Slack',
-      description: 'Send form submissions to Slack channels',
-      icon: Mail,
-      connected: false,
-      connectedEmail: null,
-      onConnect: () => {
-        toast({
-          title: "Coming Soon",
-          description: "Slack integration will be available soon!",
-        });
-      },
-      onDisconnect: () => {},
-      loading: false,
-      color: 'purple',
-      howItWorks: [
-        'Get instant notifications in Slack channels',
-        'Format submissions as rich messages',
-        'Direct message team members about urgent submissions',
-        'Create custom notification rules'
-      ]
-    },
-    {
-      id: 'webhooks',
-      name: 'Custom Webhooks',
-      description: 'Send data to your custom endpoints',
-      icon: Database,
-      connected: false,
-      connectedEmail: null,
-      onConnect: () => {
-        toast({
-          title: "Coming Soon",
-          description: "Custom webhooks will be available soon!",
-        });
-      },
-      onDisconnect: () => {},
-      loading: false,
-      color: 'green',
-      howItWorks: [
-        'Send form submissions to any HTTP endpoint',
-        'Custom payload formatting',
-        'Retry logic for failed requests',
-        'Real-time or batched delivery options'
+        'Embed Calendly scheduling widgets directly in forms',
+        'Automatically sync scheduled meetings with form data',
+        'Customize booking flows based on form responses',
+        'Send confirmation emails with meeting details'
       ]
     }
   ];
