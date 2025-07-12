@@ -16,6 +16,11 @@ interface CreateEventRequest {
   description?: string;
   attendeeEmail?: string;
   attendeeName?: string;
+  ownerId?: string; // For shared forms
+  userInfo?: {
+    name: string;
+    email: string;
+  };
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -38,37 +43,45 @@ const handler = async (req: Request): Promise<Response> => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Get the authorization header
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'Missing authorization header' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json', ...corsHeaders },
-      });
-    }
-
-    // Verify the user's session
-    const { data: { user }, error: authError } = await supabase.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    );
-
-    if (authError || !user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json', ...corsHeaders },
-      });
-    }
-
     const requestData: CreateEventRequest = await req.json();
-    const { formId, fieldId, date, time, duration, title, description, attendeeEmail, attendeeName } = requestData;
+    const { formId, fieldId, date, time, duration, title, description, attendeeEmail, attendeeName, ownerId, userInfo } = requestData;
 
-    console.log('Creating calendar event for user:', user.id, 'data:', requestData);
+    let user = null;
+    let targetUserId = ownerId; // For shared forms, use form owner
 
-    // Get the user's calendar integration
+    // If no ownerId, this is an authenticated user booking
+    if (!ownerId) {
+      const authHeader = req.headers.get('Authorization');
+      if (!authHeader) {
+        return new Response(JSON.stringify({ error: 'Missing authorization header' }), {
+          status: 401,
+          headers: { 'Content-Type': 'application/json', ...corsHeaders },
+        });
+      }
+
+      // Verify the user's session
+      const { data: userData, error: authError } = await supabase.auth.getUser(
+        authHeader.replace('Bearer ', '')
+      );
+
+      if (authError || !userData.user) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401,
+          headers: { 'Content-Type': 'application/json', ...corsHeaders },
+        });
+      }
+
+      user = userData.user;
+      targetUserId = user.id;
+    }
+
+    console.log('Creating calendar event for target user:', targetUserId, 'data:', requestData);
+
+    // Get the calendar integration (either user's or form owner's)
     const { data: integration, error: integrationError } = await supabase
       .from('calendar_integrations')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', targetUserId)
       .eq('is_active', true)
       .maybeSingle();
 
@@ -83,14 +96,21 @@ const handler = async (req: Request): Promise<Response> => {
     // Get form details for event context
     const { data: form, error: formError } = await supabase
       .from('forms')
-      .select('name, description')
+      .select('name, description, user_id')
       .eq('id', formId)
-      .eq('user_id', user.id)
       .maybeSingle();
 
     if (formError || !form) {
       console.error('Form not found:', formError);
       return new Response(JSON.stringify({ error: 'Form not found' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json', ...corsHeaders },
+      });
+    }
+
+    // Verify the calendar integration belongs to the form owner
+    if (ownerId && form.user_id !== targetUserId) {
+      return new Response(JSON.stringify({ error: 'Invalid form owner' }), {
         status: 400,
         headers: { 'Content-Type': 'application/json', ...corsHeaders },
       });
@@ -112,10 +132,10 @@ const handler = async (req: Request): Promise<Response> => {
         dateTime: endDateTime.toISOString(),
         timeZone: 'UTC',
       },
-      attendees: attendeeEmail ? [
+      attendees: (attendeeEmail || userInfo?.email) ? [
         {
-          email: attendeeEmail,
-          displayName: attendeeName || attendeeEmail,
+          email: attendeeEmail || userInfo?.email,
+          displayName: attendeeName || userInfo?.name || attendeeEmail || userInfo?.email,
           responseStatus: 'needsAction'
         }
       ] : [],
@@ -248,7 +268,7 @@ const handler = async (req: Request): Promise<Response> => {
       .from('form_submissions')
       .insert({
         form_id: formId,
-        user_id: user.id,
+        user_id: user?.id || null, // Null for shared form submissions
         submission_type: 'appointment',
         data: {
           fieldId,
@@ -257,15 +277,18 @@ const handler = async (req: Request): Promise<Response> => {
           duration,
           calendarEventId: calendarEvent.id,
           calendarEventLink: calendarEvent.htmlLink,
-          attendeeEmail,
-          attendeeName,
+          attendeeEmail: attendeeEmail || userInfo?.email,
+          attendeeName: attendeeName || userInfo?.name,
           title: eventData.summary,
           description: eventData.description,
+          sharedForm: !!ownerId,
+          formOwnerId: ownerId || targetUserId,
         },
         metadata: {
           appointmentType: 'calendar_event',
           calendarProvider: 'google',
           calendarIntegrationId: integration.id,
+          bookedBySharedForm: !!ownerId,
         }
       })
       .select()

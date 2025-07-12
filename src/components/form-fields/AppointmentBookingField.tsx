@@ -32,8 +32,26 @@ export const AppointmentBookingField: React.FC<AppointmentBookingFieldProps> = (
   formId
 }) => {
   const { user } = useSupabaseAuth();
-  const { isConnected: calendarConnected, calendarEmail, loading: calendarLoading } = useCalendarIntegration(user);
-  const { isConnected: calendlyConnected, calendlyEmail, calendlyUserUri, loading: calendlyLoading } = useCalendlyIntegration(user);
+  const [formOwner, setFormOwner] = useState<any>(null);
+  const [loadingFormOwner, setLoadingFormOwner] = useState(true);
+  
+  // For authenticated users, use their own integrations
+  const { isConnected: userCalendarConnected, calendarEmail: userCalendarEmail, loading: userCalendarLoading } = useCalendarIntegration(user);
+  const { isConnected: userCalendlyConnected, calendlyEmail: userCalendlyEmail, calendlyUserUri: userCalendlyUserUri, loading: userCalendlyLoading } = useCalendlyIntegration(user);
+  
+  // For shared forms, use form owner's integrations
+  const { isConnected: ownerCalendarConnected, calendarEmail: ownerCalendarEmail, loading: ownerCalendarLoading } = useCalendarIntegration(formOwner);
+  const { isConnected: ownerCalendlyConnected, calendlyEmail: ownerCalendlyEmail, calendlyUserUri: ownerCalendlyUserUri, loading: ownerCalendlyLoading } = useCalendlyIntegration(formOwner);
+  
+  // Determine which integrations to use
+  const isOwnerMode = !user && formOwner;
+  const calendarConnected = isOwnerMode ? ownerCalendarConnected : userCalendarConnected;
+  const calendarEmail = isOwnerMode ? ownerCalendarEmail : userCalendarEmail;
+  const calendarLoading = isOwnerMode ? ownerCalendarLoading : userCalendarLoading;
+  const calendlyConnected = isOwnerMode ? ownerCalendlyConnected : userCalendlyConnected;
+  const calendlyEmail = isOwnerMode ? ownerCalendlyEmail : userCalendlyEmail;
+  const calendlyUserUri = isOwnerMode ? ownerCalendlyUserUri : userCalendlyUserUri;
+  const calendlyLoading = isOwnerMode ? ownerCalendlyLoading : userCalendlyLoading;
   
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(value?.date ? new Date(value.date) : undefined);
   const [selectedTime, setSelectedTime] = useState<string>(value?.time || '');
@@ -42,6 +60,42 @@ export const AppointmentBookingField: React.FC<AppointmentBookingFieldProps> = (
   const [userTimezone, setUserTimezone] = useState<string>('');
   const [activeTab, setActiveTab] = useState<string>('google');
   const [calendlyWidget, setCalendlyWidget] = useState<any>(null);
+
+  // Fetch form owner when user is not authenticated (shared form)
+  useEffect(() => {
+    const fetchFormOwner = async () => {
+      if (user || !formId) {
+        setLoadingFormOwner(false);
+        return;
+      }
+      
+      try {
+        const { data: formData, error } = await supabase
+          .from('forms')
+          .select('user_id')
+          .eq('id', formId)
+          .eq('is_public', true)
+          .single();
+          
+        if (error) {
+          console.error('Error fetching form owner:', error);
+          setLoadingFormOwner(false);
+          return;
+        }
+        
+        if (formData) {
+          // Create a minimal user object for the owner
+          setFormOwner({ id: formData.user_id });
+        }
+      } catch (error) {
+        console.error('Error fetching form owner:', error);
+      } finally {
+        setLoadingFormOwner(false);
+      }
+    };
+    
+    fetchFormOwner();
+  }, [user, formId]);
 
   // Detect user timezone
   useEffect(() => {
@@ -84,10 +138,10 @@ export const AppointmentBookingField: React.FC<AppointmentBookingFieldProps> = (
       const calendlyOptions = {
         url: calendlyUserUri,
         parentElement: widgetContainer,
-        prefill: {
-          name: user?.user_metadata?.full_name || '',
-          email: user?.email || ''
-        },
+        prefill: user ? {
+          name: user.user_metadata?.full_name || '',
+          email: user.email || ''
+        } : {},
         utm: {
           utmCampaign: 'modformz-form',
           utmSource: formId || 'form',
@@ -164,17 +218,12 @@ export const AppointmentBookingField: React.FC<AppointmentBookingFieldProps> = (
 
   // Handle Google Calendar booking
   const handleGoogleCalendarBooking = async () => {
-    if (!selectedDate || !selectedTime || !formId || !user) return;
+    if (!selectedDate || !selectedTime || !formId) return;
 
     setBookingStatus('booking');
     setErrorMessage('');
     
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        throw new Error('No active session found');
-      }
-
       const { data, error } = await supabase.functions.invoke('create-calendar-event', {
         body: {
           formId,
@@ -184,9 +233,13 @@ export const AppointmentBookingField: React.FC<AppointmentBookingFieldProps> = (
           duration: config.duration || 30,
           title: field.label,
           description: config.bookingNotice || 'Appointment booked through form',
-        },
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
+          // Pass form owner ID for shared forms
+          ownerId: isOwnerMode ? formOwner.id : undefined,
+          // Include user info if available for prefill
+          userInfo: user ? {
+            name: user.user_metadata?.full_name || '',
+            email: user.email || ''
+          } : undefined
         }
       });
 
@@ -234,7 +287,7 @@ export const AppointmentBookingField: React.FC<AppointmentBookingFieldProps> = (
     availableTabs.push({ value: 'calendly', label: 'Calendly', email: calendlyEmail });
   }
 
-  if (calendarLoading || calendlyLoading) {
+  if (calendarLoading || calendlyLoading || loadingFormOwner) {
     return (
       <Card className="w-full">
         <CardContent className="p-6">
@@ -247,33 +300,8 @@ export const AppointmentBookingField: React.FC<AppointmentBookingFieldProps> = (
     );
   }
 
-  if (!user) {
-    return (
-      <Card className="w-full">
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <CalendarIcon className="w-5 h-5 mr-2" />
-            {field.label}
-            <Badge variant="secondary" className="ml-2">Sign-in Required</Badge>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Alert>
-            <LogIn className="h-4 w-4" />
-            <AlertDescription className="mb-4">
-              Please sign in to book appointments through calendar integration.
-            </AlertDescription>
-          </Alert>
-          <Link to="/auth">
-            <Button className="w-full">
-              <LogIn className="w-4 h-4 mr-2" />
-              Sign In to Book Appointment
-            </Button>
-          </Link>
-        </CardContent>
-      </Card>
-    );
-  }
+  // Remove the user authentication requirement for shared forms
+  // Now handled by checking form owner integrations
 
   if (availableTabs.length === 0) {
     return (
