@@ -338,166 +338,185 @@ const Integrations: React.FC = () => {
         <div className="grid lg:grid-cols-2 gap-8">
           
           {/* Google Calendar Card */}
-          <Card className="group bg-white border border-gray-200 hover:border-gray-300 transition-all duration-300 hover:shadow-lg">
-            <CardHeader className="pb-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-4">
-                  <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center">
-                    <Calendar className="h-6 w-6 text-blue-600" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-xl font-semibold text-gray-900">Google Calendar</CardTitle>
-                    <CardDescription className="text-gray-600">Schedule appointments and manage bookings</CardDescription>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-2">
-                  {calendarConnected ? (
-                    <Badge className="bg-green-100 text-green-800 hover:bg-green-100 border-green-200">
-                      <CheckCircle className="h-3 w-3 mr-1" />
-                      Connected
-                    </Badge>
-                  ) : (
-                    <Badge variant="outline" className="text-gray-500 border-gray-300">
-                      <Link className="h-3 w-3 mr-1" />
-                      Not Connected
-                    </Badge>
-                  )}
-                </div>
-              </div>
-            </CardHeader>
-            
-            <CardContent className="space-y-6">
-              {calendarConnected && calendarEmail && (
-                <div className="p-4 bg-gray-50 rounded-xl">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                    <span className="text-sm font-medium text-gray-700">{calendarEmail}</span>
-                  </div>
-                </div>
-              )}
+          <div className="group relative">
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-400/20 to-indigo-500/20 rounded-2xl blur-xl opacity-60 group-hover:opacity-80 transition-all duration-500"></div>
+            <Card className="relative bg-white/90 backdrop-blur-sm border border-blue-100 hover:border-blue-200 transition-all duration-500 hover:shadow-2xl hover:-translate-y-1 overflow-hidden">
+              {/* Animated background pattern */}
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-50/50 to-indigo-50/30"></div>
+              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-200/30 to-transparent rounded-full transform translate-x-16 -translate-y-16 group-hover:scale-110 transition-transform duration-700"></div>
               
-              <div className="space-y-4">
-                <div className="flex items-start space-x-3">
-                  <div className="w-1 h-1 bg-gray-400 rounded-full mt-2"></div>
-                  <p className="text-sm text-gray-600">Enable appointment booking in your forms</p>
+              <CardHeader className="relative pb-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-4">
+                    <div className="relative w-14 h-14 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-110">
+                      <Calendar className="h-7 w-7 text-white" />
+                      <div className="absolute inset-0 bg-white/20 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                    </div>
+                    <div>
+                      <CardTitle className="text-xl font-bold text-gray-900 group-hover:text-blue-900 transition-colors duration-300">Google Calendar</CardTitle>
+                      <CardDescription className="text-gray-600">Schedule appointments and manage bookings</CardDescription>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    {calendarConnected ? (
+                      <Badge className="bg-green-500 text-white hover:bg-green-500 border-0 shadow-lg animate-pulse">
+                        <CheckCircle className="h-3 w-3 mr-1" />
+                        Connected
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-gray-500 border-gray-300 bg-white/50">
+                        <Link className="h-3 w-3 mr-1" />
+                        Not Connected
+                      </Badge>
+                    )}
+                  </div>
                 </div>
-                <div className="flex items-start space-x-3">
-                  <div className="w-1 h-1 bg-gray-400 rounded-full mt-2"></div>
-                  <p className="text-sm text-gray-600">Automatic calendar synchronization</p>
-                </div>
-                <div className="flex items-start space-x-3">
-                  <div className="w-1 h-1 bg-gray-400 rounded-full mt-2"></div>
-                  <p className="text-sm text-gray-600">Real-time availability checking</p>
-                </div>
-              </div>
+              </CardHeader>
               
-              <div className="pt-4">
-                <GoogleCalendarConnection
-                  isConnected={calendarConnected}
-                  calendarEmail={calendarEmail}
-                  onConnectionChange={setCalendarConnected}
-                  user={user}
-                />
-              </div>
-            </CardContent>
-          </Card>
+              <CardContent className="relative space-y-6">
+                {calendarConnected && calendarEmail && (
+                  <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-100 shadow-sm">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse shadow-lg"></div>
+                      <span className="text-sm font-medium text-green-800">{calendarEmail}</span>
+                    </div>
+                  </div>
+                )}
+                
+                <div className="space-y-4">
+                  <div className="flex items-start space-x-3 group/item hover:bg-blue-50/50 p-2 rounded-lg transition-colors duration-200">
+                    <div className="w-2 h-2 bg-blue-400 rounded-full mt-2 group-hover/item:scale-125 transition-transform duration-200"></div>
+                    <p className="text-sm text-gray-700 group-hover/item:text-blue-900 transition-colors duration-200">Enable appointment booking in your forms</p>
+                  </div>
+                  <div className="flex items-start space-x-3 group/item hover:bg-blue-50/50 p-2 rounded-lg transition-colors duration-200">
+                    <div className="w-2 h-2 bg-blue-400 rounded-full mt-2 group-hover/item:scale-125 transition-transform duration-200"></div>
+                    <p className="text-sm text-gray-700 group-hover/item:text-blue-900 transition-colors duration-200">Automatic calendar synchronization</p>
+                  </div>
+                  <div className="flex items-start space-x-3 group/item hover:bg-blue-50/50 p-2 rounded-lg transition-colors duration-200">
+                    <div className="w-2 h-2 bg-blue-400 rounded-full mt-2 group-hover/item:scale-125 transition-transform duration-200"></div>
+                    <p className="text-sm text-gray-700 group-hover/item:text-blue-900 transition-colors duration-200">Real-time availability checking</p>
+                  </div>
+                </div>
+                
+                <div className="pt-4">
+                  <GoogleCalendarConnection
+                    isConnected={calendarConnected}
+                    calendarEmail={calendarEmail}
+                    onConnectionChange={setCalendarConnected}
+                    user={user}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
 
           {/* Calendly Card */}
-          <Card className="group bg-white border border-gray-200 hover:border-gray-300 transition-all duration-300 hover:shadow-lg">
-            <CardHeader className="pb-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-4">
-                  <div className="w-12 h-12 bg-orange-50 rounded-xl flex items-center justify-center">
-                    <img 
-                      src="/lovable-uploads/fc819cd2-41b9-464b-975a-01ee9cb6307f.png" 
-                      alt="Calendly" 
-                      className="h-6 w-6"
-                    />
+          <div className="group relative">
+            <div className="absolute inset-0 bg-gradient-to-br from-orange-400/20 to-red-500/20 rounded-2xl blur-xl opacity-60 group-hover:opacity-80 transition-all duration-500"></div>
+            <Card className="relative bg-white/90 backdrop-blur-sm border border-orange-100 hover:border-orange-200 transition-all duration-500 hover:shadow-2xl hover:-translate-y-1 overflow-hidden">
+              {/* Animated background pattern */}
+              <div className="absolute inset-0 bg-gradient-to-br from-orange-50/50 to-red-50/30"></div>
+              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-orange-200/30 to-transparent rounded-full transform translate-x-16 -translate-y-16 group-hover:scale-110 transition-transform duration-700"></div>
+              
+              <CardHeader className="relative pb-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-4">
+                    <div className="relative w-14 h-14 bg-gradient-to-br from-orange-500 to-red-600 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-110">
+                      <img 
+                        src="/lovable-uploads/fc819cd2-41b9-464b-975a-01ee9cb6307f.png" 
+                        alt="Calendly" 
+                        className="h-7 w-7 brightness-0 invert"
+                      />
+                      <div className="absolute inset-0 bg-white/20 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                    </div>
+                    <div>
+                      <CardTitle className="text-xl font-bold text-gray-900 group-hover:text-orange-900 transition-colors duration-300">Calendly</CardTitle>
+                      <CardDescription className="text-gray-600">Smart scheduling with booking links</CardDescription>
+                    </div>
                   </div>
-                  <div>
-                    <CardTitle className="text-xl font-semibold text-gray-900">Calendly</CardTitle>
-                    <CardDescription className="text-gray-600">Smart scheduling with booking links</CardDescription>
+                  <div className="flex items-center space-x-2">
+                    {calendlyLoading ? (
+                      <div className="relative">
+                        <Loader2 className="h-5 w-5 animate-spin text-orange-500" />
+                        <div className="absolute inset-0 bg-orange-500/20 rounded-full animate-ping"></div>
+                      </div>
+                    ) : calendlyConnected ? (
+                      <Badge className="bg-green-500 text-white hover:bg-green-500 border-0 shadow-lg animate-pulse">
+                        <CheckCircle className="h-3 w-3 mr-1" />
+                        Connected
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-gray-500 border-gray-300 bg-white/50">
+                        <Link className="h-3 w-3 mr-1" />
+                        Not Connected
+                      </Badge>
+                    )}
                   </div>
                 </div>
-                <div className="flex items-center space-x-2">
-                  {calendlyLoading ? (
-                    <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
-                  ) : calendlyConnected ? (
-                    <Badge className="bg-green-100 text-green-800 hover:bg-green-100 border-green-200">
-                      <CheckCircle className="h-3 w-3 mr-1" />
-                      Connected
-                    </Badge>
+              </CardHeader>
+              
+              <CardContent className="relative space-y-6">
+                {calendlyConnected && calendlyEmail && (
+                  <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-100 shadow-sm">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse shadow-lg"></div>
+                      <span className="text-sm font-medium text-green-800">{calendlyEmail}</span>
+                    </div>
+                  </div>
+                )}
+                
+                <div className="space-y-4">
+                  <div className="flex items-start space-x-3 group/item hover:bg-orange-50/50 p-2 rounded-lg transition-colors duration-200">
+                    <div className="w-2 h-2 bg-orange-400 rounded-full mt-2 group-hover/item:scale-125 transition-transform duration-200"></div>
+                    <p className="text-sm text-gray-700 group-hover/item:text-orange-900 transition-colors duration-200">Automated scheduling workflows</p>
+                  </div>
+                  <div className="flex items-start space-x-3 group/item hover:bg-orange-50/50 p-2 rounded-lg transition-colors duration-200">
+                    <div className="w-2 h-2 bg-orange-400 rounded-full mt-2 group-hover/item:scale-125 transition-transform duration-200"></div>
+                    <p className="text-sm text-gray-700 group-hover/item:text-orange-900 transition-colors duration-200">Custom booking preferences</p>
+                  </div>
+                  <div className="flex items-start space-x-3 group/item hover:bg-orange-50/50 p-2 rounded-lg transition-colors duration-200">
+                    <div className="w-2 h-2 bg-orange-400 rounded-full mt-2 group-hover/item:scale-125 transition-transform duration-200"></div>
+                    <p className="text-sm text-gray-700 group-hover/item:text-orange-900 transition-colors duration-200">Integration with your existing calendar</p>
+                  </div>
+                </div>
+                
+                <div className="pt-4">
+                  {calendlyConnected ? (
+                    <Button 
+                      variant="outline" 
+                      onClick={handleCalendlyDisconnect}
+                      disabled={processing || calendlyLoading}
+                      className="w-full border-red-200 text-red-700 hover:bg-red-50 hover:border-red-300 transition-all duration-300 hover:shadow-lg"
+                    >
+                      {processing ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Disconnecting...
+                        </>
+                      ) : (
+                        'Disconnect Calendly'
+                      )}
+                    </Button>
                   ) : (
-                    <Badge variant="outline" className="text-gray-500 border-gray-300">
-                      <Link className="h-3 w-3 mr-1" />
-                      Not Connected
-                    </Badge>
+                    <Button 
+                      onClick={handleCalendlyConnect}
+                      disabled={processing || calendlyLoading}
+                      className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white transition-all duration-300 hover:shadow-lg hover:scale-105"
+                    >
+                      {processing ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Connecting...
+                        </>
+                      ) : (
+                        'Connect Calendly'
+                      )}
+                    </Button>
                   )}
                 </div>
-              </div>
-            </CardHeader>
-            
-            <CardContent className="space-y-6">
-              {calendlyConnected && calendlyEmail && (
-                <div className="p-4 bg-gray-50 rounded-xl">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                    <span className="text-sm font-medium text-gray-700">{calendlyEmail}</span>
-                  </div>
-                </div>
-              )}
-              
-              <div className="space-y-4">
-                <div className="flex items-start space-x-3">
-                  <div className="w-1 h-1 bg-gray-400 rounded-full mt-2"></div>
-                  <p className="text-sm text-gray-600">Automated scheduling workflows</p>
-                </div>
-                <div className="flex items-start space-x-3">
-                  <div className="w-1 h-1 bg-gray-400 rounded-full mt-2"></div>
-                  <p className="text-sm text-gray-600">Custom booking preferences</p>
-                </div>
-                <div className="flex items-start space-x-3">
-                  <div className="w-1 h-1 bg-gray-400 rounded-full mt-2"></div>
-                  <p className="text-sm text-gray-600">Integration with your existing calendar</p>
-                </div>
-              </div>
-              
-              <div className="pt-4">
-                {calendlyConnected ? (
-                  <Button 
-                    variant="outline" 
-                    onClick={handleCalendlyDisconnect}
-                    disabled={processing || calendlyLoading}
-                    className="w-full border-red-200 text-red-700 hover:bg-red-50 hover:border-red-300"
-                  >
-                    {processing ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Disconnecting...
-                      </>
-                    ) : (
-                      'Disconnect Calendly'
-                    )}
-                  </Button>
-                ) : (
-                  <Button 
-                    onClick={handleCalendlyConnect}
-                    disabled={processing || calendlyLoading}
-                    className="w-full bg-orange-500 hover:bg-orange-600 text-white"
-                  >
-                    {processing ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Connecting...
-                      </>
-                    ) : (
-                      'Connect Calendly'
-                    )}
-                  </Button>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </div>
         </div>
 
         {/* Footer Info */}
