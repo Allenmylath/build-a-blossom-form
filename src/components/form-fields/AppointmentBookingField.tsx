@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { FormField } from '@/types/form';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -35,10 +35,12 @@ export const AppointmentBookingField: React.FC<AppointmentBookingFieldProps> = (
   const [formOwner, setFormOwner] = useState<any>(null);
   const [loadingFormOwner, setLoadingFormOwner] = useState(true);
   
-  // Determine which user to use for integrations
-  const integrationUser = user || formOwner;
+  // Determine which user to use for integrations - memoize to prevent re-renders
+  const integrationUser = useMemo(() => {
+    return user || formOwner;
+  }, [user, formOwner]);
   
-  // Use single hooks instead of multiple conditional hooks to avoid re-render issues
+  // Use single hooks with the memoized user to avoid re-render issues
   const { isConnected: calendarConnected, calendarEmail, loading: calendarLoading } = useCalendarIntegration(integrationUser);
   const { isConnected: calendlyConnected, calendlyEmail, calendlyUserUri, loading: calendlyLoading } = useCalendlyIntegration(integrationUser);
   
@@ -50,13 +52,16 @@ export const AppointmentBookingField: React.FC<AppointmentBookingFieldProps> = (
   const [activeTab, setActiveTab] = useState<string>('google');
   const [calendlyWidget, setCalendlyWidget] = useState<any>(null);
 
-  // Fetch form owner when user is not authenticated (shared form)
+  // Fetch form owner when user is not authenticated (shared form) - with proper dependencies
   useEffect(() => {
     const fetchFormOwner = async () => {
-      if (user || !formId) {
+      // Only fetch if user is not authenticated and formId exists and not already loading/loaded
+      if (user || !formId || formOwner) {
         setLoadingFormOwner(false);
         return;
       }
+      
+      setLoadingFormOwner(true);
       
       try {
         const { data: formData, error } = await supabase
@@ -68,7 +73,6 @@ export const AppointmentBookingField: React.FC<AppointmentBookingFieldProps> = (
           
         if (error) {
           console.error('Error fetching form owner:', error);
-          setLoadingFormOwner(false);
           return;
         }
         
@@ -84,7 +88,7 @@ export const AppointmentBookingField: React.FC<AppointmentBookingFieldProps> = (
     };
     
     fetchFormOwner();
-  }, [user, formId]);
+  }, [user, formId, formOwner]); // Added formOwner to dependencies to prevent re-fetching
 
   // Detect user timezone
   useEffect(() => {
@@ -376,12 +380,12 @@ export const AppointmentBookingField: React.FC<AppointmentBookingFieldProps> = (
     );
   }
 
-  // Set default active tab
+  // Set default active tab - with proper dependencies to prevent infinite loops
   useEffect(() => {
     if (availableTabs.length > 0 && !activeTab) {
       setActiveTab(availableTabs[0].value);
     }
-  }, [availableTabs, activeTab]);
+  }, [availableTabs.length, activeTab]); // Only depend on length and activeTab state
 
   return (
     <Card className="w-full">
