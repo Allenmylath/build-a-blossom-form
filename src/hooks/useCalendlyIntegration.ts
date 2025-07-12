@@ -17,22 +17,60 @@ export const useCalendlyIntegration = (user: User | null) => {
     
     try {
       setError(null);
+      console.log('Checking Calendly integration status for user:', user.id);
       
-      // Call the edge function to check status
+      // Try direct database query first (faster and more reliable)
+      const { data: dbData, error: dbError } = await supabase
+        .from('calendar_integrations')
+        .select('is_active, calendar_email, calendar_id')
+        .eq('user_id', user.id)
+        .eq('provider', 'calendly')
+        .eq('is_active', true)
+        .maybeSingle();
+
+      if (dbError && dbError.code !== 'PGRST116') {
+        console.error('Database query error:', dbError);
+        // Fall back to edge function if direct query fails
+        return await checkStatusViaEdgeFunction();
+      }
+
+      if (dbData) {
+        console.log('Found active Calendly integration in database');
+        setIsConnected(true);
+        setCalendlyEmail(dbData.calendar_email);
+        setCalendlyUserUri(dbData.calendar_id);
+      } else {
+        console.log('No active Calendly integration found in database');
+        setIsConnected(false);
+        setCalendlyEmail(null);
+        setCalendlyUserUri(null);
+      }
+
+    } catch (error) {
+      console.error('Error checking Calendly integration:', error);
+      setError(error instanceof Error ? error.message : 'Unknown error');
+      setIsConnected(false);
+      setCalendlyEmail(null);
+      setCalendlyUserUri(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const checkStatusViaEdgeFunction = async () => {
+    try {
+      console.log('Fallback: checking status via edge function');
+      
       const { data, error: functionError } = await supabase.functions.invoke('calendly-oauth', {
         body: { 
           action: 'check_status', 
-          user_id: user.id 
+          user_id: user!.id 
         }
       });
 
       if (functionError) {
-        console.error('Error checking Calendly integration:', functionError);
-        setError(functionError.message);
-        setIsConnected(false);
-        setCalendlyEmail(null);
-        setCalendlyUserUri(null);
-        return;
+        console.error('Edge function error:', functionError);
+        throw functionError;
       }
 
       if (data?.connected) {
@@ -45,13 +83,9 @@ export const useCalendlyIntegration = (user: User | null) => {
         setCalendlyUserUri(null);
       }
     } catch (error) {
-      console.error('Error checking Calendly integration:', error);
-      setError(error instanceof Error ? error.message : 'Unknown error');
-      setIsConnected(false);
-      setCalendlyEmail(null);
-      setCalendlyUserUri(null);
-    } finally {
-      setLoading(false);
+      console.error('Edge function status check failed:', error);
+      // Don't throw here, just set error state
+      setError('Failed to verify connection status');
     }
   };
 
@@ -61,6 +95,7 @@ export const useCalendlyIntegration = (user: User | null) => {
 
   const refreshStatus = () => {
     setLoading(true);
+    setError(null);
     checkIntegrationStatus();
   };
 
