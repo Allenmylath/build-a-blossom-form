@@ -19,11 +19,12 @@ export const useCalendlyIntegration = (user: User | null) => {
       setError(null);
       console.log('Checking Calendly integration status for user:', user.id);
       
-      // Query the dedicated calendly_integrations table  
+      // Query the unified calendar_integrations table for Calendly
       const { data, error: dbError } = await supabase
-        .from('calendly_integrations')
-        .select('calendly_email, calendly_user_uri, created_at')
+        .from('calendar_integrations')
+        .select('calendar_email, calendar_id, created_at')
         .eq('user_id', user.id)
+        .eq('provider', 'calendly')
         .eq('is_active', true)
         .maybeSingle();
 
@@ -34,10 +35,10 @@ export const useCalendlyIntegration = (user: User | null) => {
       }
 
       if (data) {
-        console.log('Found active Calendly integration');
+        console.log('Found active Calendly integration:', data);
         setIsConnected(true);
-        setCalendlyEmail(data.calendly_email);
-        setCalendlyUserUri(data.calendly_user_uri);
+        setCalendlyEmail(data.calendar_email);
+        setCalendlyUserUri(data.calendar_id);
       } else {
         console.log('No active Calendly integration found');
         setIsConnected(false);
@@ -73,18 +74,122 @@ export const useCalendlyIntegration = (user: User | null) => {
       }
 
       if (data?.connected) {
+        console.log('Edge function confirms connection:', data);
         setIsConnected(true);
         setCalendlyEmail(data.email);
         setCalendlyUserUri(data.user_uri);
       } else {
+        console.log('Edge function confirms no connection');
         setIsConnected(false);
         setCalendlyEmail(null);
         setCalendlyUserUri(null);
       }
     } catch (error) {
       console.error('Edge function status check failed:', error);
-      // Don't throw here, just set error state
       setError('Failed to verify connection status');
+    }
+  };
+
+  const initiateConnection = async () => {
+    if (!user?.id) {
+      throw new Error('User not authenticated');
+    }
+
+    try {
+      console.log('Initiating Calendly connection...');
+      
+      const { data, error: functionError } = await supabase.functions.invoke('calendly-oauth', {
+        body: { 
+          action: 'auth', 
+          user_id: user.id,
+          app_origin: window.location.origin
+        }
+      });
+
+      if (functionError) {
+        console.error('Auth initiation error:', functionError);
+        throw functionError;
+      }
+
+      if (data?.authUrl) {
+        console.log('Redirecting to Calendly OAuth...');
+        window.location.href = data.authUrl;
+      } else {
+        throw new Error('No authorization URL received');
+      }
+    } catch (error) {
+      console.error('Failed to initiate Calendly connection:', error);
+      throw error;
+    }
+  };
+
+  const handleCallback = async (code: string, state: string) => {
+    if (!user?.id) {
+      throw new Error('User not authenticated');
+    }
+
+    try {
+      console.log('Handling OAuth callback...');
+      
+      const { data, error: functionError } = await supabase.functions.invoke('calendly-oauth', {
+        body: { 
+          action: 'callback', 
+          user_id: user.id,
+          code,
+          state,
+          app_origin: window.location.origin
+        }
+      });
+
+      if (functionError) {
+        console.error('Callback handling error:', functionError);
+        throw functionError;
+      }
+
+      if (data?.success) {
+        console.log('OAuth callback successful');
+        await refreshStatus(); // Refresh the status after successful callback
+        return data;
+      } else {
+        throw new Error(data?.error || 'Callback failed');
+      }
+    } catch (error) {
+      console.error('Failed to handle OAuth callback:', error);
+      throw error;
+    }
+  };
+
+  const disconnect = async () => {
+    if (!user?.id) {
+      throw new Error('User not authenticated');
+    }
+
+    try {
+      console.log('Disconnecting Calendly integration...');
+      
+      const { data, error: functionError } = await supabase.functions.invoke('calendly-oauth', {
+        body: { 
+          action: 'disconnect', 
+          user_id: user.id
+        }
+      });
+
+      if (functionError) {
+        console.error('Disconnect error:', functionError);
+        throw functionError;
+      }
+
+      if (data?.success) {
+        console.log('Calendly integration disconnected successfully');
+        setIsConnected(false);
+        setCalendlyEmail(null);
+        setCalendlyUserUri(null);
+      } else {
+        throw new Error(data?.error || 'Disconnect failed');
+      }
+    } catch (error) {
+      console.error('Failed to disconnect Calendly integration:', error);
+      throw error;
     }
   };
 
@@ -92,10 +197,10 @@ export const useCalendlyIntegration = (user: User | null) => {
     checkIntegrationStatus();
   }, [user?.id]);
 
-  const refreshStatus = () => {
+  const refreshStatus = async () => {
     setLoading(true);
     setError(null);
-    checkIntegrationStatus();
+    await checkIntegrationStatus();
   };
 
   return {
@@ -107,6 +212,9 @@ export const useCalendlyIntegration = (user: User | null) => {
     setIsConnected,
     setCalendlyEmail,
     setCalendlyUserUri,
-    refreshStatus
+    refreshStatus,
+    initiateConnection,
+    handleCallback,
+    disconnect
   };
 };
