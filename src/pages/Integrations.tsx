@@ -45,12 +45,18 @@ const Integrations = () => {
     const error = searchParams.get('error');
     const errorDescription = searchParams.get('error_description');
 
+    // Extract actual user ID from state (remove timestamp if present)
+    const actualUserId = state && state.includes('_') ? state.split('_')[0] : state;
+
     console.log('URL Parameters:', {
       code: code ? 'present' : 'missing',
       state: state ? 'present' : 'missing',
       error,
       errorDescription,
-      userIdMatch: user?.id === state
+      fullState: state,
+      extractedUserId: actualUserId,
+      currentUserId: user?.id,
+      userIdMatch: user?.id === actualUserId // Use extracted user ID for comparison
     });
 
     // Handle OAuth errors
@@ -65,10 +71,20 @@ const Integrations = () => {
       return;
     }
 
-    // Handle successful OAuth callback
-    if (code && state && user?.id === state) {
-      console.log('Processing OAuth callback...', { code: code.substring(0, 10) + '...', state });
+    // Handle successful OAuth callback - use extracted user ID for comparison
+    if (code && state && user?.id === actualUserId) {
+      console.log('Processing OAuth callback...', { 
+        code: code.substring(0, 10) + '...', 
+        state: state,
+        extractedUserId: actualUserId 
+      });
       handleOAuthCallback(code, state);
+    } else if (code && state && user?.id !== actualUserId) {
+      console.warn('OAuth callback ignored - user ID mismatch:', {
+        currentUserId: user?.id,
+        stateUserId: actualUserId,
+        fullState: state
+      });
     }
 
     // Check for connection success flags
@@ -124,11 +140,21 @@ const Integrations = () => {
         state,
         origin: window.location.origin
       });
+
+      // Extract the actual user ID from the state (remove timestamp if present)
+      const actualUserId = state.includes('_') ? state.split('_')[0] : state;
+      console.log('Extracted user ID:', actualUserId);
+      console.log('Current user ID:', user?.id);
+
+      // Verify the user ID matches
+      if (actualUserId !== user?.id) {
+        throw new Error('State parameter does not match current user');
+      }
       
       const requestBody = { 
         action: 'callback', 
         code, 
-        state,
+        state: actualUserId, // Use the actual user ID for the callback
         app_origin: window.location.origin
       };
 
