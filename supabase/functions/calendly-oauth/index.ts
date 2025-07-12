@@ -36,6 +36,7 @@ serve(async (req) => {
         `state=${user_id}`;
 
       console.log('Generated Calendly auth URL:', authUrl);
+      console.log('Redirect URI being used:', redirectUri);
 
       return new Response(
         JSON.stringify({ authUrl }),
