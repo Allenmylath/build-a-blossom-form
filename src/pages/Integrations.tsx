@@ -6,14 +6,16 @@ import { useCalendlyIntegration } from '@/hooks/useCalendlyIntegration';
 import { useToast } from '@/hooks/use-toast';
 import { CalendarConnection } from '@/components/CalendarConnection';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, Settings, Zap, Shield } from 'lucide-react';
+import { Calendar, Settings, Zap, Shield, Loader2, AlertCircle } from 'lucide-react';
 
 const Integrations: React.FC = () => {
   const { user } = useSupabaseAuth();
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
+  const [processing, setProcessing] = useState(false);
   
   const {
     isConnected: calendarConnected,
@@ -25,12 +27,96 @@ const Integrations: React.FC = () => {
     isConnected: calendlyConnected,
     calendlyEmail,
     setIsConnected: setCalendlyConnected,
-    refreshStatus: refreshCalendlyStatus
+    refreshStatus: refreshCalendlyStatus,
+    initiateConnection: initiateCalendlyConnection,
+    handleCallback: handleCalendlyCallback,
+    disconnect: disconnectCalendly,
+    loading: calendlyLoading,
+    error: calendlyError
   } = useCalendlyIntegration(user);
 
   const handleOAuthCallback = async (code: string, state: string) => {
-    // Handle OAuth callback logic here
-    console.log('OAuth callback:', { code, state });
+    if (!user?.id) {
+      console.error('No user ID available for callback');
+      return;
+    }
+
+    // Extract actual user ID from state (remove timestamp if present)
+    const actualUserId = state && state.includes('_') ? state.split('_')[0] : state;
+
+    // Verify that the state matches the current user
+    if (actualUserId !== user.id) {
+      console.error('State user ID mismatch:', { actualUserId, currentUserId: user.id });
+      toast({
+        title: "Authentication Error",
+        description: "Invalid authentication state. Please try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setProcessing(true);
+      console.log('Processing OAuth callback...');
+      
+      const result = await handleCalendlyCallback(code, state);
+      
+      if (result?.success) {
+        toast({
+          title: "Calendly Connected",
+          description: "Your Calendly account has been successfully connected!",
+        });
+        setCalendlyConnected(true);
+        // Clean up URL parameters
+        window.history.replaceState({}, '', '/integrations');
+      }
+    } catch (error) {
+      console.error('OAuth callback error:', error);
+      toast({
+        title: "Connection Failed",
+        description: error instanceof Error ? error.message : "Failed to connect Calendly",
+        variant: "destructive",
+      });
+      // Clean up URL parameters even on error
+      window.history.replaceState({}, '', '/integrations');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleCalendlyConnect = async () => {
+    try {
+      setProcessing(true);
+      await initiateCalendlyConnection();
+    } catch (error) {
+      console.error('Calendly connection error:', error);
+      toast({
+        title: "Connection Failed",
+        description: error instanceof Error ? error.message : "Failed to start Calendly connection",
+        variant: "destructive",
+      });
+      setProcessing(false);
+    }
+  };
+
+  const handleCalendlyDisconnect = async () => {
+    try {
+      setProcessing(true);
+      await disconnectCalendly();
+      toast({
+        title: "Calendly Disconnected",
+        description: "Your Calendly account has been disconnected.",
+      });
+    } catch (error) {
+      console.error('Calendly disconnect error:', error);
+      toast({
+        title: "Disconnect Failed",
+        description: error instanceof Error ? error.message : "Failed to disconnect Calendly",
+        variant: "destructive",
+      });
+    } finally {
+      setProcessing(false);
+    }
   };
 
   useEffect(() => {
@@ -39,9 +125,6 @@ const Integrations: React.FC = () => {
     const state = searchParams.get('state');
     const error = searchParams.get('error');
     const errorDescription = searchParams.get('error_description');
-
-    // Extract actual user ID from state (remove timestamp if present)
-    const actualUserId = state && state.includes('_') ? state.split('_')[0] : state;
 
     // Handle OAuth errors
     if (error) {
@@ -55,12 +138,12 @@ const Integrations: React.FC = () => {
       return;
     }
 
-    // Handle successful OAuth callback - use extracted user ID for comparison
-    if (code && state && user?.id === actualUserId) {
+    // Handle successful OAuth callback
+    if (code && state && user?.id) {
       handleOAuthCallback(code, state);
     }
 
-    // Check for connection success flags
+    // Handle legacy URL parameters for backward compatibility
     if (searchParams.get('calendar_connected') === 'true') {
       toast({
         title: "Calendar Connected",
@@ -80,7 +163,7 @@ const Integrations: React.FC = () => {
       window.history.replaceState({}, '', '/integrations');
     }
 
-    // Check for connection errors
+    // Handle connection errors
     const calendarError = searchParams.get('calendar_error');
     if (calendarError) {
       toast({
@@ -128,6 +211,26 @@ const Integrations: React.FC = () => {
         </p>
       </div>
 
+      {/* Processing Alert */}
+      {processing && (
+        <Alert>
+          <Loader2 className="h-4 w-4 animate-spin" />
+          <AlertDescription>
+            Processing your request...
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Error Alert */}
+      {calendlyError && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            {calendlyError}
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Integration Status Overview */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card>
@@ -154,9 +257,13 @@ const Integrations: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="flex items-center space-x-2">
-              <Badge variant={calendlyConnected ? "default" : "secondary"}>
-                {calendlyConnected ? "Connected" : "Not Connected"}
-              </Badge>
+              {calendlyLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Badge variant={calendlyConnected ? "default" : "secondary"}>
+                  {calendlyConnected ? "Connected" : "Not Connected"}
+                </Badge>
+              )}
               {calendlyConnected && calendlyEmail && (
                 <span className="text-sm text-muted-foreground">{calendlyEmail}</span>
               )}
@@ -170,10 +277,10 @@ const Integrations: React.FC = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Calendar className="h-5 w-5" />
-            Calendar Integration
+            Google Calendar Integration
           </CardTitle>
           <CardDescription>
-            Connect your calendar services to enable appointment booking functionality in your forms.
+            Connect your Google Calendar to enable appointment booking functionality in your forms.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -183,6 +290,93 @@ const Integrations: React.FC = () => {
             onConnectionChange={setCalendarConnected}
             user={user}
           />
+        </CardContent>
+      </Card>
+
+      {/* Calendly Integration Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Zap className="h-5 w-5" />
+            Calendly Integration
+          </CardTitle>
+          <CardDescription>
+            Connect your Calendly account to embed scheduling links in your forms.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {calendlyConnected ? (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <div>
+                      <p className="font-medium">Connected to Calendly</p>
+                      {calendlyEmail && (
+                        <p className="text-sm text-muted-foreground">{calendlyEmail}</p>
+                      )}
+                    </div>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    onClick={handleCalendlyDisconnect}
+                    disabled={processing || calendlyLoading}
+                  >
+                    {processing ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Disconnecting...
+                      </>
+                    ) : (
+                      'Disconnect'
+                    )}
+                  </Button>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Your Calendly account is connected and ready to use in your forms. You can now add Calendly scheduling links to your form fields.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-4 border rounded-lg border-dashed">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                    <div>
+                      <p className="font-medium">Connect your Calendly account</p>
+                      <p className="text-sm text-muted-foreground">
+                        Allow access to embed scheduling links in your forms
+                      </p>
+                    </div>
+                  </div>
+                  <Button 
+                    onClick={handleCalendlyConnect}
+                    disabled={processing || calendlyLoading}
+                  >
+                    {processing ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Connecting...
+                      </>
+                    ) : (
+                      'Connect Calendly'
+                    )}
+                  </Button>
+                </div>
+                <div className="text-sm text-muted-foreground space-y-2">
+                  <p>
+                    • Access your Calendly event types and scheduling links
+                  </p>
+                  <p>
+                    • Embed scheduling functionality directly in your forms
+                  </p>
+                  <p>
+                    • Allow form respondents to book appointments seamlessly
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
         </CardContent>
       </Card>
 
@@ -201,6 +395,9 @@ const Integrations: React.FC = () => {
             </p>
             <p>
               • We only access your calendar to create events when appointments are booked through your forms.
+            </p>
+            <p>
+              • For Calendly, we only access your scheduling links and event types - we never modify your settings.
             </p>
             <p>
               • You can disconnect any integration at any time, which will immediately revoke access.
