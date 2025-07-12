@@ -136,7 +136,7 @@ const Integrations = () => {
       id: 'calendly',
       name: 'Calendly',
       description: 'Embed Calendly scheduling into your forms',
-      icon: Calendar,
+      icon: '/lovable-uploads/fc819cd2-41b9-464b-975a-01ee9cb6307f.png',
       connected: false,
       connectedEmail: null,
       onConnect: () => {
@@ -191,7 +191,11 @@ const Integrations = () => {
               <CardHeader>
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center space-x-3">
-                    <integration.icon className={`w-8 h-8 ${getColorClasses(integration.color, false)}`} />
+                    {typeof integration.icon === 'string' ? (
+                      <img src={integration.icon} alt={`${integration.name} logo`} className="w-8 h-8 object-contain" />
+                    ) : (
+                      <integration.icon className={`w-8 h-8 ${getColorClasses(integration.color, false)}`} />
+                    )}
                     <div>
                       <CardTitle className="text-lg">{integration.name}</CardTitle>
                       <CardDescription className="text-sm">
