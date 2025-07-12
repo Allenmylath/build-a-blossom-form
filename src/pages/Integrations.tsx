@@ -339,33 +339,33 @@ const Integrations: React.FC = () => {
           
           {/* Google Calendar Card */}
           <div className="group relative">
-            <div className="absolute inset-0 bg-gradient-to-br from-blue-400/20 to-indigo-500/20 rounded-2xl blur-xl opacity-60 group-hover:opacity-80 transition-all duration-500"></div>
-            <Card className="relative bg-white/90 backdrop-blur-sm border border-blue-100 hover:border-blue-200 transition-all duration-500 hover:shadow-2xl hover:-translate-y-1 overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-400/20 to-indigo-500/20 rounded-3xl blur-xl opacity-60 group-hover:opacity-80 transition-all duration-500"></div>
+            <Card className="relative bg-white border-2 border-blue-100 hover:border-blue-300 transition-all duration-500 hover:shadow-2xl hover:-translate-y-2 rounded-3xl overflow-hidden">
               {/* Animated background pattern */}
-              <div className="absolute inset-0 bg-gradient-to-br from-blue-50/50 to-indigo-50/30"></div>
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-50/50 to-indigo-50/30 rounded-3xl"></div>
               <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-200/30 to-transparent rounded-full transform translate-x-16 -translate-y-16 group-hover:scale-110 transition-transform duration-700"></div>
               
-              <CardHeader className="relative pb-4">
+              <CardHeader className="relative pb-6 p-8">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-4">
-                    <div className="relative w-14 h-14 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-110">
-                      <Calendar className="h-7 w-7 text-white" />
-                      <div className="absolute inset-0 bg-white/20 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                    <div className="relative w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-xl group-hover:shadow-2xl transition-all duration-300 group-hover:scale-110 group-hover:rotate-3">
+                      <Calendar className="h-8 w-8 text-white" />
+                      <div className="absolute inset-0 bg-white/20 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                     </div>
                     <div>
-                      <CardTitle className="text-xl font-bold text-gray-900 group-hover:text-blue-900 transition-colors duration-300">Google Calendar</CardTitle>
-                      <CardDescription className="text-gray-600">Schedule appointments and manage bookings</CardDescription>
+                      <CardTitle className="text-2xl font-bold text-gray-900 group-hover:text-blue-900 transition-colors duration-300">Google Calendar</CardTitle>
+                      <CardDescription className="text-gray-600 mt-1">Schedule appointments and manage bookings</CardDescription>
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
                     {calendarConnected ? (
-                      <Badge className="bg-green-500 text-white hover:bg-green-500 border-0 shadow-lg animate-pulse">
-                        <CheckCircle className="h-3 w-3 mr-1" />
+                      <Badge className="bg-green-500 text-white hover:bg-green-500 border-0 shadow-lg animate-pulse px-4 py-2 rounded-2xl">
+                        <CheckCircle className="h-4 w-4 mr-2" />
                         Connected
                       </Badge>
                     ) : (
-                      <Badge variant="outline" className="text-gray-500 border-gray-300 bg-white/50">
-                        <Link className="h-3 w-3 mr-1" />
+                      <Badge variant="outline" className="text-gray-500 border-gray-300 bg-white/70 px-4 py-2 rounded-2xl">
+                        <Link className="h-4 w-4 mr-2" />
                         Not Connected
                       </Badge>
                     )}
@@ -373,28 +373,28 @@ const Integrations: React.FC = () => {
                 </div>
               </CardHeader>
               
-              <CardContent className="relative space-y-6">
+              <CardContent className="relative space-y-6 p-8 pt-0">
                 {calendarConnected && calendarEmail && (
-                  <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-100 shadow-sm">
+                  <div className="p-5 bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl border-2 border-green-100 shadow-sm">
                     <div className="flex items-center space-x-3">
-                      <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse shadow-lg"></div>
-                      <span className="text-sm font-medium text-green-800">{calendarEmail}</span>
+                      <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse shadow-lg"></div>
+                      <span className="text-sm font-semibold text-green-800">{calendarEmail}</span>
                     </div>
                   </div>
                 )}
                 
                 <div className="space-y-4">
-                  <div className="flex items-start space-x-3 group/item hover:bg-blue-50/50 p-2 rounded-lg transition-colors duration-200">
-                    <div className="w-2 h-2 bg-blue-400 rounded-full mt-2 group-hover/item:scale-125 transition-transform duration-200"></div>
-                    <p className="text-sm text-gray-700 group-hover/item:text-blue-900 transition-colors duration-200">Enable appointment booking in your forms</p>
+                  <div className="flex items-start space-x-4 group/item hover:bg-blue-50/50 p-3 rounded-2xl transition-colors duration-200">
+                    <div className="w-3 h-3 bg-blue-400 rounded-full mt-2 group-hover/item:scale-125 transition-transform duration-200 shadow-md"></div>
+                    <p className="text-sm text-gray-700 group-hover/item:text-blue-900 transition-colors duration-200 font-medium">Enable appointment booking in your forms</p>
                   </div>
-                  <div className="flex items-start space-x-3 group/item hover:bg-blue-50/50 p-2 rounded-lg transition-colors duration-200">
-                    <div className="w-2 h-2 bg-blue-400 rounded-full mt-2 group-hover/item:scale-125 transition-transform duration-200"></div>
-                    <p className="text-sm text-gray-700 group-hover/item:text-blue-900 transition-colors duration-200">Automatic calendar synchronization</p>
+                  <div className="flex items-start space-x-4 group/item hover:bg-blue-50/50 p-3 rounded-2xl transition-colors duration-200">
+                    <div className="w-3 h-3 bg-blue-400 rounded-full mt-2 group-hover/item:scale-125 transition-transform duration-200 shadow-md"></div>
+                    <p className="text-sm text-gray-700 group-hover/item:text-blue-900 transition-colors duration-200 font-medium">Automatic calendar synchronization</p>
                   </div>
-                  <div className="flex items-start space-x-3 group/item hover:bg-blue-50/50 p-2 rounded-lg transition-colors duration-200">
-                    <div className="w-2 h-2 bg-blue-400 rounded-full mt-2 group-hover/item:scale-125 transition-transform duration-200"></div>
-                    <p className="text-sm text-gray-700 group-hover/item:text-blue-900 transition-colors duration-200">Real-time availability checking</p>
+                  <div className="flex items-start space-x-4 group/item hover:bg-blue-50/50 p-3 rounded-2xl transition-colors duration-200">
+                    <div className="w-3 h-3 bg-blue-400 rounded-full mt-2 group-hover/item:scale-125 transition-transform duration-200 shadow-md"></div>
+                    <p className="text-sm text-gray-700 group-hover/item:text-blue-900 transition-colors duration-200 font-medium">Real-time availability checking</p>
                   </div>
                 </div>
                 
