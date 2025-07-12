@@ -1,33 +1,87 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Calendar, CheckCircle, ArrowLeft, Link, Zap, Mail, Database } from 'lucide-react';
+import { Calendar, CheckCircle, ArrowLeft, Link, AlertCircle } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { useCalendarIntegration } from '@/hooks/useCalendarIntegration';
+import { useCalendlyIntegration } from '@/hooks/useCalendlyIntegration';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 
 const Integrations = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user } = useSupabaseAuth();
-  const { isConnected: calendarConnected, calendarEmail, loading: calendarLoading, setIsConnected: setCalendarConnected, setCalendarEmail } = useCalendarIntegration(user);
+  
+  // Google Calendar integration
+  const { 
+    isConnected: calendarConnected, 
+    calendarEmail, 
+    loading: calendarLoading, 
+    setIsConnected: setCalendarConnected, 
+    setCalendarEmail 
+  } = useCalendarIntegration(user);
+  
+  // Calendly integration
+  const {
+    isConnected: calendlyConnected,
+    calendlyEmail,
+    calendlyUserUri,
+    loading: calendlyLoading,
+    error: calendlyError,
+    setIsConnected: setCalendlyConnected,
+    setCalendlyEmail: setCalendlyEmailState,
+    refreshStatus: refreshCalendlyStatus
+  } = useCalendlyIntegration(user);
+
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // Check if user just connected calendar
+    // Handle OAuth callbacks
+    const code = searchParams.get('code');
+    const state = searchParams.get('state');
+    const error = searchParams.get('error');
+    const errorDescription = searchParams.get('error_description');
+
+    // Handle OAuth errors
+    if (error) {
+      toast({
+        title: "OAuth Error",
+        description: errorDescription || error,
+        variant: "destructive",
+      });
+      // Clear URL parameters
+      window.history.replaceState({}, '', '/integrations');
+      return;
+    }
+
+    // Handle successful OAuth callback
+    if (code && state && user?.id === state) {
+      handleOAuthCallback(code, state);
+    }
+
+    // Check for connection success flags
     if (searchParams.get('calendar_connected') === 'true') {
       toast({
         title: "Calendar Connected",
         description: "Your Google Calendar has been successfully connected!",
       });
-      // Clear the URL parameter
-      window.history.replaceState({}, '', '/integrations');
       setCalendarConnected(true);
+      window.history.replaceState({}, '', '/integrations');
     }
 
-    // Check for calendar connection errors
+    if (searchParams.get('calendly_connected') === 'true') {
+      toast({
+        title: "Calendly Connected",
+        description: "Your Calendly account has been successfully connected!",
+      });
+      setCalendlyConnected(true);
+      refreshCalendlyStatus();
+      window.history.replaceState({}, '', '/integrations');
+    }
+
+    // Check for connection errors
     const calendarError = searchParams.get('calendar_error');
     if (calendarError) {
       toast({
@@ -35,10 +89,63 @@ const Integrations = () => {
         description: `Error: ${calendarError}`,
         variant: "destructive",
       });
-      // Clear the URL parameter
       window.history.replaceState({}, '', '/integrations');
     }
-  }, [searchParams, setCalendarConnected]);
+
+    const calendlyErrorParam = searchParams.get('calendly_error');
+    if (calendlyErrorParam) {
+      toast({
+        title: "Calendly Connection Failed",
+        description: `Error: ${calendlyErrorParam}`,
+        variant: "destructive",
+      });
+      window.history.replaceState({}, '', '/integrations');
+    }
+  }, [searchParams, user?.id, setCalendarConnected, setCalendlyConnected, refreshCalendlyStatus]);
+
+  const handleOAuthCallback = async (code: string, state: string) => {
+    try {
+      setLoading(true);
+      
+      // Determine which OAuth provider based on the current URL or stored state
+      // For now, we'll assume Calendly since Google Calendar uses a different callback flow
+      const { data, error } = await supabase.functions.invoke('calendly-oauth', {
+        body: { 
+          action: 'callback', 
+          code, 
+          state,
+          app_origin: window.location.origin
+        }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      if (data?.success) {
+        toast({
+          title: "Calendly Connected",
+          description: "Your Calendly account has been successfully connected!",
+        });
+        setCalendlyConnected(true);
+        refreshCalendlyStatus();
+      } else {
+        throw new Error(data?.error || 'Unknown error occurred');
+      }
+
+    } catch (error) {
+      console.error('OAuth callback error:', error);
+      toast({
+        title: "Connection Failed",
+        description: error instanceof Error ? error.message : "Failed to complete OAuth callback",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+      // Clear URL parameters
+      window.history.replaceState({}, '', '/integrations');
+    }
+  };
 
   const handleConnectGoogleCalendar = async () => {
     if (!user?.id) return;
@@ -47,7 +154,6 @@ const Integrations = () => {
     try {
       console.log('Initiating calendar connection for user:', user.id);
       
-      // Call your Edge Function to get the auth URL
       const { data, error } = await supabase.functions.invoke('google-calendar-oauth', {
         body: { 
           action: 'auth', 
@@ -63,7 +169,6 @@ const Integrations = () => {
 
       if (data?.authUrl) {
         console.log('Redirecting to Google auth:', data.authUrl);
-        // Redirect to Google OAuth
         window.location.href = data.authUrl;
       } else {
         throw new Error('No auth URL returned from Edge Function');
@@ -86,7 +191,6 @@ const Integrations = () => {
     try {
       console.log('Initiating Calendly connection for user:', user.id);
       
-      // Call Calendly Edge Function to get the auth URL
       const { data, error } = await supabase.functions.invoke('calendly-oauth', {
         body: { 
           action: 'auth', 
@@ -102,7 +206,6 @@ const Integrations = () => {
 
       if (data?.authUrl) {
         console.log('Redirecting to Calendly auth:', data.authUrl);
-        // Redirect to Calendly OAuth
         window.location.href = data.authUrl;
       } else {
         throw new Error('No auth URL returned from Calendly Edge Function');
@@ -170,10 +273,16 @@ const Integrations = () => {
         throw error;
       }
 
-      toast({
-        title: "Calendly Disconnected",
-        description: "Your Calendly account has been disconnected.",
-      });
+      if (data?.success) {
+        setCalendlyConnected(false);
+        setCalendlyEmailState(null);
+        toast({
+          title: "Calendly Disconnected",
+          description: "Your Calendly account has been disconnected.",
+        });
+      } else {
+        throw new Error(data?.error || 'Failed to disconnect');
+      }
     } catch (error) {
       console.error('Calendly disconnection error:', error);
       toast({
@@ -195,6 +304,7 @@ const Integrations = () => {
       onConnect: handleConnectGoogleCalendar,
       onDisconnect: handleDisconnectGoogleCalendar,
       loading: loading || calendarLoading,
+      error: null,
       color: 'blue',
       howItWorks: [
         'Forms can include appointment booking fields',
@@ -208,11 +318,12 @@ const Integrations = () => {
       name: 'Calendly',
       description: 'Embed Calendly scheduling into your forms',
       icon: '/lovable-uploads/fc819cd2-41b9-464b-975a-01ee9cb6307f.png',
-      connected: false,
-      connectedEmail: null,
+      connected: calendlyConnected,
+      connectedEmail: calendlyEmail,
       onConnect: handleConnectCalendly,
       onDisconnect: handleDisconnectCalendly,
-      loading: false,
+      loading: loading || calendlyLoading,
+      error: calendlyError,
       color: 'blue',
       howItWorks: [
         'Embed Calendly scheduling widgets directly in forms',
@@ -276,6 +387,13 @@ const Integrations = () => {
               </CardHeader>
               
               <CardContent className="space-y-4">
+                {integration.error && (
+                  <div className="flex items-center space-x-2 text-red-600 bg-red-50 p-3 rounded-lg">
+                    <AlertCircle className="w-5 h-5" />
+                    <span className="text-sm">{integration.error}</span>
+                  </div>
+                )}
+
                 {integration.connected ? (
                   <div className="space-y-4">
                     <div className={`rounded-lg p-4 ${getColorClasses(integration.color, true)}`}>
@@ -296,7 +414,7 @@ const Integrations = () => {
                       className="w-full"
                       disabled={integration.loading}
                     >
-                      Disconnect {integration.name}
+                      {integration.loading ? "Disconnecting..." : `Disconnect ${integration.name}`}
                     </Button>
                   </div>
                 ) : (
