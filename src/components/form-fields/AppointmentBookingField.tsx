@@ -98,7 +98,7 @@ export const AppointmentBookingField: React.FC<AppointmentBookingFieldProps> = (
     return () => {
       isMounted = false;
     };
-  }, [user, formId]); // Stable dependencies only
+  }, [user, formId]);
 
   // Reset form owner fetched flag when formId changes
   useEffect(() => {
@@ -108,7 +108,7 @@ export const AppointmentBookingField: React.FC<AppointmentBookingFieldProps> = (
   // Determine which user to use for integrations - with stable dependencies
   const integrationUser = useMemo(() => {
     return user || formOwner;
-  }, [user, formOwner?.id]); // Only depend on formOwner.id to avoid re-renders
+  }, [user, formOwner?.id]);
 
   // Use integration hooks with stable user
   const { isConnected: calendarConnected, calendarEmail, loading: calendarLoading } = useCalendarIntegration(integrationUser);
@@ -137,7 +137,7 @@ export const AppointmentBookingField: React.FC<AppointmentBookingFieldProps> = (
     if (availableTabs.length > 0 && !activeTab) {
       setActiveTab(availableTabs[0].value);
     }
-  }, [availableTabs.length, activeTab]); // Only update when tabs length changes or activeTab is empty
+  }, [availableTabs.length, activeTab]);
 
   // Load Calendly widget script once
   useEffect(() => {
@@ -171,7 +171,7 @@ export const AppointmentBookingField: React.FC<AppointmentBookingFieldProps> = (
       }
       calendlyScriptLoaded.current = false;
     };
-  }, [calendlyConnected, calendlyUserUri]); // Stable dependencies
+  }, [calendlyConnected, calendlyUserUri]);
 
   // Initialize Calendly widget with proper cleanup and guards
   useEffect(() => {
@@ -621,49 +621,6 @@ export const AppointmentBookingField: React.FC<AppointmentBookingFieldProps> = (
                   disabled={!selectedDate || !selectedTime || bookingStatus === 'booking'}
                   className="w-full"
                 >
-                  {bookingStatus === 'booking' ? 'Booking...' : 'Book Appointment'}
-                </Button>
-              </div>
-            )}
-
-            {calendlyConnected && !calendarConnected && (
-              <div className="space-y-4">
-                {calendlyEmail && (
-                  <div className="flex items-center justify-center text-sm text-muted-foreground bg-muted/30 rounded-lg p-3">
-                    <CalendarIcon className="w-4 h-4 mr-2" />
-                    <span>Connected to {calendlyEmail}</span>
-                  </div>
-                )}
-
-                <div 
-                  id={`calendly-${field.id}`}
-                  className="w-full rounded-lg overflow-hidden border min-h-[630px]"
-                  style={{ height: '630px' }}
-                />
-              </div>
-            )}
-          </>
-        )}
-
-        {bookingStatus === 'error' && (
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              {errorMessage || 'Failed to book appointment. Please try again.'}
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {error && (
-          <p className="text-sm text-red-600">{error}</p>
-        )}
-      </CardContent>
-    </Card>
-  );
-};oogleCalendarBooking}
-                  disabled={!selectedDate || !selectedTime || bookingStatus === 'booking'}
-                  className="w-full"
-                >
                   {bookingStatus === 'booking' ? (
                     <>
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
@@ -754,4 +711,47 @@ export const AppointmentBookingField: React.FC<AppointmentBookingFieldProps> = (
                 )}
 
                 <Button
-                  onClick={handleG
+                  onClick={handleGoogleCalendarBooking}
+                  disabled={!selectedDate || !selectedTime || bookingStatus === 'booking'}
+                  className="w-full"
+                >
+                  {bookingStatus === 'booking' ? 'Booking...' : 'Book Appointment'}
+                </Button>
+              </div>
+            )}
+
+            {calendlyConnected && !calendarConnected && (
+              <div className="space-y-4">
+                {calendlyEmail && (
+                  <div className="flex items-center justify-center text-sm text-muted-foreground bg-muted/30 rounded-lg p-3">
+                    <CalendarIcon className="w-4 h-4 mr-2" />
+                    <span>Connected to {calendlyEmail}</span>
+                  </div>
+                )}
+
+                <div 
+                  id={`calendly-${field.id}`}
+                  className="w-full rounded-lg overflow-hidden border min-h-[630px]"
+                  style={{ height: '630px' }}
+                />
+              </div>
+            )}
+          </>
+        )}
+
+        {bookingStatus === 'error' && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              {errorMessage || 'Failed to book appointment. Please try again.'}
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {error && (
+          <p className="text-sm text-red-600">{error}</p>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
