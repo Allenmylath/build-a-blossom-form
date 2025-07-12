@@ -291,20 +291,16 @@ const Integrations: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/10">
-      <div className="container mx-auto p-6 max-w-6xl">
-        {/* Hero Header */}
-        <div className="text-center space-y-6 mb-12">
+      <div className="container mx-auto p-6 max-w-4xl">
+        {/* Header */}
+        <div className="text-center space-y-4 mb-12">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 border border-primary/20 mb-4">
             <Settings className="h-8 w-8 text-primary" />
           </div>
-          <div className="space-y-3">
-            <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-              Integrations
-            </h1>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-              Seamlessly connect your favorite tools to supercharge your forms with appointment booking and scheduling capabilities
-            </p>
-          </div>
+          <h1 className="text-3xl font-bold tracking-tight">Integrations</h1>
+          <p className="text-muted-foreground max-w-2xl mx-auto">
+            Connect your calendar and scheduling services to enable appointment booking in your forms
+          </p>
         </div>
 
         {/* Processing Alert */}
@@ -327,28 +323,27 @@ const Integrations: React.FC = () => {
           </Alert>
         )}
 
-        {/* Integration Cards Grid */}
-        <div className="grid gap-8 lg:grid-cols-2">
-          {/* Google Calendar Integration */}
-          <Card className="group relative overflow-hidden border-0 bg-gradient-to-br from-white via-white to-blue-50/30 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
-            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-            <CardHeader className="relative space-y-4 pb-6">
+        {/* Integration Cards */}
+        <div className="grid gap-6 md:grid-cols-2">
+          
+          {/* Google Calendar Card */}
+          <Card className="shadow-lg hover:shadow-xl transition-all duration-300">
+            <CardHeader className="space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="p-3 rounded-xl bg-blue-100 border border-blue-200">
-                    <Calendar className="h-6 w-6 text-blue-600" />
+                  <div className="p-2 rounded-lg bg-blue-100">
+                    <Calendar className="h-5 w-5 text-blue-600" />
                   </div>
                   <div>
-                    <CardTitle className="text-xl font-semibold">Google Calendar</CardTitle>
-                    <CardDescription className="text-sm mt-1">
-                      Enable appointment booking functionality
+                    <CardTitle className="text-lg">Google Calendar</CardTitle>
+                    <CardDescription className="text-sm">
+                      Enable appointment booking
                     </CardDescription>
                   </div>
                 </div>
                 <Badge 
                   variant={calendarConnected ? "default" : "secondary"}
                   className={cn(
-                    "px-3 py-1 text-xs font-medium",
                     calendarConnected 
                       ? "bg-green-100 text-green-700 border-green-200" 
                       : "bg-gray-100 text-gray-600 border-gray-200"
@@ -357,14 +352,16 @@ const Integrations: React.FC = () => {
                   {calendarConnected ? "Connected" : "Not Connected"}
                 </Badge>
               </div>
+              
               {calendarConnected && calendarEmail && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground bg-green-50 border border-green-200 rounded-lg p-3">
-                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                <div className="flex items-center gap-2 text-sm bg-green-50 border border-green-200 rounded-lg p-3">
+                  <div className="w-2 h-2 bg-green-500 rounded-full" />
                   <span className="font-medium">{calendarEmail}</span>
                 </div>
               )}
             </CardHeader>
-            <CardContent className="relative pt-0">
+            
+            <CardContent>
               <CalendarConnection
                 isConnected={calendarConnected}
                 calendarEmail={calendarEmail}
@@ -374,33 +371,31 @@ const Integrations: React.FC = () => {
             </CardContent>
           </Card>
 
-          {/* Calendly Integration */}
-          <Card className="group relative overflow-hidden border-0 bg-gradient-to-br from-white via-white to-orange-50/30 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
-            <div className="absolute inset-0 bg-gradient-to-br from-orange-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-            <CardHeader className="relative space-y-4 pb-6">
+          {/* Calendly Card */}
+          <Card className="shadow-lg hover:shadow-xl transition-all duration-300">
+            <CardHeader className="space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="p-3 rounded-xl bg-orange-100 border border-orange-200">
+                  <div className="p-2 rounded-lg bg-orange-100">
                     <img 
                       src="/lovable-uploads/fc819cd2-41b9-464b-975a-01ee9cb6307f.png" 
                       alt="Calendly" 
-                      className="h-6 w-6"
+                      className="h-5 w-5"
                     />
                   </div>
                   <div>
-                    <CardTitle className="text-xl font-semibold">Calendly</CardTitle>
-                    <CardDescription className="text-sm mt-1">
-                      Embed scheduling links in your forms
+                    <CardTitle className="text-lg">Calendly</CardTitle>
+                    <CardDescription className="text-sm">
+                      Embed scheduling links
                     </CardDescription>
                   </div>
                 </div>
                 {calendlyLoading ? (
-                  <Loader2 className="h-5 w-5 animate-spin text-orange-500" />
+                  <Loader2 className="h-4 w-4 animate-spin text-orange-500" />
                 ) : (
                   <Badge 
                     variant={calendlyConnected ? "default" : "secondary"}
                     className={cn(
-                      "px-3 py-1 text-xs font-medium",
                       calendlyConnected 
                         ? "bg-green-100 text-green-700 border-green-200" 
                         : "bg-gray-100 text-gray-600 border-gray-200"
@@ -410,23 +405,24 @@ const Integrations: React.FC = () => {
                   </Badge>
                 )}
               </div>
+              
               {calendlyConnected && calendlyEmail && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground bg-green-50 border border-green-200 rounded-lg p-3">
-                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                <div className="flex items-center gap-2 text-sm bg-green-50 border border-green-200 rounded-lg p-3">
+                  <div className="w-2 h-2 bg-green-500 rounded-full" />
                   <span className="font-medium">{calendlyEmail}</span>
                 </div>
               )}
             </CardHeader>
-            <CardContent className="relative pt-0 space-y-6">
+            
+            <CardContent className="space-y-4">
               {calendlyConnected ? (
                 <div className="space-y-4">
-                  <div className="text-center py-8">
-                    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-green-100 border border-green-200 flex items-center justify-center">
-                      <Zap className="h-8 w-8 text-green-600" />
+                  <div className="text-center py-6">
+                    <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-green-100 flex items-center justify-center">
+                      <Zap className="h-6 w-6 text-green-600" />
                     </div>
-                    <h3 className="font-semibold text-lg mb-2">All Set!</h3>
-                    <p className="text-muted-foreground text-sm mb-6">
-                      Your Calendly account is connected and ready to use in your forms
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Ready to use in your forms
                     </p>
                     <Button 
                       variant="outline" 
@@ -444,29 +440,20 @@ const Integrations: React.FC = () => {
                       )}
                     </Button>
                   </div>
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <h4 className="font-medium text-blue-900 mb-2">What's Next?</h4>
-                    <ul className="text-sm text-blue-700 space-y-1">
-                      <li>• Add Calendly scheduling fields to your forms</li>
-                      <li>• Embed booking links directly in form responses</li>
-                      <li>• Allow seamless appointment scheduling</li>
-                    </ul>
-                  </div>
                 </div>
               ) : (
-                <div className="space-y-6">
-                  <div className="text-center py-8">
-                    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-orange-100 border-2 border-dashed border-orange-300 flex items-center justify-center">
-                      <Zap className="h-8 w-8 text-orange-500" />
+                <div className="space-y-4">
+                  <div className="text-center py-6">
+                    <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-orange-100 border-2 border-dashed border-orange-300 flex items-center justify-center">
+                      <Zap className="h-6 w-6 text-orange-500" />
                     </div>
-                    <h3 className="font-semibold text-lg mb-2">Connect Calendly</h3>
-                    <p className="text-muted-foreground text-sm mb-6">
-                      Allow access to embed scheduling links in your forms
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Connect to embed scheduling links
                     </p>
                     <Button 
                       onClick={handleCalendlyConnect}
                       disabled={processing || calendlyLoading}
-                      className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2"
+                      className="bg-orange-500 hover:bg-orange-600 text-white"
                     >
                       {processing ? (
                         <>
@@ -478,79 +465,11 @@ const Integrations: React.FC = () => {
                       )}
                     </Button>
                   </div>
-                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                    <h4 className="font-medium text-gray-900 mb-3">Benefits of Connecting:</h4>
-                    <ul className="text-sm text-gray-600 space-y-2">
-                      <li className="flex items-center gap-2">
-                        <div className="w-1.5 h-1.5 bg-orange-500 rounded-full" />
-                        Access your Calendly event types and scheduling links
-                      </li>
-                      <li className="flex items-center gap-2">
-                        <div className="w-1.5 h-1.5 bg-orange-500 rounded-full" />
-                        Embed scheduling functionality directly in your forms
-                      </li>
-                      <li className="flex items-center gap-2">
-                        <div className="w-1.5 h-1.5 bg-orange-500 rounded-full" />
-                        Allow form respondents to book appointments seamlessly
-                      </li>
-                    </ul>
-                  </div>
                 </div>
               )}
             </CardContent>
           </Card>
         </div>
-
-        {/* Security Information */}
-        <Card className="mt-12 border-0 bg-gradient-to-r from-slate-50 via-white to-slate-50 shadow-lg">
-          <CardHeader className="text-center pb-6">
-            <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-green-100 border border-green-200 mb-4 mx-auto">
-              <Shield className="h-6 w-6 text-green-600" />
-            </div>
-            <CardTitle className="text-xl font-semibold">Security & Privacy</CardTitle>
-            <CardDescription>
-              Your data protection is our top priority
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid md:grid-cols-2 gap-6">
-              <div className="space-y-3">
-                <div className="flex items-start gap-3">
-                  <div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0" />
-                  <p className="text-sm text-muted-foreground">
-                    Calendar credentials are stored securely and encrypted in our database
-                  </p>
-                </div>
-                <div className="flex items-start gap-3">
-                  <div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0" />
-                  <p className="text-sm text-muted-foreground">
-                    We only access your calendar to create events when appointments are booked
-                  </p>
-                </div>
-                <div className="flex items-start gap-3">
-                  <div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0" />
-                  <p className="text-sm text-muted-foreground">
-                    For Calendly, we only access scheduling links - never modify your settings
-                  </p>
-                </div>
-              </div>
-              <div className="space-y-3">
-                <div className="flex items-start gap-3">
-                  <div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0" />
-                  <p className="text-sm text-muted-foreground">
-                    Disconnect any integration at any time to immediately revoke access
-                  </p>
-                </div>
-                <div className="flex items-start gap-3">
-                  <div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0" />
-                  <p className="text-sm text-muted-foreground">
-                    All data transmission is encrypted and follows industry security standards
-                  </p>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
       </div>
     </div>
   );
