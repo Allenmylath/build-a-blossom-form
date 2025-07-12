@@ -79,6 +79,45 @@ const Integrations = () => {
     }
   };
 
+  const handleConnectCalendly = async () => {
+    if (!user?.id) return;
+    
+    setLoading(true);
+    try {
+      console.log('Initiating Calendly connection for user:', user.id);
+      
+      // Call Calendly Edge Function to get the auth URL
+      const { data, error } = await supabase.functions.invoke('calendly-oauth', {
+        body: { 
+          action: 'auth', 
+          user_id: user.id,
+          app_origin: window.location.origin
+        }
+      });
+
+      if (error) {
+        console.error('Calendly edge function error:', error);
+        throw error;
+      }
+
+      if (data?.authUrl) {
+        console.log('Redirecting to Calendly auth:', data.authUrl);
+        // Redirect to Calendly OAuth
+        window.location.href = data.authUrl;
+      } else {
+        throw new Error('No auth URL returned from Calendly Edge Function');
+      }
+    } catch (error) {
+      console.error('Calendly connection error:', error);
+      toast({
+        title: "Connection Failed",
+        description: "Failed to connect your Calendly account. Please try again.",
+        variant: "destructive",
+      });
+      setLoading(false);
+    }
+  };
+
   const handleDisconnectGoogleCalendar = async () => {
     if (!user?.id) return;
     
@@ -113,6 +152,38 @@ const Integrations = () => {
     }
   };
 
+  const handleDisconnectCalendly = async () => {
+    if (!user?.id) return;
+    
+    try {
+      console.log('Disconnecting Calendly for user:', user.id);
+      
+      const { data, error } = await supabase.functions.invoke('calendly-oauth', {
+        body: { 
+          action: 'disconnect', 
+          user_id: user.id 
+        }
+      });
+
+      if (error) {
+        console.error('Calendly disconnect error:', error);
+        throw error;
+      }
+
+      toast({
+        title: "Calendly Disconnected",
+        description: "Your Calendly account has been disconnected.",
+      });
+    } catch (error) {
+      console.error('Calendly disconnection error:', error);
+      toast({
+        title: "Disconnection Failed",
+        description: "Failed to disconnect your Calendly account. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const integrations = [
     {
       id: 'google-calendar',
@@ -139,13 +210,8 @@ const Integrations = () => {
       icon: '/lovable-uploads/fc819cd2-41b9-464b-975a-01ee9cb6307f.png',
       connected: false,
       connectedEmail: null,
-      onConnect: () => {
-        toast({
-          title: "Coming Soon",
-          description: "Calendly integration will be available soon!",
-        });
-      },
-      onDisconnect: () => {},
+      onConnect: handleConnectCalendly,
+      onDisconnect: handleDisconnectCalendly,
       loading: false,
       color: 'blue',
       howItWorks: [
