@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Calendar, CheckCircle, ArrowLeft, Link, AlertCircle } from 'lucide-react';
@@ -37,6 +37,10 @@ const Integrations = () => {
 
   const [loading, setLoading] = useState(false);
   const [debugInfo, setDebugInfo] = useState<any>(null);
+  
+  // Prevent duplicate OAuth processing
+  const oauthProcessingRef = useRef(false);
+  const processedCodesRef = useRef(new Set<string>());
 
   useEffect(() => {
     // Handle OAuth callbacks with detailed error logging
@@ -56,7 +60,9 @@ const Integrations = () => {
       fullState: state,
       extractedUserId: actualUserId,
       currentUserId: user?.id,
-      userIdMatch: user?.id === actualUserId // Use extracted user ID for comparison
+      userIdMatch: user?.id === actualUserId, // Use extracted user ID for comparison
+      oauthProcessing: oauthProcessingRef.current,
+      codeAlreadyProcessed: code ? processedCodesRef.current.has(code) : false
     });
 
     // Handle OAuth errors
@@ -73,11 +79,27 @@ const Integrations = () => {
 
     // Handle successful OAuth callback - use extracted user ID for comparison
     if (code && state && user?.id === actualUserId) {
+      // Prevent duplicate processing
+      if (oauthProcessingRef.current) {
+        console.log('OAuth callback already in progress, skipping duplicate request');
+        return;
+      }
+
+      if (processedCodesRef.current.has(code)) {
+        console.log('OAuth code already processed, skipping duplicate request');
+        return;
+      }
+
       console.log('Processing OAuth callback...', { 
         code: code.substring(0, 10) + '...', 
         state: state,
         extractedUserId: actualUserId 
       });
+
+      // Mark as processing and add code to processed set
+      oauthProcessingRef.current = true;
+      processedCodesRef.current.add(code);
+
       handleOAuthCallback(code, state);
     } else if (code && state && user?.id !== actualUserId) {
       console.warn('OAuth callback ignored - user ID mismatch:', {
@@ -219,6 +241,8 @@ const Integrations = () => {
       });
     } finally {
       setLoading(false);
+      // Reset processing flag
+      oauthProcessingRef.current = false;
       // Clear URL parameters
       window.history.replaceState({}, '', '/integrations');
     }
@@ -265,6 +289,10 @@ const Integrations = () => {
     if (!user?.id) return;
     
     setLoading(true);
+    
+    // Clear any previous processed codes before starting new OAuth
+    processedCodesRef.current.clear();
+    
     try {
       console.log('Initiating Calendly connection for user:', user.id);
       
@@ -340,6 +368,10 @@ const Integrations = () => {
 
   const handleDisconnectCalendly = async () => {
     if (!user?.id) return;
+    
+    // Clear processed codes when disconnecting
+    processedCodesRef.current.clear();
+    oauthProcessingRef.current = false;
     
     try {
       console.log('Disconnecting Calendly for user:', user.id);
@@ -526,10 +558,10 @@ const Integrations = () => {
                   <div className="space-y-4">
                     <Button 
                       onClick={integration.onConnect}
-                      disabled={integration.loading}
+                      disabled={integration.loading || oauthProcessingRef.current}
                       className="w-full"
                     >
-                      {integration.loading ? "Connecting..." : `Connect ${integration.name}`}
+                      {integration.loading || oauthProcessingRef.current ? "Connecting..." : `Connect ${integration.name}`}
                     </Button>
                   </div>
                 )}
