@@ -35,23 +35,12 @@ export const AppointmentBookingField: React.FC<AppointmentBookingFieldProps> = (
   const [formOwner, setFormOwner] = useState<any>(null);
   const [loadingFormOwner, setLoadingFormOwner] = useState(true);
   
-  // For authenticated users, use their own integrations
-  const { isConnected: userCalendarConnected, calendarEmail: userCalendarEmail, loading: userCalendarLoading } = useCalendarIntegration(user);
-  const { isConnected: userCalendlyConnected, calendlyEmail: userCalendlyEmail, calendlyUserUri: userCalendlyUserUri, loading: userCalendlyLoading } = useCalendlyIntegration(user);
+  // Determine which user to use for integrations
+  const integrationUser = user || formOwner;
   
-  // For shared forms, use form owner's integrations
-  const { isConnected: ownerCalendarConnected, calendarEmail: ownerCalendarEmail, loading: ownerCalendarLoading } = useCalendarIntegration(formOwner);
-  const { isConnected: ownerCalendlyConnected, calendlyEmail: ownerCalendlyEmail, calendlyUserUri: ownerCalendlyUserUri, loading: ownerCalendlyLoading } = useCalendlyIntegration(formOwner);
-  
-  // Determine which integrations to use
-  const isOwnerMode = !user && formOwner;
-  const calendarConnected = isOwnerMode ? ownerCalendarConnected : userCalendarConnected;
-  const calendarEmail = isOwnerMode ? ownerCalendarEmail : userCalendarEmail;
-  const calendarLoading = isOwnerMode ? ownerCalendarLoading : userCalendarLoading;
-  const calendlyConnected = isOwnerMode ? ownerCalendlyConnected : userCalendlyConnected;
-  const calendlyEmail = isOwnerMode ? ownerCalendlyEmail : userCalendlyEmail;
-  const calendlyUserUri = isOwnerMode ? ownerCalendlyUserUri : userCalendlyUserUri;
-  const calendlyLoading = isOwnerMode ? ownerCalendlyLoading : userCalendlyLoading;
+  // Use single hooks instead of multiple conditional hooks to avoid re-render issues
+  const { isConnected: calendarConnected, calendarEmail, loading: calendarLoading } = useCalendarIntegration(integrationUser);
+  const { isConnected: calendlyConnected, calendlyEmail, calendlyUserUri, loading: calendlyLoading } = useCalendlyIntegration(integrationUser);
   
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(value?.date ? new Date(value.date) : undefined);
   const [selectedTime, setSelectedTime] = useState<string>(value?.time || '');
@@ -234,7 +223,8 @@ export const AppointmentBookingField: React.FC<AppointmentBookingFieldProps> = (
           title: field.label,
           description: config.bookingNotice || 'Appointment booked through form',
           // Pass form owner ID for shared forms
-          ownerId: isOwnerMode ? formOwner.id : undefined,
+          // Pass form owner ID for shared forms when user is not authenticated
+          ownerId: !user && formOwner ? formOwner.id : undefined,
           // Include user info if available for prefill
           userInfo: user ? {
             name: user.user_metadata?.full_name || '',

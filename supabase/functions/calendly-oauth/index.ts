@@ -96,18 +96,18 @@ serve(async (req) => {
 
       // Store the integration in the database
       const { error: insertError } = await supabase
-        .from('calendar_integrations')
+        .from('calendly_integrations')
         .upsert({
           user_id: state,
-          provider: 'calendly',
           access_token_encrypted: tokenData.access_token, // In production, encrypt this
           refresh_token_encrypted: tokenData.refresh_token || null,
-          calendar_email: userData.resource.email,
-          calendar_id: userData.resource.uri,
+          calendly_email: userData.resource.email,
+          calendly_user_uri: userData.resource.uri,
+          organization_uri: userData.resource.current_organization,
           expires_at: tokenData.expires_in ? new Date(Date.now() + tokenData.expires_in * 1000).toISOString() : null,
           is_active: true,
         }, {
-          onConflict: 'user_id,provider',
+          onConflict: 'user_id',
         });
 
       if (insertError) {
@@ -128,10 +128,9 @@ serve(async (req) => {
     if (action === 'disconnect') {
       // Deactivate the integration
       const { error: updateError } = await supabase
-        .from('calendar_integrations')
+        .from('calendly_integrations')
         .update({ is_active: false })
-        .eq('user_id', user_id)
-        .eq('provider', 'calendly');
+        .eq('user_id', user_id);
 
       if (updateError) {
         console.error('Database update error:', updateError);
@@ -146,6 +145,43 @@ serve(async (req) => {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
         }
       );
+    }
+
+    if (action === 'check_status') {
+      // Check if user has an active Calendly integration
+      const { data: integration, error: queryError } = await supabase
+        .from('calendly_integrations')
+        .select('*')
+        .eq('user_id', user_id)
+        .eq('is_active', true)
+        .maybeSingle();
+
+      if (queryError) {
+        console.error('Database query error:', queryError);
+        throw new Error(`Failed to check integration status: ${queryError.message}`);
+      }
+
+      if (integration) {
+        console.log('Found active Calendly integration for user:', user_id);
+        return new Response(
+          JSON.stringify({ 
+            connected: true,
+            email: integration.calendly_email,
+            user_uri: integration.calendly_user_uri 
+          }),
+          { 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        );
+      } else {
+        console.log('No active Calendly integration found for user:', user_id);
+        return new Response(
+          JSON.stringify({ connected: false }),
+          { 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        );
+      }
     }
 
     throw new Error(`Unknown action: ${action}`);
