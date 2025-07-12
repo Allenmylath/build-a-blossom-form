@@ -26,7 +26,7 @@ serve(async (req) => {
 
     if (action === 'auth') {
       // Generate OAuth URL for Calendly
-      const redirectUri = `${app_origin}/integrations`;
+      const redirectUri = 'https://modformz.com/integrations';
       const scope = 'default'; // Calendly uses 'default' scope for basic access
       const authUrl = `https://auth.calendly.com/oauth/authorize?` +
         `client_id=${calendlyClientId}&` +
@@ -50,7 +50,7 @@ serve(async (req) => {
         throw new Error('No authorization code provided');
       }
 
-      const redirectUri = `${app_origin}/integrations`;
+      const redirectUri = 'https://modformz.com/integrations';
 
       // Exchange code for access token
       const tokenResponse = await fetch('https://auth.calendly.com/oauth/token', {
