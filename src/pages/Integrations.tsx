@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { useCalendarIntegration } from '@/hooks/useCalendarIntegration';
@@ -16,6 +16,10 @@ const Integrations: React.FC = () => {
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
   const [processing, setProcessing] = useState(false);
+  
+  // Prevent duplicate OAuth callback processing
+  const callbackProcessed = useRef(false);
+  const currentCallbackId = useRef<string | null>(null);
   
   const {
     isConnected: calendarConnected,
@@ -36,8 +40,22 @@ const Integrations: React.FC = () => {
   } = useCalendlyIntegration(user);
 
   const handleOAuthCallback = async (code: string, state: string) => {
+    // Create unique identifier for this callback
+    const callbackId = `${code.substring(0, 8)}_${state.substring(0, 8)}`;
+    
+    // Prevent duplicate processing of the same callback
+    if (currentCallbackId.current === callbackId) {
+      console.log('Callback already processed for this code/state combination');
+      return;
+    }
+    
     if (!user?.id) {
       console.error('No user ID available for callback');
+      toast({
+        title: "Authentication Error",
+        description: "No user session found. Please sign in and try again.",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -52,12 +70,17 @@ const Integrations: React.FC = () => {
         description: "Invalid authentication state. Please try again.",
         variant: "destructive",
       });
+      // Clean up URL even on error
+      window.history.replaceState({}, '', '/integrations');
       return;
     }
 
     try {
+      // Mark this callback as being processed
+      currentCallbackId.current = callbackId;
       setProcessing(true);
-      console.log('Processing OAuth callback...');
+      
+      console.log('Processing OAuth callback...', { code: code.substring(0, 8) + '...', state });
       
       const result = await handleCalendlyCallback(code, state);
       
@@ -67,32 +90,62 @@ const Integrations: React.FC = () => {
           description: "Your Calendly account has been successfully connected!",
         });
         setCalendlyConnected(true);
-        // Clean up URL parameters
+        
+        // Clean up URL parameters after successful connection
         window.history.replaceState({}, '', '/integrations');
       }
     } catch (error) {
       console.error('OAuth callback error:', error);
+      
+      // Provide more specific error messages
+      let errorMessage = "Failed to connect Calendly";
+      if (error instanceof Error) {
+        if (error.message.includes('expired') || error.message.includes('already used')) {
+          errorMessage = "Authorization expired. Please try connecting again.";
+        } else if (error.message.includes('invalid_grant')) {
+          errorMessage = "Invalid authorization. Please start the connection process again.";
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
       toast({
         title: "Connection Failed",
-        description: error instanceof Error ? error.message : "Failed to connect Calendly",
+        description: errorMessage,
         variant: "destructive",
       });
+      
       // Clean up URL parameters even on error
       window.history.replaceState({}, '', '/integrations');
     } finally {
       setProcessing(false);
+      // Reset callback tracking after processing
+      setTimeout(() => {
+        currentCallbackId.current = null;
+      }, 1000);
     }
   };
 
   const handleCalendlyConnect = async () => {
     try {
       setProcessing(true);
+      console.log('Initiating Calendly connection...');
       await initiateCalendlyConnection();
     } catch (error) {
       console.error('Calendly connection error:', error);
+      
+      let errorMessage = "Failed to start Calendly connection";
+      if (error instanceof Error) {
+        if (error.message.includes('not authenticated')) {
+          errorMessage = "Please sign in first";
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
       toast({
         title: "Connection Failed",
-        description: error instanceof Error ? error.message : "Failed to start Calendly connection",
+        description: errorMessage,
         variant: "destructive",
       });
       setProcessing(false);
@@ -120,27 +173,43 @@ const Integrations: React.FC = () => {
   };
 
   useEffect(() => {
+    // Prevent multiple runs of the same callback processing
+    if (callbackProcessed.current) {
+      return;
+    }
+
     // Handle OAuth callbacks
     const code = searchParams.get('code');
     const state = searchParams.get('state');
     const error = searchParams.get('error');
     const errorDescription = searchParams.get('error_description');
 
-    // Handle OAuth errors
+    // Handle OAuth errors first
     if (error) {
+      console.error('OAuth error received:', { error, errorDescription });
       toast({
         title: "OAuth Error",
         description: errorDescription || error,
         variant: "destructive",
       });
-      // Clear URL parameters
+      // Mark as processed and clear URL
+      callbackProcessed.current = true;
       window.history.replaceState({}, '', '/integrations');
       return;
     }
 
     // Handle successful OAuth callback
-    if (code && state && user?.id) {
+    if (code && state && user?.id && !processing) {
+      console.log('OAuth callback detected, processing...', { 
+        hasCode: !!code, 
+        hasState: !!state, 
+        hasUser: !!user?.id,
+        processing 
+      });
+      
+      callbackProcessed.current = true; // Mark as processed immediately
       handleOAuthCallback(code, state);
+      return;
     }
 
     // Handle legacy URL parameters for backward compatibility
@@ -150,7 +219,9 @@ const Integrations: React.FC = () => {
         description: "Your Google Calendar has been successfully connected!",
       });
       setCalendarConnected(true);
+      callbackProcessed.current = true;
       window.history.replaceState({}, '', '/integrations');
+      return;
     }
 
     if (searchParams.get('calendly_connected') === 'true') {
@@ -160,7 +231,9 @@ const Integrations: React.FC = () => {
       });
       setCalendlyConnected(true);
       refreshCalendlyStatus();
+      callbackProcessed.current = true;
       window.history.replaceState({}, '', '/integrations');
+      return;
     }
 
     // Handle connection errors
@@ -171,7 +244,9 @@ const Integrations: React.FC = () => {
         description: `Error: ${calendarError}`,
         variant: "destructive",
       });
+      callbackProcessed.current = true;
       window.history.replaceState({}, '', '/integrations');
+      return;
     }
 
     const calendlyErrorParam = searchParams.get('calendly_error');
@@ -181,9 +256,24 @@ const Integrations: React.FC = () => {
         description: `Error: ${calendlyErrorParam}`,
         variant: "destructive",
       });
+      callbackProcessed.current = true;
       window.history.replaceState({}, '', '/integrations');
+      return;
     }
-  }, [searchParams, user?.id, setCalendarConnected, setCalendlyConnected, refreshCalendlyStatus, toast]);
+
+  }, [searchParams, user?.id, processing]);
+
+  // Reset callback processed flag when user changes or when navigating away from callback
+  useEffect(() => {
+    const hasCallbackParams = searchParams.has('code') || searchParams.has('state') || 
+                              searchParams.has('error') || searchParams.has('calendar_connected') || 
+                              searchParams.has('calendly_connected');
+    
+    if (!hasCallbackParams) {
+      callbackProcessed.current = false;
+      currentCallbackId.current = null;
+    }
+  }, [searchParams]);
 
   if (!user) {
     return (
