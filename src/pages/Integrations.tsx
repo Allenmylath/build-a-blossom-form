@@ -4,7 +4,7 @@ import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { useCalendarIntegration } from '@/hooks/useCalendarIntegration';
 import { useCalendlyIntegration } from '@/hooks/useCalendlyIntegration';
 import { useToast } from '@/hooks/use-toast';
-import { CalendarConnection } from '@/components/CalendarConnection';
+import { GoogleCalendarConnection } from '@/components/GoogleCalendarConnection';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -380,12 +380,45 @@ const Integrations: React.FC = () => {
               
               {/* Content */}
               <CardContent className="p-8 bg-gradient-to-b from-white to-gray-50">
-                <CalendarConnection
-                  isConnected={calendarConnected}
-                  calendarEmail={calendarEmail}
-                  onConnectionChange={setCalendarConnected}
-                  user={user}
-                />
+                {calendarConnected ? (
+                  <div className="text-center space-y-6">
+                    <div className="relative inline-block">
+                      <div className="absolute inset-0 bg-emerald-500 rounded-full blur-lg opacity-30 animate-pulse"></div>
+                      <div className="relative w-20 h-20 mx-auto bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-full flex items-center justify-center shadow-xl">
+                        <Zap className="h-10 w-10 text-white" />
+                      </div>
+                    </div>
+                    <div>
+                      <h4 className="text-xl font-bold text-gray-900 mb-2">Integration Active</h4>
+                      <p className="text-gray-600 mb-6">Your Google Calendar is connected and ready for appointment booking</p>
+                      <GoogleCalendarConnection
+                        isConnected={calendarConnected}
+                        calendarEmail={calendarEmail}
+                        onConnectionChange={setCalendarConnected}
+                        user={user}
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center space-y-6">
+                    <div className="relative inline-block">
+                      <div className="absolute inset-0 bg-blue-500 rounded-full blur-lg opacity-20"></div>
+                      <div className="relative w-20 h-20 mx-auto bg-gradient-to-br from-gray-100 to-gray-200 rounded-full border-4 border-dashed border-gray-300 flex items-center justify-center">
+                        <Calendar className="h-10 w-10 text-gray-400" />
+                      </div>
+                    </div>
+                    <div>
+                      <h4 className="text-xl font-bold text-gray-900 mb-2">Ready to Connect</h4>
+                      <p className="text-gray-600 mb-6">Connect your Google Calendar to enable appointment booking in your forms</p>
+                      <GoogleCalendarConnection
+                        isConnected={calendarConnected}
+                        calendarEmail={calendarEmail}
+                        onConnectionChange={setCalendarConnected}
+                        user={user}
+                      />
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
