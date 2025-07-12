@@ -19,11 +19,12 @@ export const useCalendlyIntegration = (user: User | null) => {
       setError(null);
       console.log('Checking Calendly integration status for user:', user.id);
       
-      // Query the dedicated calendly_integrations table
+      // Query the dedicated calendly_integrations table  
       const { data, error: dbError } = await supabase
-        .from('calendly_integrations')
-        .select('is_active, calendly_email, calendly_user_uri, created_at')
+        .from('calendar_integrations')
+        .select('calendar_email, calendar_id, created_at')
         .eq('user_id', user.id)
+        .eq('provider', 'calendly')
         .eq('is_active', true)
         .maybeSingle();
 
@@ -36,8 +37,8 @@ export const useCalendlyIntegration = (user: User | null) => {
       if (data) {
         console.log('Found active Calendly integration');
         setIsConnected(true);
-        setCalendlyEmail(data.calendly_email);
-        setCalendlyUserUri(data.calendly_user_uri);
+        setCalendlyEmail(data.calendar_email);
+        setCalendlyUserUri(data.calendar_id);
       } else {
         console.log('No active Calendly integration found');
         setIsConnected(false);

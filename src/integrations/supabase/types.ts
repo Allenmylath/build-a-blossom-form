@@ -56,6 +56,48 @@ export type Database = {
         }
         Relationships: []
       }
+      calendly_integrations: {
+        Row: {
+          access_token_encrypted: string
+          calendly_email: string
+          calendly_user_uri: string
+          created_at: string | null
+          expires_at: string | null
+          id: string
+          is_active: boolean | null
+          organization_uri: string | null
+          refresh_token_encrypted: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          access_token_encrypted: string
+          calendly_email: string
+          calendly_user_uri: string
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          organization_uri?: string | null
+          refresh_token_encrypted?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          access_token_encrypted?: string
+          calendly_email?: string
+          calendly_user_uri?: string
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          organization_uri?: string | null
+          refresh_token_encrypted?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       chat_api_configs: {
         Row: {
           api_key_encrypted: string | null

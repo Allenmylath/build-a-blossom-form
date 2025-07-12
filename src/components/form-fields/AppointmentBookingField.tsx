@@ -58,7 +58,7 @@ export const AppointmentBookingField: React.FC<AppointmentBookingFieldProps> = (
     script.async = true;
     
     script.onload = () => {
-      setCalendlyWidget(window.Calendly);
+      setCalendlyWidget((window as any).Calendly);
     };
 
     document.head.appendChild(script);
