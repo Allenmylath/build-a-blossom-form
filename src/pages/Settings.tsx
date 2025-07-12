@@ -225,7 +225,7 @@ const Settings = ({ user, onSignOut }: SettingsProps) => {
         </div>
 
         <Tabs defaultValue="account" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="account" className="flex items-center">
               <User className="w-4 h-4 mr-2" />
               Account
@@ -233,10 +233,6 @@ const Settings = ({ user, onSignOut }: SettingsProps) => {
             <TabsTrigger value="billing" className="flex items-center">
               <CreditCard className="w-4 h-4 mr-2" />
               Billing
-            </TabsTrigger>
-            <TabsTrigger value="integrations" className="flex items-center">
-              <Link className="w-4 h-4 mr-2" />
-              Integrations
             </TabsTrigger>
             <TabsTrigger value="knowledge" className="flex items-center">
               <FileText className="w-4 h-4 mr-2" />
@@ -338,79 +334,6 @@ const Settings = ({ user, onSignOut }: SettingsProps) => {
             </Card>
           </TabsContent>
 
-          <TabsContent value="integrations">
-            <Card>
-              <CardHeader>
-                <CardTitle>Integrations</CardTitle>
-                <CardDescription>
-                  Connect external services to enhance your form functionality
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="border rounded-lg p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center space-x-3">
-                      <Calendar className="w-8 h-8 text-blue-600" />
-                      <div>
-                        <h3 className="font-semibold text-lg">Google Calendar</h3>
-                        <p className="text-gray-600 text-sm">
-                          Connect your Google Calendar for appointment booking
-                        </p>
-                      </div>
-                    </div>
-                    {calendarConnected && (
-                      <CheckCircle className="w-6 h-6 text-green-600" />
-                    )}
-                  </div>
-                  
-                  {calendarConnected ? (
-                    <div className="space-y-4">
-                      <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                        <div className="flex items-center space-x-2">
-                          <CheckCircle className="w-5 h-5 text-green-600" />
-                          <span className="text-green-800 font-medium">Connected</span>
-                        </div>
-                        <p className="text-green-700 text-sm mt-1">
-                          {calendarEmail ? `Connected as ${calendarEmail}` : 'Your Google Calendar is connected and ready for appointment booking.'}
-                        </p>
-                      </div>
-                      <Button 
-                        variant="outline" 
-                        onClick={handleDisconnectGoogleCalendar}
-                        className="w-full"
-                      >
-                        Disconnect Calendar
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      <p className="text-gray-600 text-sm">
-                        Connect your Google Calendar to enable appointment booking functionality. 
-                        This will allow users to schedule meetings directly through your forms.
-                      </p>
-                      <Button 
-                        onClick={handleConnectGoogleCalendar}
-                        disabled={calendarLoading}
-                        className="w-full"
-                      >
-                        {calendarLoading ? "Connecting..." : "Connect Google Calendar"}
-                      </Button>
-                    </div>
-                  )}
-                </div>
-                
-                <div className="text-sm text-gray-500 bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <h4 className="font-medium text-blue-900 mb-2">How it works:</h4>
-                  <ul className="space-y-1 text-blue-800">
-                    <li>• Forms can include appointment booking fields</li>
-                    <li>• Users can select available time slots</li>
-                    <li>• Appointments are automatically added to your calendar</li>
-                    <li>• Email confirmations are sent to both parties</li>
-                  </ul>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
 
           <TabsContent value="knowledge">
             <Card>

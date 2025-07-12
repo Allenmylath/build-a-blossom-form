@@ -17,6 +17,7 @@ const navigationItems = [
   { title: "Forms", url: "/forms", icon: FileText },
   { title: "Chat Forms", url: "/chat-forms", icon: MessageSquare },
   { title: "Chat Design", url: "/chat-design", icon: Workflow },
+  { title: "Integrations", url: "/integrations", icon: Workflow },
   { title: "Settings", url: "/settings", icon: Settings },
   { title: "Pricing", url: "/pricing", icon: CreditCard },
 ];

@@ -11,6 +11,7 @@ import { MainHeader } from '@/components/MainHeader';
 import Forms from '@/pages/Forms';
 import ChatForms from '@/pages/ChatForms';
 import ChatDesign from '@/pages/ChatDesign';
+import Integrations from '@/pages/Integrations';
 import Settings from '@/pages/Settings';
 import KnowledgeBase from '@/pages/KnowledgeBase';
 import Pricing from '@/pages/Pricing';
@@ -97,6 +98,20 @@ function App() {
               <AppLayout>
                 {user ? (
                   <ChatDesign />
+                ) : (
+                  <FormBuilderWithAuth />
+                )}
+              </AppLayout>
+            } 
+          />
+          
+          {/* Integrations route */}
+          <Route 
+            path="/integrations" 
+            element={
+              <AppLayout>
+                {user ? (
+                  <Integrations />
                 ) : (
                   <FormBuilderWithAuth />
                 )}
