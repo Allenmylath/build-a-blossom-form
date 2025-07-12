@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { FormField } from '@/types/form';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -34,33 +34,35 @@ export const AppointmentBookingField: React.FC<AppointmentBookingFieldProps> = (
   const { user } = useSupabaseAuth();
   const [formOwner, setFormOwner] = useState<any>(null);
   const [loadingFormOwner, setLoadingFormOwner] = useState(true);
-  
-  // Determine which user to use for integrations - memoize to prevent re-renders
-  const integrationUser = useMemo(() => {
-    return user || formOwner;
-  }, [user, formOwner]);
-  
-  // Use single hooks with the memoized user to avoid re-render issues
-  const { isConnected: calendarConnected, calendarEmail, loading: calendarLoading } = useCalendarIntegration(integrationUser);
-  const { isConnected: calendlyConnected, calendlyEmail, calendlyUserUri, loading: calendlyLoading } = useCalendlyIntegration(integrationUser);
-  
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(value?.date ? new Date(value.date) : undefined);
   const [selectedTime, setSelectedTime] = useState<string>(value?.time || '');
   const [bookingStatus, setBookingStatus] = useState<'idle' | 'booking' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [userTimezone, setUserTimezone] = useState<string>('');
-  const [activeTab, setActiveTab] = useState<string>('google');
+  const [activeTab, setActiveTab] = useState<string>('');
   const [calendlyWidget, setCalendlyWidget] = useState<any>(null);
-
-  // Fetch form owner when user is not authenticated (shared form) - with proper dependencies
+  
+  // Refs to prevent unnecessary re-renders
+  const formOwnerFetched = useRef(false);
+  const calendlyScriptLoaded = useRef(false);
+  const calendlyWidgetInitialized = useRef(false);
+  
+  // Stable form owner fetching - only run once per formId
   useEffect(() => {
+    let isMounted = true;
+    
     const fetchFormOwner = async () => {
-      // Only fetch if user is not authenticated and formId exists and not already loading/loaded
-      if (user || !formId || formOwner) {
+      // Only fetch if:
+      // 1. User is not authenticated 
+      // 2. FormId exists
+      // 3. Haven't already fetched for this formId
+      // 4. Component is still mounted
+      if (user || !formId || formOwnerFetched.current) {
         setLoadingFormOwner(false);
         return;
       }
       
+      formOwnerFetched.current = true;
       setLoadingFormOwner(true);
       
       try {
@@ -71,41 +73,93 @@ export const AppointmentBookingField: React.FC<AppointmentBookingFieldProps> = (
           .eq('is_public', true)
           .single();
           
+        if (!isMounted) return;
+        
         if (error) {
           console.error('Error fetching form owner:', error);
+          setLoadingFormOwner(false);
           return;
         }
         
         if (formData) {
-          // Create a minimal user object for the owner
           setFormOwner({ id: formData.user_id });
         }
       } catch (error) {
         console.error('Error fetching form owner:', error);
       } finally {
-        setLoadingFormOwner(false);
+        if (isMounted) {
+          setLoadingFormOwner(false);
+        }
       }
     };
     
     fetchFormOwner();
-  }, [user, formId, formOwner]); // Added formOwner to dependencies to prevent re-fetching
+    
+    return () => {
+      isMounted = false;
+    };
+  }, [user, formId]); // Stable dependencies only
 
-  // Detect user timezone
+  // Reset form owner fetched flag when formId changes
+  useEffect(() => {
+    formOwnerFetched.current = false;
+  }, [formId]);
+  
+  // Determine which user to use for integrations - with stable dependencies
+  const integrationUser = useMemo(() => {
+    return user || formOwner;
+  }, [user, formOwner?.id]); // Only depend on formOwner.id to avoid re-renders
+
+  // Use integration hooks with stable user
+  const { isConnected: calendarConnected, calendarEmail, loading: calendarLoading } = useCalendarIntegration(integrationUser);
+  const { isConnected: calendlyConnected, calendlyEmail, calendlyUserUri, loading: calendlyLoading } = useCalendlyIntegration(integrationUser);
+
+  // Detect user timezone once
   useEffect(() => {
     const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
     setUserTimezone(timezone);
   }, []);
 
-  // Load Calendly widget script
-  useEffect(() => {
-    if (!calendlyConnected || !calendlyUserUri) return;
+  // Stable available tabs calculation
+  const availableTabs = useMemo(() => {
+    const tabs = [];
+    if (calendarConnected) {
+      tabs.push({ value: 'google', label: 'Google Calendar', email: calendarEmail });
+    }
+    if (calendlyConnected) {
+      tabs.push({ value: 'calendly', label: 'Calendly', email: calendlyEmail });
+    }
+    return tabs;
+  }, [calendarConnected, calendlyConnected, calendarEmail, calendlyEmail]);
 
+  // Set default active tab - with proper guards to prevent loops
+  useEffect(() => {
+    if (availableTabs.length > 0 && !activeTab) {
+      setActiveTab(availableTabs[0].value);
+    }
+  }, [availableTabs.length, activeTab]); // Only update when tabs length changes or activeTab is empty
+
+  // Load Calendly widget script once
+  useEffect(() => {
+    if (!calendlyConnected || !calendlyUserUri || calendlyScriptLoaded.current) {
+      return;
+    }
+
+    calendlyScriptLoaded.current = true;
+    
     const script = document.createElement('script');
     script.src = 'https://assets.calendly.com/assets/external/widget.js';
     script.async = true;
     
     script.onload = () => {
-      setCalendlyWidget((window as any).Calendly);
+      if ((window as any).Calendly) {
+        setCalendlyWidget((window as any).Calendly);
+      }
+    };
+
+    script.onerror = () => {
+      console.error('Failed to load Calendly script');
+      calendlyScriptLoaded.current = false;
     };
 
     document.head.appendChild(script);
@@ -115,82 +169,123 @@ export const AppointmentBookingField: React.FC<AppointmentBookingFieldProps> = (
       if (existingScript && existingScript.parentNode) {
         existingScript.parentNode.removeChild(existingScript);
       }
+      calendlyScriptLoaded.current = false;
     };
-  }, [calendlyConnected, calendlyUserUri]);
+  }, [calendlyConnected, calendlyUserUri]); // Stable dependencies
 
-  // Initialize Calendly widget
+  // Initialize Calendly widget with proper cleanup and guards
   useEffect(() => {
-    if (!calendlyWidget || !calendlyUserUri || !calendlyConnected || activeTab !== 'calendly') return;
+    let isMounted = true;
+    let messageListener: ((e: MessageEvent) => void) | null = null;
 
-    const widgetContainer = document.getElementById(`calendly-${field.id}`);
-    if (!widgetContainer) return;
+    const initializeWidget = () => {
+      // Guard conditions
+      if (!calendlyWidget || 
+          !calendlyUserUri || 
+          !calendlyConnected || 
+          activeTab !== 'calendly' ||
+          calendlyWidgetInitialized.current ||
+          !isMounted) {
+        return;
+      }
 
-    try {
-      widgetContainer.innerHTML = '';
+      const widgetContainer = document.getElementById(`calendly-${field.id}`);
+      if (!widgetContainer) return;
 
-      const calendlyOptions = {
-        url: calendlyUserUri,
-        parentElement: widgetContainer,
-        prefill: user ? {
-          name: user.user_metadata?.full_name || '',
-          email: user.email || ''
-        } : {},
-        utm: {
-          utmCampaign: 'modformz-form',
-          utmSource: formId || 'form',
-          utmMedium: 'embed'
+      try {
+        calendlyWidgetInitialized.current = true;
+        widgetContainer.innerHTML = '';
+
+        const calendlyOptions = {
+          url: calendlyUserUri,
+          parentElement: widgetContainer,
+          prefill: user ? {
+            name: user.user_metadata?.full_name || '',
+            email: user.email || ''
+          } : {},
+          utm: {
+            utmCampaign: 'modformz-form',
+            utmSource: formId || 'form',
+            utmMedium: 'embed'
+          }
+        };
+
+        calendlyWidget.initInlineWidget(calendlyOptions);
+
+        messageListener = (e: MessageEvent) => {
+          if (e.origin !== 'https://calendly.com') return;
+
+          if (e.data.event === 'calendly.event_scheduled') {
+            const eventData = e.data.payload;
+            
+            const bookingData = {
+              type: 'calendly',
+              event_uri: eventData.event.uri,
+              event_name: eventData.event.name,
+              start_time: eventData.event.start_time,
+              end_time: eventData.event.end_time,
+              location: eventData.event.location,
+              invitee_uri: eventData.invitee.uri,
+              invitee_email: eventData.invitee.email,
+              invitee_name: eventData.invitee.name,
+              status: 'scheduled',
+              scheduled_at: new Date().toISOString()
+            };
+
+            if (isMounted) {
+              onChange(bookingData);
+              setBookingStatus('success');
+            }
+          }
+        };
+
+        window.addEventListener('message', messageListener);
+
+      } catch (error) {
+        console.error('Error initializing Calendly widget:', error);
+        if (isMounted) {
+          setErrorMessage('Failed to load Calendly booking widget');
+          setBookingStatus('error');
         }
-      };
+        calendlyWidgetInitialized.current = false;
+      }
+    };
 
-      calendlyWidget.initInlineWidget(calendlyOptions);
+    // Small delay to ensure DOM is ready
+    const timeoutId = setTimeout(initializeWidget, 100);
 
-      const handleCalendlyEvent = (e: MessageEvent) => {
-        if (e.origin !== 'https://calendly.com') return;
+    return () => {
+      isMounted = false;
+      clearTimeout(timeoutId);
+      if (messageListener) {
+        window.removeEventListener('message', messageListener);
+      }
+      calendlyWidgetInitialized.current = false;
+    };
+  }, [calendlyWidget, calendlyUserUri, calendlyConnected, activeTab, field.id, user?.email, user?.user_metadata?.full_name, formId, onChange]);
 
-        if (e.data.event === 'calendly.event_scheduled') {
-          const eventData = e.data.payload;
-          
-          const bookingData = {
-            type: 'calendly',
-            event_uri: eventData.event.uri,
-            event_name: eventData.event.name,
-            start_time: eventData.event.start_time,
-            end_time: eventData.event.end_time,
-            location: eventData.event.location,
-            invitee_uri: eventData.invitee.uri,
-            invitee_email: eventData.invitee.email,
-            invitee_name: eventData.invitee.name,
-            status: 'scheduled',
-            scheduled_at: new Date().toISOString()
-          };
-
-          onChange(bookingData);
-          setBookingStatus('success');
-        }
-      };
-
-      window.addEventListener('message', handleCalendlyEvent);
-
-      return () => {
-        window.removeEventListener('message', handleCalendlyEvent);
-      };
-
-    } catch (error) {
-      console.error('Error initializing Calendly widget:', error);
-      setErrorMessage('Failed to load Calendly booking widget');
-      setBookingStatus('error');
+  // Reset Calendly widget when tab changes
+  useEffect(() => {
+    if (activeTab !== 'calendly') {
+      calendlyWidgetInitialized.current = false;
     }
-  }, [calendlyWidget, calendlyUserUri, calendlyConnected, activeTab, field.id, user, formId, onChange]);
+  }, [activeTab]);
 
-  // Default configuration
-  const config = field.appointmentConfig || {
-    duration: 30,
-    workingHours: { start: '09:00', end: '17:00' },
-    bookingNotice: 'Please select your preferred date and time for the appointment.'
-  };
+  // Default configuration - memoized to prevent re-renders
+  const config = useMemo(() => {
+    return field.appointmentConfig || {
+      duration: 30,
+      workingHours: { start: '09:00', end: '17:00' },
+      bookingNotice: 'Please select your preferred date and time for the appointment.'
+    };
+  }, [field.appointmentConfig]);
 
-  // Generate available time slots for Google Calendar
-  const generateTimeSlots = () => {
+  // Generate available time slots for Google Calendar - memoized
+  const timeSlots = useMemo(() => {
+    if (config.availableTimeSlots) {
+      return config.availableTimeSlots;
+    }
+
     const slots = [];
     const [startHour, startMinute] = config.workingHours!.start.split(':').map(Number);
     const [endHour, endMinute] = config.workingHours!.end.split(':').map(Number);
@@ -200,17 +295,14 @@ export const AppointmentBookingField: React.FC<AppointmentBookingFieldProps> = (
     
     while (isBefore(currentTime, endTime)) {
       slots.push(format(currentTime, 'HH:mm'));
-      currentTime = addDays(currentTime, 0);
-      currentTime.setMinutes(currentTime.getMinutes() + (config.duration || 30));
+      currentTime = new Date(currentTime.getTime() + (config.duration || 30) * 60000);
     }
     
     return slots;
-  };
+  }, [config.availableTimeSlots, config.workingHours?.start, config.workingHours?.end, config.duration]);
 
-  const timeSlots = config.availableTimeSlots || generateTimeSlots();
-
-  // Handle Google Calendar booking
-  const handleGoogleCalendarBooking = async () => {
+  // Handle Google Calendar booking - useCallback to prevent re-renders
+  const handleGoogleCalendarBooking = useCallback(async () => {
     if (!selectedDate || !selectedTime || !formId) return;
 
     setBookingStatus('booking');
@@ -226,10 +318,7 @@ export const AppointmentBookingField: React.FC<AppointmentBookingFieldProps> = (
           duration: config.duration || 30,
           title: field.label,
           description: config.bookingNotice || 'Appointment booked through form',
-          // Pass form owner ID for shared forms
-          // Pass form owner ID for shared forms when user is not authenticated
           ownerId: !user && formOwner ? formOwner.id : undefined,
-          // Include user info if available for prefill
           userInfo: user ? {
             name: user.user_metadata?.full_name || '',
             email: user.email || ''
@@ -264,23 +353,16 @@ export const AppointmentBookingField: React.FC<AppointmentBookingFieldProps> = (
       setErrorMessage(error.message || 'Failed to book appointment. Please try again.');
       setBookingStatus('error');
     }
-  };
+  }, [selectedDate, selectedTime, formId, field.id, field.label, config.duration, config.bookingNotice, user, formOwner, onChange]);
 
-  const isDateDisabled = (date: Date) => {
+  // Date validation function - useCallback to prevent re-renders
+  const isDateDisabled = useCallback((date: Date) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     return isBefore(date, today) || date.getDay() === 0 || date.getDay() === 6;
-  };
+  }, []);
 
-  // Determine which tabs to show
-  const availableTabs = [];
-  if (calendarConnected) {
-    availableTabs.push({ value: 'google', label: 'Google Calendar', email: calendarEmail });
-  }
-  if (calendlyConnected) {
-    availableTabs.push({ value: 'calendly', label: 'Calendly', email: calendlyEmail });
-  }
-
+  // Loading state
   if (calendarLoading || calendlyLoading || loadingFormOwner) {
     return (
       <Card className="w-full">
@@ -294,9 +376,7 @@ export const AppointmentBookingField: React.FC<AppointmentBookingFieldProps> = (
     );
   }
 
-  // Remove the user authentication requirement for shared forms
-  // Now handled by checking form owner integrations
-
+  // No integrations available
   if (availableTabs.length === 0) {
     return (
       <Card className="w-full opacity-50">
@@ -319,6 +399,7 @@ export const AppointmentBookingField: React.FC<AppointmentBookingFieldProps> = (
     );
   }
 
+  // Success state
   if (bookingStatus === 'success' && value) {
     return (
       <Card className="w-full border-green-200 bg-green-50">
@@ -380,13 +461,6 @@ export const AppointmentBookingField: React.FC<AppointmentBookingFieldProps> = (
     );
   }
 
-  // Set default active tab - with proper dependencies to prevent infinite loops
-  useEffect(() => {
-    if (availableTabs.length > 0 && !activeTab) {
-      setActiveTab(availableTabs[0].value);
-    }
-  }, [availableTabs.length, activeTab]); // Only depend on length and activeTab state
-
   return (
     <Card className="w-full">
       <CardHeader>
@@ -401,7 +475,7 @@ export const AppointmentBookingField: React.FC<AppointmentBookingFieldProps> = (
       </CardHeader>
       
       <CardContent className="space-y-6">
-        {/* Integration Selection */}
+        {/* Multiple Integration Selection */}
         {availableTabs.length > 1 && (
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid w-full grid-cols-2">
@@ -547,6 +621,49 @@ export const AppointmentBookingField: React.FC<AppointmentBookingFieldProps> = (
                   disabled={!selectedDate || !selectedTime || bookingStatus === 'booking'}
                   className="w-full"
                 >
+                  {bookingStatus === 'booking' ? 'Booking...' : 'Book Appointment'}
+                </Button>
+              </div>
+            )}
+
+            {calendlyConnected && !calendarConnected && (
+              <div className="space-y-4">
+                {calendlyEmail && (
+                  <div className="flex items-center justify-center text-sm text-muted-foreground bg-muted/30 rounded-lg p-3">
+                    <CalendarIcon className="w-4 h-4 mr-2" />
+                    <span>Connected to {calendlyEmail}</span>
+                  </div>
+                )}
+
+                <div 
+                  id={`calendly-${field.id}`}
+                  className="w-full rounded-lg overflow-hidden border min-h-[630px]"
+                  style={{ height: '630px' }}
+                />
+              </div>
+            )}
+          </>
+        )}
+
+        {bookingStatus === 'error' && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              {errorMessage || 'Failed to book appointment. Please try again.'}
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {error && (
+          <p className="text-sm text-red-600">{error}</p>
+        )}
+      </CardContent>
+    </Card>
+  );
+};oogleCalendarBooking}
+                  disabled={!selectedDate || !selectedTime || bookingStatus === 'booking'}
+                  className="w-full"
+                >
                   {bookingStatus === 'booking' ? (
                     <>
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
@@ -592,7 +709,7 @@ export const AppointmentBookingField: React.FC<AppointmentBookingFieldProps> = (
                   </div>
                 )}
 
-                {/* Google Calendar Content - same as tab content above */}
+                {/* Google Calendar Content */}
                 <div className="space-y-4">
                   <h4 className="font-semibold text-center text-lg flex items-center justify-center gap-2">
                     <CalendarIcon className="w-5 h-5" />
@@ -637,47 +754,4 @@ export const AppointmentBookingField: React.FC<AppointmentBookingFieldProps> = (
                 )}
 
                 <Button
-                  onClick={handleGoogleCalendarBooking}
-                  disabled={!selectedDate || !selectedTime || bookingStatus === 'booking'}
-                  className="w-full"
-                >
-                  {bookingStatus === 'booking' ? 'Booking...' : 'Book Appointment'}
-                </Button>
-              </div>
-            )}
-
-            {calendlyConnected && !calendarConnected && (
-              <div className="space-y-4">
-                {calendlyEmail && (
-                  <div className="flex items-center justify-center text-sm text-muted-foreground bg-muted/30 rounded-lg p-3">
-                    <CalendarIcon className="w-4 h-4 mr-2" />
-                    <span>Connected to {calendlyEmail}</span>
-                  </div>
-                )}
-
-                <div 
-                  id={`calendly-${field.id}`}
-                  className="w-full rounded-lg overflow-hidden border min-h-[630px]"
-                  style={{ height: '630px' }}
-                />
-              </div>
-            )}
-          </>
-        )}
-
-        {bookingStatus === 'error' && (
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              {errorMessage || 'Failed to book appointment. Please try again.'}
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {error && (
-          <p className="text-sm text-red-600">{error}</p>
-        )}
-      </CardContent>
-    </Card>
-  );
-};
+                  onClick={handleG
