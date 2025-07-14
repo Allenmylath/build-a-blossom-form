@@ -73,7 +73,7 @@ export const FormSaveDialog = ({ isOpen, onClose, onSave, initialData, fields = 
       description: formData.description,
       isPublic: formData.isPublic,
       knowledgeBaseId: formData.knowledgeBaseId || undefined,
-      chatFlowId: formData.chatFlowId || undefined,
+      chatFlowId: formData.chatFlowId === 'none' ? undefined : (formData.chatFlowId || undefined),
     });
   };
 
@@ -170,7 +170,7 @@ export const FormSaveDialog = ({ isOpen, onClose, onSave, initialData, fields = 
                   <SelectValue placeholder="Select a chat flow (optional)" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No chat flow</SelectItem>
+                  <SelectItem value="none">No chat flow</SelectItem>
                   {chatFlows.map((flow) => (
                     <SelectItem key={flow.id} value={flow.id}>
                       <div className="flex items-center gap-2">

@@ -67,6 +67,7 @@ export type Database = {
           is_active: boolean | null
           organization_uri: string | null
           refresh_token_encrypted: string | null
+          scheduling_urls: Json | null
           updated_at: string | null
           user_id: string
         }
@@ -80,6 +81,7 @@ export type Database = {
           is_active?: boolean | null
           organization_uri?: string | null
           refresh_token_encrypted?: string | null
+          scheduling_urls?: Json | null
           updated_at?: string | null
           user_id: string
         }
@@ -93,6 +95,7 @@ export type Database = {
           is_active?: boolean | null
           organization_uri?: string | null
           refresh_token_encrypted?: string | null
+          scheduling_urls?: Json | null
           updated_at?: string | null
           user_id?: string
         }
