@@ -14,6 +14,7 @@ import ChatDesign from '@/pages/ChatDesign';
 import Integrations from '@/pages/Integrations';
 import Settings from '@/pages/Settings';
 import KnowledgeBase from '@/pages/KnowledgeBase';
+import Payments from '@/pages/Payments';
 import Pricing from '@/pages/Pricing';
 import Auth from '@/pages/Auth';
 import NotFound from '@/pages/NotFound';
@@ -119,6 +120,20 @@ function App() {
             } 
           />
           
+          {/* Payments route */}
+          <Route 
+            path="/payments" 
+            element={
+              <AppLayout>
+                {user ? (
+                  <Payments />
+                ) : (
+                  <FormBuilderWithAuth />
+                )}
+              </AppLayout>
+            } 
+          />
+
           {/* Settings route */}
           <Route 
             path="/settings" 

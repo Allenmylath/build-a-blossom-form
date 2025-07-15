@@ -1,4 +1,4 @@
-import { FileText, MessageSquare, Settings, CreditCard, Workflow } from "lucide-react";
+import { FileText, MessageSquare, Settings, CreditCard, Workflow, Receipt } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
   Sidebar,
@@ -18,6 +18,7 @@ const navigationItems = [
   { title: "Chat Forms", url: "/chat-forms", icon: MessageSquare },
   { title: "Chat Design", url: "/chat-design", icon: Workflow },
   { title: "Integrations", url: "/integrations", icon: Workflow },
+  { title: "Payments", url: "/payments", icon: Receipt },
   { title: "Settings", url: "/settings", icon: Settings },
   { title: "Pricing", url: "/pricing", icon: CreditCard },
 ];
