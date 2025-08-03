@@ -579,8 +579,11 @@ export const ChatFormField = ({
                 <>
                   <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
                   {transportState === "connecting" ? "Connecting..." : 
-                   transportState === "ready" ? "Getting Ready..." : 
-                   "Initializing..."}
+                   transportState === "initializing" ? "Initializing..." :
+                   transportState === "initialized" ? "Initializing..." :
+                   transportState === "authenticating" ? "Authenticating..." :
+                   transportState === "authenticated" ? "Authenticating..." :
+                   "Connecting..."}
                 </>
               ) : isConnected ? (
                 <>
