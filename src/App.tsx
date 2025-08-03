@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Toaster } from '@/components/ui/toaster';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
-import { PipecatProvider } from "@pipecat-ai/client-react";
+// Remove PipecatProvider import for now - we'll add it conditionally
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { FormBuilderWithAuth } from '@/components/FormBuilderWithAuth';
 import { SharedForm } from '@/components/SharedForm';
@@ -19,6 +19,34 @@ import Pricing from '@/pages/Pricing';
 import Auth from '@/pages/Auth';
 import NotFound from '@/pages/NotFound';
 import './App.css';
+
+// Dynamic import for PipecatProvider to handle build issues
+const PipecatWrapper = ({ children }: { children: React.ReactNode }) => {
+  const [PipecatProvider, setPipecatProvider] = useState<React.ComponentType<any> | null>(null);
+
+  useEffect(() => {
+    // Try to dynamically import PipecatProvider
+    const loadPipecat = async () => {
+      try {
+        const { PipecatProvider: Provider } = await import("@pipecat-ai/client-react");
+        setPipecatProvider(() => Provider);
+      } catch (error) {
+        console.warn("PipecatProvider not available:", error);
+        // Fallback: just render children without provider
+        setPipecatProvider(() => ({ children }: { children: React.ReactNode }) => <>{children}</>);
+      }
+    };
+
+    loadPipecat();
+  }, []);
+
+  if (!PipecatProvider) {
+    // Loading state or fallback
+    return <>{children}</>;
+  }
+
+  return <PipecatProvider>{children}</PipecatProvider>;
+};
 
 function App() {
   const { user, loading, signOut } = useSupabaseAuth();
@@ -44,7 +72,7 @@ function App() {
   };
 
   return (
-    <PipecatProvider>
+    <PipecatWrapper>
       <Router>
         <div className="min-h-screen bg-gray-50">
           <Routes>
@@ -182,7 +210,7 @@ function App() {
           <Toaster />
         </div>
       </Router>
-    </PipecatProvider>
+    </PipecatWrapper>
   );
 }
 
