@@ -4,17 +4,18 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { MessageCircle, Send, Loader2, User, Bot, AlertTriangle, Phone, PhoneOff, Mic, MicOff } from 'lucide-react';
+import { MessageCircle, Send, Loader2, User, Bot, AlertTriangle, Phone, PhoneOff, Mic, MicOff, Volume2, VolumeX, Settings } from 'lucide-react';
 import { FormField, ChatMessage, ConversationTranscript } from '@/types/form';
 import { useChatSession } from '@/hooks/useChatSession';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { 
   usePipecatClient, 
   useRTVIClientEvent, 
-  usePipecatClientMicControl, 
-  usePipecatClientTransportState 
+  usePipecatClientMicControl,
+  usePipecatClientMediaDevices 
 } from "@pipecat-ai/client-react";
 import { RTVIEvent, TransportState } from "@pipecat-ai/client-js";
+import { useToast } from "@/hooks/use-toast";
 
 interface ChatFormFieldProps {
   field: FormField;
@@ -46,6 +47,7 @@ export const ChatFormField = ({
   pipecatEndpoint = "/api/connect"
 }: ChatFormFieldProps) => {
   const { user } = useSupabaseAuth();
+  const { toast } = useToast();
   const [inputMessage, setInputMessage] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>(value?.messages || []);
   const [isLoading, setIsLoading] = useState(false);
@@ -56,6 +58,7 @@ export const ChatFormField = ({
   // Pipecat/RTVI hooks
   const pipecatClient = usePipecatClient();
   const { enableMic, isMicEnabled } = usePipecatClientMicControl();
+  const { availableMics, selectedMic, updateMic } = usePipecatClientMediaDevices();
   const [transportState, setTransportState] = useState<TransportState>("disconnected");
   
   // Helper function to determine if we're in a "connected" state (matching ConnectionButton)
@@ -347,12 +350,40 @@ export const ChatFormField = ({
     }
   };
 
-  // Handle microphone toggle
+  // Handle microphone toggle (matching VideoConsole pattern)
   const handleMicToggle = async () => {
     try {
-      await enableMic(!isMicEnabled);
+      const newState = !isMicEnabled;
+      await enableMic(newState);
+      toast({
+        title: newState ? "Microphone enabled" : "Microphone disabled",
+        description: `Microphone is now ${newState ? "on" : "off"}.`,
+      });
     } catch (error) {
       console.error("Microphone toggle error:", error);
+      toast({
+        title: "Microphone Error",
+        description: "Failed to toggle microphone. Please check permissions.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Handle microphone device change
+  const handleMicrophoneChange = async (deviceId: string) => {
+    try {
+      await updateMic(deviceId);
+      toast({
+        title: "Microphone switched",
+        description: "Microphone device has been changed.",
+      });
+    } catch (error) {
+      console.error("Failed to switch microphone:", error);
+      toast({
+        title: "Microphone Error",
+        description: "Failed to switch microphone device.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -510,13 +541,23 @@ export const ChatFormField = ({
               </div>
             )}
             
-            {/* Mic Status */}
+            {/* Mic Status with Enhanced Info */}
             {isConnected && (
-              <div className="flex items-center gap-1">
-                <Mic className={`w-3 h-3 ${isMicEnabled ? 'text-blue-600' : 'text-gray-400'}`} />
-                <span className={isMicEnabled ? 'text-blue-600' : 'text-gray-400'}>
-                  {isMicEnabled ? 'Mic On' : 'Mic Off'}
-                </span>
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1">
+                  <Mic className={`w-3 h-3 ${isMicEnabled ? 'text-blue-600' : 'text-gray-400'}`} />
+                  <span className={`text-xs ${isMicEnabled ? 'text-blue-600' : 'text-gray-400'}`}>
+                    {isMicEnabled ? 'Mic On' : 'Mic Off'}
+                  </span>
+                </div>
+                {selectedMic && (
+                  <div className="flex items-center gap-1">
+                    <Settings className="w-3 h-3 text-gray-400" />
+                    <span className="text-xs text-gray-400 max-w-20 truncate">
+                      {selectedMic.label || 'Default'}
+                    </span>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -580,9 +621,9 @@ export const ChatFormField = ({
           <div ref={messagesEndRef} />
         </ScrollArea>
 
-        {/* Voice Controls */}
-        <div className="px-4 py-2 border-t bg-gray-50">
-          <div className="flex gap-2 justify-center">
+        {/* Voice Controls with Device Management */}
+        <div className="px-4 py-3 border-t bg-gray-50">
+          <div className="flex gap-2 justify-center items-center">
             <Button
               onClick={handleConnectionToggle}
               disabled={isConnecting}
@@ -603,7 +644,7 @@ export const ChatFormField = ({
               ) : isConnected ? (
                 <>
                   <PhoneOff className="w-4 h-4" />
-                  Disconnect Voice
+                  Disconnect
                 </>
               ) : (
                 <>
@@ -614,26 +655,79 @@ export const ChatFormField = ({
             </Button>
             
             {isConnected && (
-              <Button
-                onClick={handleMicToggle}
-                variant={isMicEnabled ? "destructive" : "outline"}
-                size="sm"
-                className="flex items-center gap-2"
-              >
-                {isMicEnabled ? (
-                  <>
-                    <MicOff className="w-4 h-4" />
-                    Mute
-                  </>
-                ) : (
-                  <>
-                    <Mic className="w-4 h-4" />
-                    Unmute
-                  </>
+              <>
+                <Button
+                  onClick={handleMicToggle}
+                  variant={isMicEnabled ? "default" : "destructive"}
+                  size="sm"
+                  className="flex items-center gap-2"
+                  title={isMicEnabled ? "Mute microphone" : "Unmute microphone"}
+                >
+                  {isMicEnabled ? (
+                    <>
+                      <Mic className="w-4 h-4" />
+                      Mic On
+                    </>
+                  ) : (
+                    <>
+                      <MicOff className="w-4 h-4" />
+                      Mic Off
+                    </>
+                  )}
+                </Button>
+
+                {/* Microphone Device Selector */}
+                {availableMics.length > 1 && (
+                  <div className="relative group">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex items-center gap-2"
+                      title="Microphone settings"
+                    >
+                      <Settings className="w-4 h-4" />
+                    </Button>
+                    
+                    {/* Device Selection Dropdown */}
+                    <div className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 bg-white border border-gray-200 rounded-lg p-3 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none group-hover:pointer-events-auto min-w-48 z-50">
+                      <label className="text-xs font-medium text-gray-600 mb-2 block">
+                        Select Microphone
+                      </label>
+                      <select 
+                        value={selectedMic?.deviceId || ""} 
+                        onChange={(e) => handleMicrophoneChange(e.target.value)}
+                        className="w-full text-xs bg-white border border-gray-200 rounded px-2 py-1"
+                      >
+                        {availableMics.map((mic) => (
+                          <option key={mic.deviceId} value={mic.deviceId}>
+                            {mic.label || `Microphone ${mic.deviceId.slice(0, 8)}`}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
                 )}
-              </Button>
+              </>
             )}
           </div>
+          
+          {/* Device Status */}
+          {isConnected && (
+            <div className="mt-2 text-center">
+              <div className="flex items-center justify-center gap-3 text-xs text-gray-500">
+                <div className="flex items-center gap-1">
+                  <div className={`w-2 h-2 rounded-full ${isMicEnabled ? 'bg-green-500' : 'bg-red-500'}`} />
+                  <span>{isMicEnabled ? 'Mic Active' : 'Mic Muted'}</span>
+                </div>
+                {selectedMic && (
+                  <div className="flex items-center gap-1">
+                    <Mic className="w-3 h-3" />
+                    <span>{selectedMic.label || 'Default Mic'}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Text Input Area */}
@@ -700,6 +794,7 @@ export const ChatFormField = ({
           <div>Voice: {isConnected ? 'Connected' : 'Disconnected'} | Mic: {isMicEnabled ? 'On' : 'Off'}</div>
           <div>PipecatClient: {pipecatClient ? 'Available' : 'Not Available'}</div>
           <div>isConnecting: {isConnecting ? 'Yes' : 'No'} | isLoading: {isLoading ? 'Yes' : 'No'}</div>
+          <div>Available Mics: {availableMics.length} | Selected: {selectedMic?.label || 'None'}</div>
         </div>
       )}
     </div>
