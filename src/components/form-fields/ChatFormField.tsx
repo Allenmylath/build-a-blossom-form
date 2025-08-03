@@ -322,7 +322,7 @@ export const ChatFormField = ({
         console.log("🔌 Attempting to connect...");
         setIsLoading(true);
         
-        const endpoint = `${import.meta.env.VITE_PIPECAT_API_URL || "hhttps://manjujayamurali--secondbrain-fastapi-app.modal.run"}/connect`;
+        const endpoint = `${import.meta.env.VITE_PIPECAT_API_URL || "https://manjujayamurali--secondbrain-fastapi-app.modal.run"}/connect`;
         console.log("🔗 Connection endpoint:", endpoint);
         
         const requestData = {
