@@ -12,7 +12,8 @@ import {
   usePipecatClient, 
   useRTVIClientEvent, 
   usePipecatClientMicControl,
-  usePipecatClientMediaDevices 
+  usePipecatClientMediaDevices,
+  usePipecatClientTransportState 
 } from "@pipecat-ai/client-react";
 import { RTVIEvent, TransportState } from "@pipecat-ai/client-js";
 import { useToast } from "@/hooks/use-toast";
