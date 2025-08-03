@@ -55,19 +55,14 @@ export const ChatFormField = ({
   const [lastSaveHash, setLastSaveHash] = useState<string>('');
   const [isInitialized, setIsInitialized] = useState(false);
   
-  // Pipecat/RTVI hooks
+  // Pipecat/RTVI hooks (following working ChatConsole pattern)
   const pipecatClient = usePipecatClient();
   const { enableMic, isMicEnabled } = usePipecatClientMicControl();
   const { availableMics, selectedMic, updateMic } = usePipecatClientMediaDevices();
-  const [transportState, setTransportState] = useState<TransportState>("disconnected");
+  const transportState = usePipecatClientTransportState();
   
-  // Helper function to determine if we're in a "connected" state (matching ConnectionButton)
-  const isConnectedState = (state: TransportState): boolean => {
-    return state === "connected" || state === "ready";
-  };
-  
-  // Transport state checks
-  const isConnected = isConnectedState(transportState);
+  // ✅ SIMPLIFIED: Direct transport state checks (matching ChatConsole)
+  const isConnected = transportState === "connected" || transportState === "ready";
   const isConnecting = transportState === "connecting" || 
                       transportState === "initializing" || 
                       transportState === "initialized" || 
@@ -155,23 +150,9 @@ export const ChatFormField = ({
     [formId, field.id, sessionId, saveConversationTranscript, lastSaveHash, createConversationHash]
   );
 
-  // RTVI Event Handlers
+  // RTVI Event Handlers (matching ChatConsole pattern)
 
-  // Listen to transport state changes (matching ConnectionButton pattern)
-  useRTVIClientEvent(
-    RTVIEvent.TransportStateChanged,
-    useCallback((state: TransportState) => {
-      console.log("🔄 Transport state changed to:", state);
-      setTransportState(state);
-      
-      // Reset loading state when we reach a final state
-      if (state === "connected" || state === "ready" || state === "disconnected" || state === "error") {
-        setIsLoading(false);
-      }
-    }, [])
-  );
-
-  // Listen to user transcription events - FINAL ONLY (matching ChatConsole pattern)
+  // Listen to user transcription events - FINAL ONLY (matching ChatConsole)
   useRTVIClientEvent(RTVIEvent.UserTranscript, useCallback((data: any) => {
     console.log("🎤 User transcription event:", JSON.stringify(data, null, 2));
     const transcriptText = data?.text || data?.data?.text || "";
@@ -198,7 +179,7 @@ export const ChatFormField = ({
     }
   }, [messages, generateMessageId, saveConversationDebounced]));
 
-  // Listen to bot transcription (LLM responses) (matching ChatConsole pattern)
+  // Listen to bot transcription (LLM responses) (matching ChatConsole)
   useRTVIClientEvent(RTVIEvent.BotTranscript, useCallback((data: any) => {
     console.log("🤖 Bot transcription event:", JSON.stringify(data, null, 2));
     const transcriptText = data?.text || data?.data?.text || "";
@@ -309,22 +290,20 @@ export const ChatFormField = ({
     };
   }, []);
 
-  // Connection handlers (matching ConnectionButton pattern)
+  // Connection handlers (matching ChatConsole pattern)
   const handleConnectionToggle = async () => {
     console.log("🔘 Connect button clicked - Current state:", transportState);
     console.log("🔘 pipecatClient available:", !!pipecatClient);
     
     try {
-      const connected = isConnectedState(transportState);
-      console.log("🔘 Is currently connected:", connected);
-      
-      if (connected) {
+      if (isConnected) {
         console.log("🔌 Attempting to disconnect...");
         await pipecatClient?.disconnect();
       } else {
         console.log("🔌 Attempting to connect...");
         setIsLoading(true);
         
+        // Use original URL as requested
         const endpoint = `${import.meta.env.VITE_PIPECAT_API_URL || "https://manjujayamurali--pipecat-modal-fastapi-app.modal.run"}/connect`;
         console.log("🔗 Connection endpoint:", endpoint);
         
@@ -336,13 +315,13 @@ export const ChatFormField = ({
         };
         console.log("📦 Request data:", requestData);
         
-        // Use the same URL pattern as ConnectionButton
         await pipecatClient?.connect({
           endpoint,
           requestData,
         });
         
         console.log("✅ Connect request sent successfully");
+        setIsLoading(false);
       }
     } catch (error) {
       console.error("❌ Connection error:", error);
@@ -478,7 +457,7 @@ export const ChatFormField = ({
     }
   };
 
-  // Connection status functions (matching ConnectionButton pattern)
+  // Connection status functions (matching ChatConsole pattern)
   const getConnectionStatusColor = () => {
     if (isConnected) return 'bg-green-500';
     if (isConnecting) return 'bg-yellow-500 animate-pulse';
