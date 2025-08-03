@@ -3,10 +3,18 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { MessageCircle, Send, Loader2, User, Bot, AlertTriangle } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { MessageCircle, Send, Loader2, User, Bot, AlertTriangle, Phone, PhoneOff, Mic, MicOff } from 'lucide-react';
 import { FormField, ChatMessage, ConversationTranscript } from '@/types/form';
 import { useChatSession } from '@/hooks/useChatSession';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
+import { 
+  usePipecatClient, 
+  useRTVIClientEvent, 
+  usePipecatClientMicControl, 
+  usePipecatClientTransportState 
+} from "@pipecat-ai/client-react";
+import { RTVIEvent, TransportState } from "@pipecat-ai/client-js";
 
 interface ChatFormFieldProps {
   field: FormField;
@@ -14,6 +22,7 @@ interface ChatFormFieldProps {
   onChange: (transcript: ConversationTranscript) => void;
   error?: string;
   formId?: string;
+  pipecatEndpoint?: string;
 }
 
 // Utility function for debouncing
@@ -28,21 +37,43 @@ function debounce<T extends (...args: any[]) => any>(
   };
 }
 
-export const ChatFormField = ({ field, value, onChange, error, formId }: ChatFormFieldProps) => {
+export const ChatFormField = ({ 
+  field, 
+  value, 
+  onChange, 
+  error, 
+  formId,
+  pipecatEndpoint = "/api/connect"
+}: ChatFormFieldProps) => {
   const { user } = useSupabaseAuth();
   const [inputMessage, setInputMessage] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>(value?.messages || []);
   const [isLoading, setIsLoading] = useState(false);
+  const [isListening, setIsListening] = useState(false);
   const [lastSaveHash, setLastSaveHash] = useState<string>('');
   const [isInitialized, setIsInitialized] = useState(false);
   
+  // Pipecat/RTVI hooks
+  const pipecatClient = usePipecatClient();
+  const { enableMic, isMicEnabled } = usePipecatClientMicControl();
+  const transportState = usePipecatClientTransportState();
+  
+  // Transport state checks
+  const isConnected = transportState === "connected" || transportState === "ready";
+  const isConnecting = transportState === "connecting" || 
+                      transportState === "initializing" || 
+                      transportState === "initialized" || 
+                      transportState === "authenticating" || 
+                      transportState === "authenticated";
+  const isDisconnected = transportState === "disconnected";
+  const hasError = transportState === "error";
+
   // Create persistent session ID based on form, field, and browser session
   const [sessionId] = useState(() => {
     if (!formId || !field.id) {
       return `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     }
     
-    // Create a persistent session key based on form, field, and browser session
     const browserSessionKey = sessionStorage.getItem('browser_session_id') || 
       (() => {
         const newKey = `browser_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -92,7 +123,6 @@ export const ChatFormField = ({ field, value, onChange, error, formId }: ChatFor
         return;
       }
       
-      // Create a hash of the conversation to prevent duplicate saves
       const conversationHash = createConversationHash(messages);
       
       if (conversationHash === lastSaveHash) {
@@ -113,9 +143,83 @@ export const ChatFormField = ({ field, value, onChange, error, formId }: ChatFor
       } catch (error) {
         console.error('❌ Failed to save conversation:', error);
       }
-    }, 1000), // 1 second debounce
+    }, 1000),
     [formId, field.id, sessionId, saveConversationTranscript, lastSaveHash, createConversationHash]
   );
+
+  // RTVI Event Handlers
+
+  // Listen to user transcription events - FINAL ONLY
+  useRTVIClientEvent(RTVIEvent.UserTranscript, useCallback((data: any) => {
+    console.log("🎤 User transcription event:", JSON.stringify(data, null, 2));
+    const transcriptText = data?.text || data?.data?.text || "";
+    const isFinal = data?.final ?? data?.data?.final ?? false;
+    const timestamp = data?.timestamp || data?.data?.timestamp || Date.now();
+    
+    console.log("Parsed transcript:", { transcriptText, isFinal, timestamp });
+
+    // Only save final transcriptions to Supabase
+    if (isFinal && transcriptText && transcriptText.trim()) {
+      console.log("✅ Adding final user transcript:", transcriptText);
+      const message: ChatMessage = {
+        id: generateMessageId('user'),
+        type: 'user',
+        content: transcriptText.trim(),
+        timestamp: new Date(timestamp)
+      };
+      
+      const updatedMessages = [...messages, message];
+      setMessages(updatedMessages);
+      
+      // Save to Supabase
+      saveConversationDebounced(updatedMessages);
+    }
+  }, [messages, generateMessageId, saveConversationDebounced]));
+
+  // Listen to bot transcription (LLM responses)
+  useRTVIClientEvent(RTVIEvent.BotTranscript, useCallback((data: any) => {
+    console.log("🤖 Bot transcription event:", JSON.stringify(data, null, 2));
+    const transcriptText = data?.text || data?.data?.text || "";
+    
+    // Save all bot responses to Supabase
+    if (transcriptText && transcriptText.trim()) {
+      console.log("✅ Adding bot transcript:", transcriptText);
+      const message: ChatMessage = {
+        id: generateMessageId('bot'),
+        type: 'bot',
+        content: transcriptText.trim(),
+        timestamp: new Date()
+      };
+      
+      const updatedMessages = [...messages, message];
+      setMessages(updatedMessages);
+      
+      // Save to Supabase
+      saveConversationDebounced(updatedMessages);
+    }
+  }, [messages, generateMessageId, saveConversationDebounced]));
+
+  // Listen to user speaking events
+  useRTVIClientEvent(RTVIEvent.UserStartedSpeaking, useCallback(() => {
+    console.log("🎙️ User started speaking");
+    setIsListening(true);
+  }, []));
+
+  useRTVIClientEvent(RTVIEvent.UserStoppedSpeaking, useCallback(() => {
+    console.log("🔇 User stopped speaking");
+    setIsListening(false);
+  }, []));
+
+  // Listen to bot speaking events
+  useRTVIClientEvent(RTVIEvent.BotStartedSpeaking, useCallback(() => {
+    console.log("🤖 Bot started speaking");
+    setIsLoading(true);
+  }, []));
+
+  useRTVIClientEvent(RTVIEvent.BotStoppedSpeaking, useCallback(() => {
+    console.log("🤖 Bot stopped speaking");
+    setIsLoading(false);
+  }, []));
 
   // Load existing conversation on mount
   useEffect(() => {
@@ -131,7 +235,6 @@ export const ChatFormField = ({ field, value, onChange, error, formId }: ChatFor
             setMessages(history);
           } else {
             console.log('🆕 No existing history, initializing with welcome message');
-            // Initialize with welcome message only if no history
             const welcomeMsg: ChatMessage = {
               id: generateMessageId('welcome'),
               type: 'bot',
@@ -143,7 +246,6 @@ export const ChatFormField = ({ field, value, onChange, error, formId }: ChatFor
         })
         .catch(error => {
           console.error('❌ Error loading conversation history:', error);
-          // Fallback to welcome message
           const welcomeMsg: ChatMessage = {
             id: generateMessageId('welcome'),
             type: 'bot',
@@ -169,7 +271,7 @@ export const ChatFormField = ({ field, value, onChange, error, formId }: ChatFor
     }
   }, []);
 
-  // Update form value when messages change (but don't save to database here)
+  // Update form value when messages change
   useEffect(() => {
     if (messages.length > 0) {
       updateFormValue(messages);
@@ -185,157 +287,73 @@ export const ChatFormField = ({ field, value, onChange, error, formId }: ChatFor
     };
   }, []);
 
-  // Gemini API call function
-  const callGeminiAPI = async (messageHistory: ChatMessage[]): Promise<string> => {
-    // Note: In production, move this to a secure backend/edge function
-    const GEMINI_API_KEY = 'AIzaSyBiC8GdELF2JmUfpB_qF4yCbbu3UI6TCZU';
-    
+  // Connection handlers
+  const handleConnectionToggle = async () => {
     try {
-      // Convert message history to Gemini format (limit to last 10 messages for context)
-      const recentMessages = messageHistory.slice(-10);
-      const contents = recentMessages
-        .filter(msg => msg.type !== 'error') // Exclude error messages from API context
-        .map((msg) => ({
-          role: msg.type === 'user' ? 'user' : 'model',
-          parts: [{ text: msg.content }]
-        }));
-
-      // Add system prompt at the beginning
-      const systemContents = [
-        {
-          role: 'user',
-          parts: [{ text: 'You are a helpful AI assistant integrated into a form. Please provide helpful and accurate responses to user questions. Keep responses concise and friendly.' }]
-        },
-        {
-          role: 'model',
-          parts: [{ text: 'I understand. I\'m here to help answer questions and assist users with their inquiries. How can I help you today?' }]
-        },
-        ...contents
-      ];
-
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            contents: systemContents,
-            generationConfig: {
-              temperature: 0.7,
-              topK: 40,
-              topP: 0.95,
-              maxOutputTokens: 1024,
-            },
-            safetySettings: [
-              {
-                category: "HARM_CATEGORY_HARASSMENT",
-                threshold: "BLOCK_MEDIUM_AND_ABOVE"
-              },
-              {
-                category: "HARM_CATEGORY_HATE_SPEECH", 
-                threshold: "BLOCK_MEDIUM_AND_ABOVE"
-              },
-              {
-                category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-                threshold: "BLOCK_MEDIUM_AND_ABOVE"
-              },
-              {
-                category: "HARM_CATEGORY_DANGEROUS_CONTENT",
-                threshold: "BLOCK_MEDIUM_AND_ABOVE"
-              }
-            ]
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(`Gemini API error: ${response.status} ${response.statusText}`);
+      if (isConnected) {
+        await pipecatClient?.disconnect();
+      } else {
+        setIsLoading(true);
+        await pipecatClient?.connect({
+          endpoint: pipecatEndpoint,
+          requestData: {}
+        });
+        setIsLoading(false);
       }
-
-      const data = await response.json();
-      
-      if (!data.candidates || data.candidates.length === 0) {
-        throw new Error('No response generated from Gemini API');
-      }
-
-      return data.candidates[0].content.parts[0].text;
     } catch (error) {
-      console.error('Gemini API Error:', error);
-      throw error;
+      console.error("Connection error:", error);
+      setIsLoading(false);
     }
   };
 
-  // Handle sending a new message
-  const handleSendMessage = async () => {
-    if (!inputMessage.trim() || isLoading) return;
-
-    const userMessage = inputMessage.trim();
-    setInputMessage('');
-    setIsLoading(true);
-
-    console.log('📤 Sending message:', userMessage.substring(0, 50) + '...');
-
+  // Handle microphone toggle
+  const handleMicToggle = async () => {
     try {
-      // Add user message
-      const newUserMessage: ChatMessage = {
-        id: generateMessageId('user'),
-        type: 'user',
-        content: userMessage,
-        timestamp: new Date()
-      };
-
-      const updatedMessages = [...messages, newUserMessage];
-      setMessages(updatedMessages);
-
-      // Call Gemini API
-      console.log('🤖 Calling Gemini API...');
-      const botResponse = await callGeminiAPI(updatedMessages);
-      
-      // Add bot response
-      const newBotMessage: ChatMessage = {
-        id: generateMessageId('bot'),
-        type: 'bot',
-        content: botResponse,
-        timestamp: new Date()
-      };
-
-      const finalMessages = [...updatedMessages, newBotMessage];
-      setMessages(finalMessages);
-
-      console.log('✅ Message exchange complete, scheduling save...');
-      
-      // Save conversation with debouncing
-      saveConversationDebounced(finalMessages);
-
+      await enableMic(!isMicEnabled);
     } catch (error) {
-      console.error('❌ Chat API Error:', error);
+      console.error("Microphone toggle error:", error);
+    }
+  };
+
+  // Send text message through RTVI (not saved to Supabase directly)
+  const handleSendMessage = useCallback(async () => {
+    if (!inputMessage.trim() || !pipecatClient) return;
+    
+    const messageText = inputMessage.trim();
+    setNewMessage("");
+    
+    try {
+      console.log("📤 Sending typed message to RTVI server:", messageText);
       
+      // Send directly to RTVI server - let server manage context
+      // RTVI server will handle the response, which will trigger BotTranscript event
+      pipecatClient.appendToContext({
+        role: "user",
+        content: messageText,
+        run_immediately: true
+      }).catch(error => {
+        console.error("❌ appendToContext failed:", error);
+        const errorMessage: ChatMessage = {
+          id: generateMessageId('error'),
+          type: 'error',
+          content: "Failed to send message. Please try again.",
+          timestamp: new Date()
+        };
+        setMessages(prev => [...prev, errorMessage]);
+      });
+      
+    } catch (error) {
+      console.error("❌ Failed to process message:", error);
       const errorMessage: ChatMessage = {
         id: generateMessageId('error'),
         type: 'error',
-        content: `Sorry, I encountered an error: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again.`,
+        content: "Failed to process message. Please try again.",
         timestamp: new Date()
       };
-
-      const finalMessages = [...messages.slice(0, -1), errorMessage]; // Replace the user message with error
-      setMessages(finalMessages);
-      
-      // Save even error conversations
-      saveConversationDebounced(finalMessages);
-    } finally {
-      setIsLoading(false);
-      // Focus input after a short delay
-      setTimeout(() => {
-        if (inputRef.current) {
-          inputRef.current.focus();
-        }
-      }, 100);
+      setMessages(prev => [...prev, errorMessage]);
     }
-  };
+  }, [inputMessage, pipecatClient, generateMessageId]);
 
-  // Handle Enter key press
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -388,6 +406,23 @@ export const ChatFormField = ({ field, value, onChange, error, formId }: ChatFor
     }
   };
 
+  // Connection status functions
+  const getConnectionStatusColor = () => {
+    if (isConnected) return 'bg-green-500';
+    if (isConnecting) return 'bg-yellow-500 animate-pulse';
+    if (hasError) return 'bg-red-500 animate-pulse';
+    if (isDisconnected) return 'bg-red-500';
+    return 'bg-gray-500';
+  };
+
+  const getConnectionStatusText = () => {
+    if (isConnected) return 'Connected';
+    if (isConnecting) return 'Connecting...';
+    if (hasError) return 'Error';
+    if (isDisconnected) return 'Disconnected';
+    return transportState || 'Unknown';
+  };
+
   return (
     <div className="space-y-2">
       <label className="text-sm font-medium text-gray-700 flex items-center">
@@ -396,24 +431,52 @@ export const ChatFormField = ({ field, value, onChange, error, formId }: ChatFor
         {field.required && <span className="text-red-500 ml-1">*</span>}
       </label>
       
-      <Card className="w-full h-[400px] flex flex-col border-gray-200">
-        {/* Session Info Header */}
+      <Card className="w-full h-[500px] flex flex-col border-gray-200">
+        {/* Session Info Header with RTVI Status */}
         <div className="px-4 py-2 bg-gray-50 border-b text-xs text-gray-500 flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <MessageCircle className="w-3 h-3" />
-            <span>Session: {sessionId.split('_').pop()?.slice(0, 8).toUpperCase()}</span>
+          <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-1">
+              <MessageCircle className="w-3 h-3" />
+              <span>Session: {sessionId.split('_').pop()?.slice(0, 8).toUpperCase()}</span>
+            </div>
+            
+            {/* Connection Status */}
+            <div className="flex items-center gap-1">
+              <div className={`w-2 h-2 rounded-full ${getConnectionStatusColor()}`} />
+              <span>{getConnectionStatusText()}</span>
+            </div>
+            
+            {/* Listening Indicator */}
+            {isListening && (
+              <Badge variant="outline" className="text-xs bg-blue-50 border-blue-200 text-blue-600">
+                <Mic className="w-3 h-3 mr-1" />
+                Listening
+              </Badge>
+            )}
           </div>
-          <div className="flex items-center space-x-1">
+          
+          <div className="flex items-center space-x-2">
+            {/* User Status */}
             {user ? (
-              <>
+              <div className="flex items-center space-x-1">
                 <User className="w-3 h-3 text-green-600" />
                 <span className="text-green-600">Authenticated</span>
-              </>
+              </div>
             ) : (
-              <>
+              <div className="flex items-center space-x-1">
                 <User className="w-3 h-3 text-gray-400" />
                 <span>Anonymous</span>
-              </>
+              </div>
+            )}
+            
+            {/* Mic Status */}
+            {isConnected && (
+              <div className="flex items-center gap-1">
+                <Mic className={`w-3 h-3 ${isMicEnabled ? 'text-blue-600' : 'text-gray-400'}`} />
+                <span className={isMicEnabled ? 'text-blue-600' : 'text-gray-400'}>
+                  {isMicEnabled ? 'Mic On' : 'Mic Off'}
+                </span>
+              </div>
             )}
           </div>
         </div>
@@ -421,38 +484,54 @@ export const ChatFormField = ({ field, value, onChange, error, formId }: ChatFor
         {/* Messages Area */}
         <ScrollArea className="flex-1 p-4">
           <div className="space-y-3">
-            {messages.map((message) => {
-              const styling = getMessageStyling(message.type);
-              
-              return (
-                <div
-                  key={message.id}
-                  className={`flex ${styling.container}`}
-                >
-                  <div className={`max-w-[80%] rounded-lg px-3 py-2 ${styling.bubble} shadow-sm`}>
-                    <div className="flex items-center space-x-2 mb-1">
-                      {styling.icon}
-                      <span className="text-xs font-medium">
-                        {getMessageDisplayName(message.type)}
-                      </span>
-                      <span className="text-xs opacity-70">
-                        {formatTime(message.timestamp)}
-                      </span>
+            {messages.length <= 1 ? (
+              <div className="text-center text-gray-500 py-8">
+                {isConnected ? (
+                  <>
+                    <p>Connected! Start speaking or type a message.</p>
+                    <p className="text-sm mt-2">AI responses available via voice and text.</p>
+                  </>
+                ) : (
+                  <>
+                    <p>Connect for voice chat or type to continue</p>
+                    <p className="text-sm">Enhanced AI conversation with voice capabilities</p>
+                  </>
+                )}
+              </div>
+            ) : (
+              messages.map((message) => {
+                const styling = getMessageStyling(message.type);
+                
+                return (
+                  <div
+                    key={message.id}
+                    className={`flex ${styling.container}`}
+                  >
+                    <div className={`max-w-[85%] rounded-lg px-3 py-2 ${styling.bubble} shadow-sm`}>
+                      <div className="flex items-center space-x-2 mb-1">
+                        {styling.icon}
+                        <span className="text-xs font-medium">
+                          {getMessageDisplayName(message.type)}
+                        </span>
+                        <span className="text-xs opacity-70">
+                          {formatTime(message.timestamp)}
+                        </span>
+                      </div>
+                      <p className="text-sm whitespace-pre-wrap break-words">
+                        {message.content}
+                      </p>
                     </div>
-                    <p className="text-sm whitespace-pre-wrap break-words">
-                      {message.content}
-                    </p>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })
+            )}
             
             {/* Loading indicator */}
             {isLoading && (
               <div className="flex justify-start">
                 <div className="bg-gray-100 border rounded-lg px-3 py-2 flex items-center space-x-2 shadow-sm">
                   <Loader2 className="w-3 h-3 animate-spin text-blue-500" />
-                  <span className="text-xs text-gray-600">{botName} is typing...</span>
+                  <span className="text-xs text-gray-600">{botName} is responding...</span>
                 </div>
               </div>
             )}
@@ -460,16 +539,67 @@ export const ChatFormField = ({ field, value, onChange, error, formId }: ChatFor
           <div ref={messagesEndRef} />
         </ScrollArea>
 
-        {/* Input Area */}
-        <div className="p-3 border-t bg-gray-50">
+        {/* Voice Controls */}
+        <div className="px-4 py-2 border-t bg-gray-50">
+          <div className="flex gap-2 justify-center">
+            <Button
+              onClick={handleConnectionToggle}
+              disabled={isConnecting}
+              variant={isConnected ? "destructive" : "default"}
+              size="sm"
+              className="flex items-center gap-2"
+            >
+              {isConnecting ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                  Connecting...
+                </>
+              ) : isConnected ? (
+                <>
+                  <PhoneOff className="w-4 h-4" />
+                  Disconnect Voice
+                </>
+              ) : (
+                <>
+                  <Phone className="w-4 h-4" />
+                  Connect Voice
+                </>
+              )}
+            </Button>
+            
+            {isConnected && (
+              <Button
+                onClick={handleMicToggle}
+                variant={isMicEnabled ? "destructive" : "outline"}
+                size="sm"
+                className="flex items-center gap-2"
+              >
+                {isMicEnabled ? (
+                  <>
+                    <MicOff className="w-4 h-4" />
+                    Mute
+                  </>
+                ) : (
+                  <>
+                    <Mic className="w-4 h-4" />
+                    Unmute
+                  </>
+                )}
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* Text Input Area */}
+        <div className="p-3 border-t">
           <div className="flex space-x-2">
             <Input
               ref={inputRef}
               value={inputMessage}
               onChange={(e) => setInputMessage(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder="Type your message..."
-              className="flex-1 bg-white"
+              placeholder={isConnected ? "Type or speak your message..." : "Type your message..."}
+              className="flex-1"
               disabled={isLoading}
               maxLength={500}
             />
@@ -486,9 +616,24 @@ export const ChatFormField = ({ field, value, onChange, error, formId }: ChatFor
               )}
             </Button>
           </div>
-          <div className="text-xs text-gray-400 mt-1 flex justify-between">
-            <span>{inputMessage.length}/500 characters</span>
-            <span>{messages.length} messages</span>
+          
+          {/* Status and Character Count */}
+          <div className="text-xs text-gray-400 mt-2 flex justify-between">
+            <span>
+              {!isConnected ? (
+                "Click 'Connect Voice' for voice chat"
+              ) : isListening ? (
+                "🎤 Voice detected - processing..."
+              ) : isMicEnabled ? (
+                "🎤 Voice enabled - speak naturally"
+              ) : (
+                "Voice connected - enable microphone to speak"
+              )}
+            </span>
+            <div className="flex gap-2">
+              <span>{inputMessage.length}/500 chars</span>
+              <span>{messages.length} messages</span>
+            </div>
           </div>
         </div>
       </Card>
@@ -504,9 +649,9 @@ export const ChatFormField = ({ field, value, onChange, error, formId }: ChatFor
       {process.env.NODE_ENV === 'development' && (
         <div className="text-xs text-gray-400 mt-2 p-2 bg-gray-50 rounded">
           <div>Session ID: {sessionId}</div>
-          <div>Messages: {messages.length}</div>
-          <div>User: {user ? user.email : 'Anonymous'}</div>
-          <div>Form ID: {formId || 'Not provided'}</div>
+          <div>Messages: {messages.length} | Transport: {transportState}</div>
+          <div>User: {user ? user.email : 'Anonymous'} | Form ID: {formId || 'Not provided'}</div>
+          <div>Voice: {isConnected ? 'Connected' : 'Disconnected'} | Mic: {isMicEnabled ? 'On' : 'Off'}</div>
         </div>
       )}
     </div>
