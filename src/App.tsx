@@ -2,7 +2,9 @@ import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Toaster } from '@/components/ui/toaster';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
-// Remove PipecatProvider import for now - we'll add it conditionally
+import { PipecatClientProvider, PipecatClientAudio } from "@pipecat-ai/client-react";
+import { PipecatClient } from "@pipecat-ai/client-js";
+import { DailyTransport } from "@pipecat-ai/daily-transport";
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { FormBuilderWithAuth } from '@/components/FormBuilderWithAuth';
 import { SharedForm } from '@/components/SharedForm';
@@ -20,33 +22,25 @@ import Auth from '@/pages/Auth';
 import NotFound from '@/pages/NotFound';
 import './App.css';
 
-// Dynamic import for PipecatProvider to handle build issues
-const PipecatWrapper = ({ children }: { children: React.ReactNode }) => {
-  const [PipecatProvider, setPipecatProvider] = useState<React.ComponentType<any> | null>(null);
+// Create Pipecat client with enhanced configuration (same as your working examples)
+const pipecatClient = new PipecatClient({
+  transport: new DailyTransport(),
+  enableMic: true,        // Enable microphone by default
+  enableCam: false,       // Disable camera for voice-only chat
+});
 
-  useEffect(() => {
-    // Try to dynamically import PipecatProvider
-    const loadPipecat = async () => {
-      try {
-        const { PipecatProvider: Provider } = await import("@pipecat-ai/client-react");
-        setPipecatProvider(() => Provider);
-      } catch (error) {
-        console.warn("PipecatProvider not available:", error);
-        // Fallback: just render children without provider
-        setPipecatProvider(() => ({ children }: { children: React.ReactNode }) => <>{children}</>);
-      }
-    };
+// Add global event listeners (same as your working examples)
+pipecatClient.on('connected', () => {
+  console.log('✅ Pipecat client connected');
+});
 
-    loadPipecat();
-  }, []);
+pipecatClient.on('disconnected', () => {
+  console.log('❌ Pipecat client disconnected');
+});
 
-  if (!PipecatProvider) {
-    // Loading state or fallback
-    return <>{children}</>;
-  }
-
-  return <PipecatProvider>{children}</PipecatProvider>;
-};
+pipecatClient.on('error', (error) => {
+  console.error('🚨 Pipecat client error:', error);
+});
 
 function App() {
   const { user, loading, signOut } = useSupabaseAuth();
@@ -72,7 +66,7 @@ function App() {
   };
 
   return (
-    <PipecatWrapper>
+    <PipecatClientProvider client={pipecatClient}>
       <Router>
         <div className="min-h-screen bg-gray-50">
           <Routes>
@@ -104,7 +98,7 @@ function App() {
               } 
             />
             
-            {/* Shared form route */}
+            {/* Shared form route - Now has Pipecat context! */}
             <Route path="/form/:id" element={<SharedForm />} />
             
             {/* Chat Forms route */}
@@ -209,8 +203,10 @@ function App() {
           </Routes>
           <Toaster />
         </div>
+        {/* Add PipecatClientAudio for bot audio playback (same as your working examples) */}
+        <PipecatClientAudio />
       </Router>
-    </PipecatWrapper>
+    </PipecatClientProvider>
   );
 }
 
