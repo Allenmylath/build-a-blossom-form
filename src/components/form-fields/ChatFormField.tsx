@@ -56,10 +56,15 @@ export const ChatFormField = ({
   // Pipecat/RTVI hooks
   const pipecatClient = usePipecatClient();
   const { enableMic, isMicEnabled } = usePipecatClientMicControl();
-  const transportState = usePipecatClientTransportState();
+  const [transportState, setTransportState] = useState<TransportState>("disconnected");
+  
+  // Helper function to determine if we're in a "connected" state (matching ConnectionButton)
+  const isConnectedState = (state: TransportState): boolean => {
+    return state === "connected" || state === "ready";
+  };
   
   // Transport state checks
-  const isConnected = transportState === "connected" || transportState === "ready";
+  const isConnected = isConnectedState(transportState);
   const isConnecting = transportState === "connecting" || 
                       transportState === "initializing" || 
                       transportState === "initialized" || 
@@ -149,7 +154,21 @@ export const ChatFormField = ({
 
   // RTVI Event Handlers
 
-  // Listen to user transcription events - FINAL ONLY
+  // Listen to transport state changes (matching ConnectionButton pattern)
+  useRTVIClientEvent(
+    RTVIEvent.TransportStateChanged,
+    useCallback((state: TransportState) => {
+      console.log("🔄 Transport state changed to:", state);
+      setTransportState(state);
+      
+      // Reset loading state when we reach a final state
+      if (state === "connected" || state === "ready" || state === "disconnected" || state === "error") {
+        setIsLoading(false);
+      }
+    }, [])
+  );
+
+  // Listen to user transcription events - FINAL ONLY (matching ChatConsole pattern)
   useRTVIClientEvent(RTVIEvent.UserTranscript, useCallback((data: any) => {
     console.log("🎤 User transcription event:", JSON.stringify(data, null, 2));
     const transcriptText = data?.text || data?.data?.text || "";
@@ -176,7 +195,7 @@ export const ChatFormField = ({
     }
   }, [messages, generateMessageId, saveConversationDebounced]));
 
-  // Listen to bot transcription (LLM responses)
+  // Listen to bot transcription (LLM responses) (matching ChatConsole pattern)
   useRTVIClientEvent(RTVIEvent.BotTranscript, useCallback((data: any) => {
     console.log("🤖 Bot transcription event:", JSON.stringify(data, null, 2));
     const transcriptText = data?.text || data?.data?.text || "";
@@ -287,18 +306,25 @@ export const ChatFormField = ({
     };
   }, []);
 
-  // Connection handlers
+  // Connection handlers (matching ConnectionButton pattern)
   const handleConnectionToggle = async () => {
     try {
-      if (isConnected) {
+      const connected = isConnectedState(transportState);
+      if (connected) {
         await pipecatClient?.disconnect();
       } else {
         setIsLoading(true);
+        
+        // Use the same URL pattern as ConnectionButton
         await pipecatClient?.connect({
-          endpoint: pipecatEndpoint,
-          requestData: {}
+          endpoint: `${import.meta.env.VITE_PIPECAT_API_URL || "https://manjujayamurali--pipecat-modal-fastapi-app.modal.run"}/connect`,
+          requestData: {
+            services: {
+              llm: "gemini", 
+              tts: "cartesia",
+            },
+          },
         });
-        setIsLoading(false);
       }
     } catch (error) {
       console.error("Connection error:", error);
@@ -315,9 +341,9 @@ export const ChatFormField = ({
     }
   };
 
-  // Send text message through RTVI (not saved to Supabase directly)
+  // Send text message through RTVI (matching ChatConsole pattern)
   const handleSendMessage = useCallback(async () => {
-    if (!inputMessage.trim() || !pipecatClient) return;
+    if (!inputMessage.trim() || !isConnected || !pipecatClient) return;
     
     const messageText = inputMessage.trim();
     setInputMessage("");
@@ -352,7 +378,7 @@ export const ChatFormField = ({
       };
       setMessages(prev => [...prev, errorMessage]);
     }
-  }, [inputMessage, pipecatClient, generateMessageId]);
+  }, [inputMessage, isConnected, pipecatClient, generateMessageId]);
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -406,7 +432,7 @@ export const ChatFormField = ({
     }
   };
 
-  // Connection status functions
+  // Connection status functions (matching ConnectionButton pattern)
   const getConnectionStatusColor = () => {
     if (isConnected) return 'bg-green-500';
     if (isConnecting) return 'bg-yellow-500 animate-pulse';
@@ -552,7 +578,9 @@ export const ChatFormField = ({
               {isConnecting ? (
                 <>
                   <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                  Connecting...
+                  {transportState === "connecting" ? "Connecting..." : 
+                   transportState === "ready" ? "Getting Ready..." : 
+                   "Initializing..."}
                 </>
               ) : isConnected ? (
                 <>
