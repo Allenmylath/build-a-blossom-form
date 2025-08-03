@@ -308,26 +308,41 @@ export const ChatFormField = ({
 
   // Connection handlers (matching ConnectionButton pattern)
   const handleConnectionToggle = async () => {
+    console.log("🔘 Connect button clicked - Current state:", transportState);
+    console.log("🔘 pipecatClient available:", !!pipecatClient);
+    
     try {
       const connected = isConnectedState(transportState);
+      console.log("🔘 Is currently connected:", connected);
+      
       if (connected) {
+        console.log("🔌 Attempting to disconnect...");
         await pipecatClient?.disconnect();
       } else {
+        console.log("🔌 Attempting to connect...");
         setIsLoading(true);
+        
+        const endpoint = `${import.meta.env.VITE_PIPECAT_API_URL || "https://manjujayamurali--pipecat-modal-fastapi-app.modal.run"}/connect`;
+        console.log("🔗 Connection endpoint:", endpoint);
+        
+        const requestData = {
+          services: {
+            llm: "gemini", 
+            tts: "cartesia",
+          },
+        };
+        console.log("📦 Request data:", requestData);
         
         // Use the same URL pattern as ConnectionButton
         await pipecatClient?.connect({
-          endpoint: `${import.meta.env.VITE_PIPECAT_API_URL || "https://manjujayamurali--pipecat-modal-fastapi-app.modal.run"}/connect`,
-          requestData: {
-            services: {
-              llm: "gemini", 
-              tts: "cartesia",
-            },
-          },
+          endpoint,
+          requestData,
         });
+        
+        console.log("✅ Connect request sent successfully");
       }
     } catch (error) {
-      console.error("Connection error:", error);
+      console.error("❌ Connection error:", error);
       setIsLoading(false);
     }
   };
@@ -683,6 +698,8 @@ export const ChatFormField = ({
           <div>Messages: {messages.length} | Transport: {transportState}</div>
           <div>User: {user ? user.email : 'Anonymous'} | Form ID: {formId || 'Not provided'}</div>
           <div>Voice: {isConnected ? 'Connected' : 'Disconnected'} | Mic: {isMicEnabled ? 'On' : 'Off'}</div>
+          <div>PipecatClient: {pipecatClient ? 'Available' : 'Not Available'}</div>
+          <div>isConnecting: {isConnecting ? 'Yes' : 'No'} | isLoading: {isLoading ? 'Yes' : 'No'}</div>
         </div>
       )}
     </div>
