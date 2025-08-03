@@ -320,7 +320,7 @@ export const ChatFormField = ({
     if (!inputMessage.trim() || !pipecatClient) return;
     
     const messageText = inputMessage.trim();
-    setNewMessage("");
+    setInputMessage("");
     
     try {
       console.log("📤 Sending typed message to RTVI server:", messageText);
