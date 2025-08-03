@@ -1,8 +1,8 @@
-
 import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Toaster } from '@/components/ui/toaster';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
+import { PipecatProvider } from "@pipecat-ai/client-react";
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { FormBuilderWithAuth } from '@/components/FormBuilderWithAuth';
 import { SharedForm } from '@/components/SharedForm';
@@ -44,143 +44,145 @@ function App() {
   };
 
   return (
-    <Router>
-      <div className="min-h-screen bg-gray-50">
-        <Routes>
-          {/* Main form builder route */}
-          <Route 
-            path="/" 
-            element={
-              <AppLayout>
-                {user ? (
-                  <FormBuilderWithAuth />
-                ) : (
-                  <FormBuilderWithAuth />
-                )}
-              </AppLayout>
-            } 
-          />
-          
-          {/* Forms management route */}
-          <Route 
-            path="/forms" 
-            element={
-              <AppLayout>
-                {user ? (
-                  <Forms user={user} />
-                ) : (
-                  <FormBuilderWithAuth />
-                )}
-              </AppLayout>
-            } 
-          />
-          
-          {/* Shared form route */}
-          <Route path="/form/:id" element={<SharedForm />} />
-          
-          {/* Chat Forms route */}
-          <Route 
-            path="/chat-forms" 
-            element={
-              <AppLayout>
-                {user ? (
-                  <ChatForms user={user} />
-                ) : (
-                  <FormBuilderWithAuth />
-                )}
-              </AppLayout>
-            } 
-          />
-          
-          {/* Chat Design route */}
-          <Route 
-            path="/chat-design" 
-            element={
-              <AppLayout>
-                {user ? (
-                  <ChatDesign />
-                ) : (
-                  <FormBuilderWithAuth />
-                )}
-              </AppLayout>
-            } 
-          />
-          
-          {/* Integrations route */}
-          <Route 
-            path="/integrations" 
-            element={
-              <AppLayout>
-                {user ? (
-                  <Integrations />
-                ) : (
-                  <FormBuilderWithAuth />
-                )}
-              </AppLayout>
-            } 
-          />
-          
-          {/* Payments route */}
-          <Route 
-            path="/payments" 
-            element={
-              <AppLayout>
-                {user ? (
-                  <Payments />
-                ) : (
-                  <FormBuilderWithAuth />
-                )}
-              </AppLayout>
-            } 
-          />
+    <PipecatProvider>
+      <Router>
+        <div className="min-h-screen bg-gray-50">
+          <Routes>
+            {/* Main form builder route */}
+            <Route 
+              path="/" 
+              element={
+                <AppLayout>
+                  {user ? (
+                    <FormBuilderWithAuth />
+                  ) : (
+                    <FormBuilderWithAuth />
+                  )}
+                </AppLayout>
+              } 
+            />
+            
+            {/* Forms management route */}
+            <Route 
+              path="/forms" 
+              element={
+                <AppLayout>
+                  {user ? (
+                    <Forms user={user} />
+                  ) : (
+                    <FormBuilderWithAuth />
+                  )}
+                </AppLayout>
+              } 
+            />
+            
+            {/* Shared form route */}
+            <Route path="/form/:id" element={<SharedForm />} />
+            
+            {/* Chat Forms route */}
+            <Route 
+              path="/chat-forms" 
+              element={
+                <AppLayout>
+                  {user ? (
+                    <ChatForms user={user} />
+                  ) : (
+                    <FormBuilderWithAuth />
+                  )}
+                </AppLayout>
+              } 
+            />
+            
+            {/* Chat Design route */}
+            <Route 
+              path="/chat-design" 
+              element={
+                <AppLayout>
+                  {user ? (
+                    <ChatDesign />
+                  ) : (
+                    <FormBuilderWithAuth />
+                  )}
+                </AppLayout>
+              } 
+            />
+            
+            {/* Integrations route */}
+            <Route 
+              path="/integrations" 
+              element={
+                <AppLayout>
+                  {user ? (
+                    <Integrations />
+                  ) : (
+                    <FormBuilderWithAuth />
+                  )}
+                </AppLayout>
+              } 
+            />
+            
+            {/* Payments route */}
+            <Route 
+              path="/payments" 
+              element={
+                <AppLayout>
+                  {user ? (
+                    <Payments />
+                  ) : (
+                    <FormBuilderWithAuth />
+                  )}
+                </AppLayout>
+              } 
+            />
 
-          {/* Settings route */}
-          <Route 
-            path="/settings" 
-            element={
-              <AppLayout>
-                {user ? (
-                  <Settings user={user} onSignOut={signOut} />
-                ) : (
-                  <FormBuilderWithAuth />
-                )}
-              </AppLayout>
-            } 
-          />
+            {/* Settings route */}
+            <Route 
+              path="/settings" 
+              element={
+                <AppLayout>
+                  {user ? (
+                    <Settings user={user} onSignOut={signOut} />
+                  ) : (
+                    <FormBuilderWithAuth />
+                  )}
+                </AppLayout>
+              } 
+            />
 
-          {/* Knowledge Base route */}
-          <Route 
-            path="/knowledge-base" 
-            element={
-              <AppLayout>
-                {user ? (
-                  <KnowledgeBase user={user} />
-                ) : (
-                  <FormBuilderWithAuth />
-                )}
-              </AppLayout>
-            } 
-          />
-          
-          {/* Pricing route */}
-          <Route 
-            path="/pricing" 
-            element={
-              <AppLayout>
-                <Pricing />
-              </AppLayout>
-            } 
-          />
-          
-          {/* Auth route */}
-          <Route path="/auth" element={<Auth />} />
-          
-          {/* 404 route */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-        <Toaster />
-      </div>
-    </Router>
+            {/* Knowledge Base route */}
+            <Route 
+              path="/knowledge-base" 
+              element={
+                <AppLayout>
+                  {user ? (
+                    <KnowledgeBase user={user} />
+                  ) : (
+                    <FormBuilderWithAuth />
+                  )}
+                </AppLayout>
+              } 
+            />
+            
+            {/* Pricing route */}
+            <Route 
+              path="/pricing" 
+              element={
+                <AppLayout>
+                  <Pricing />
+                </AppLayout>
+              } 
+            />
+            
+            {/* Auth route */}
+            <Route path="/auth" element={<Auth />} />
+            
+            {/* 404 route */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+          <Toaster />
+        </div>
+      </Router>
+    </PipecatProvider>
   );
 }
 
