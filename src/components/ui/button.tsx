@@ -1,24 +1,39 @@
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { cva, type VariantProps } from "class-variance-authority"
-
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
-        default: "bg-primary/80 text-primary-foreground hover:bg-primary/90 shadow-sm",
-        destructive:
-          "bg-destructive text-destructive-foreground hover:bg-destructive/90",
-        outline:
-          "border border-primary/30 bg-background/50 text-foreground hover:bg-primary/10 hover:text-primary hover:border-primary/50",
-        secondary:
-          "bg-secondary/70 text-secondary-foreground hover:bg-secondary/80 shadow-sm",
-        ghost: "hover:bg-primary/10 hover:text-primary",
-        link: "text-primary/80 underline-offset-4 hover:underline hover:text-primary",
-        subtle: "bg-background/80 text-foreground border border-border/50 hover:bg-primary/5 hover:border-primary/30",
+        // Primary: Dark Moss Green with Cornsilk text
+        default: "bg-[#606c38] text-[#fefae0] hover:bg-[#4a5429] shadow-sm focus-visible:ring-[#606c38]",
+        
+        // Destructive: Tigers Eye for warning/delete actions
+        destructive: "bg-[#bc6c25] text-[#fefae0] hover:bg-[#a15d20] focus-visible:ring-[#bc6c25]",
+        
+        // Outline: Pakistan Green border with transparent background
+        outline: "border border-[#283618] bg-transparent text-[#283618] hover:bg-[#283618] hover:text-[#fefae0] focus-visible:ring-[#283618]",
+        
+        // Secondary: Earth Yellow with Pakistan Green text
+        secondary: "bg-[#dda15e] text-[#283618] hover:bg-[#d4964f] shadow-sm focus-visible:ring-[#dda15e]",
+        
+        // Ghost: Subtle hover with Pakistan Green
+        ghost: "text-[#283618] hover:bg-[#606c38]/10 hover:text-[#606c38] focus-visible:ring-[#606c38]",
+        
+        // Link: Pakistan Green with underline
+        link: "text-[#283618] underline-offset-4 hover:underline hover:text-[#606c38] focus-visible:ring-[#606c38]",
+        
+        // Subtle: Light Earth Yellow background
+        subtle: "bg-[#fefae0] text-[#283618] border border-[#dda15e]/30 hover:bg-[#dda15e]/20 hover:border-[#606c38]/50 focus-visible:ring-[#606c38]",
+        
+        // New variant: Forest (using Pakistan Green)
+        forest: "bg-[#283618] text-[#fefae0] hover:bg-[#1f2a12] shadow-sm focus-visible:ring-[#283618]",
+        
+        // New variant: Warm (Earth Yellow with good contrast)
+        warm: "bg-[#fefae0] text-[#283618] border border-[#dda15e] hover:bg-[#dda15e]/20 hover:border-[#606c38] focus-visible:ring-[#dda15e]",
       },
       size: {
         default: "h-10 px-4 py-2",
@@ -52,6 +67,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     )
   }
 )
+
 Button.displayName = "Button"
 
 export { Button, buttonVariants }
